@@ -162,6 +162,7 @@ function hint(glyph, ppem, strategy) {
 		+ Math.max(0, ppem <= PPEM_INCREASE_GLYPH_LIMIT ? oPixelTop - BLUEZONE_TOP_BAR : oPixelTop - BLUEZONE_TOP_CENTER);
 
 	function cy(y, w0, w, x) {
+		// x means this stroke is topmost or bottommost
 		var p = (y - w0 - BLUEZONE_BOTTOM_BAR) / (BLUEZONE_TOP_BAR - BLUEZONE_BOTTOM_BAR - w0);
 		if (x) {
 			return w + cybx + (cytx - cybx - w) * p;
@@ -198,15 +199,19 @@ function hint(glyph, ppem, strategy) {
 		for (var j = 0; j < stems.length; j++) {
 			var y0 = stems[j].yori, w0 = stems[j].width;
 			var w = calculateWidth(w0);
+
+			// The bottom limit of a stem
 			var lowlimit = atGlyphBottom(stems[j])
 				? pixelBottom + WIDTH_GEAR_MIN * uppx
 				: pixelBottom + WIDTH_GEAR_MIN * uppx + uppx;
 			if (stems[j].hasGlyphFoldBelow && !stems[j].hasGlyphStemBelow) {
 				lowlimit = Math.max(pixelBottom + (WIDTH_GEAR_MIN + 2) * uppx, lowlimit)
 			}
-			var highlimit = ppem <= PPEM_INCREASE_GLYPH_LIMIT
-				? pixelTop - (atGlyphTop(stems[j]) ? 0 : uppx)
-				: pixelTop - xclamp(
+
+			// The top limit of a stem ('s upper edge)
+			var highlimit = ppem <= PPEM_INCREASE_GLYPH_LIMIT // small sizes
+				? pixelTop - (atGlyphTop(stems[j]) ? 0 : uppx) // leave 0px for top stroke, 1 for non-top
+				: pixelTop - xclamp( // for larger size, consider BLUEZONE_TOP_BAR's value
 					atGlyphTop(stems[j]) ? 0 : uppx,
 					atGlyphTop(stems[j])
 						? round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_BAR) + roundDown(BLUEZONE_TOP_BAR - y0)
