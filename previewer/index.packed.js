@@ -1791,11 +1791,9 @@ function hint(glyph, ppem, strategy) {
 				: pixelBottom + WIDTH_GEAR_MIN * uppx + uppx;
 
 			// Add additional space below strokes with a fold under it.
-			if (stems[j].hasGlyphFoldBelow && stems[j].hasGlyphVFoldBelow && !stems[j].hasGlyphStemBelow) {
-				lowlimit = Math.max(pixelBottom + Math.max(WIDTH_GEAR_MIN + 2, WIDTH_GEAR_MIN > 1 ? WIDTH_GEAR_MIN * 2 + 2 : 0) * uppx, lowlimit);
-			} else if (stems[j].hasGlyphFoldBelow && !stems[j].hasGlyphStemBelow) {
-				lowlimit = Math.max(pixelBottom + Math.max(WIDTH_GEAR_MIN + 2, WIDTH_GEAR_MIN * 2 + 1) * uppx, lowlimit);
-			} else if (stems[j].hasGlyphFoldBelow && !stems[j].hasGlyphStemBelow) {
+			if (stems[j].hasGlyphFoldBelow && !stems[j].hasGlyphStemBelow) {
+				lowlimit = Math.max(pixelBottom + Math.max(WIDTH_GEAR_MIN + 2, WIDTH_GEAR_MIN > 2 ? WIDTH_GEAR_MIN * 2 : WIDTH_GEAR_MIN * 2 + 1) * uppx, lowlimit);
+			} else if (stems[j].hasGlyphSideFoldBelow && !stems[j].hasGlyphStemBelow) {
 				lowlimit = Math.max(pixelBottom + Math.max(WIDTH_GEAR_MIN + 2, WIDTH_GEAR_MIN * 2) * uppx, lowlimit);
 			}
 
