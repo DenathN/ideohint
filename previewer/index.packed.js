@@ -868,11 +868,11 @@ exports.extractFeature = function (glyph, strategy) {
 				}
 			};
 			if (!pts[k].touched && !pts[k].donttouch) {
-				for (var m = 1; m < keys.length; m++) {
-					if (keys[m].yori > pts[k].yori && keys[m - 1].yori <= pts[k].yori) {
-						interpolations.push([keys[m - 1].id, keys[m].id, pts[k].id, priority + (pts[k].yExtrema ? 1 : 0)]);
+				out: for (var m = 0; m < keys.length - 1; m++) if (keys[m].yori < pts[k].yori - strategy.BLUEZONE_WIDTH) {
+					for (var n = m + 1; n < keys.length; n++) if (keys[n].yori > pts[k].yori + strategy.BLUEZONE_WIDTH) {
+						interpolations.push([keys[m].id, keys[n].id, pts[k].id, priority + (pts[k].yExtrema ? 1 : 0)]);
 						pts[k].touched = true;
-						break;
+						break out;
 					}
 				}
 			}
@@ -2390,7 +2390,6 @@ function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 			})
 		});
 		// IPs
-		console.log(features.shortAbsorptions);
 		features.shortAbsorptions.sort(BY_PRIORITY_SHORT).forEach(function(group){
 			var a = glyph.indexedPoints[group[0]]
 			var b = glyph.indexedPoints[group[1]]
@@ -2508,7 +2507,6 @@ function createAdjusters(){
 	var container = document.getElementById('adjusters');
 	function update(){
 		setTimeout(render, 100);
-		console.log(strategy);
 		var buf = [];
 		for(var k in strategy) if((typeof strategy[k] === 'number' || typeof strategy[k] === 'string') && strategy[k] !== defaultStrategy[k]) buf.push("--" + k + "=" + strategy[k]);
 		resultPanel.innerHTML = buf.join(' ');

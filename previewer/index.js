@@ -95,7 +95,6 @@ function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 			})
 		});
 		// IPs
-		console.log(features.shortAbsorptions);
 		features.shortAbsorptions.sort(BY_PRIORITY_SHORT).forEach(function(group){
 			var a = glyph.indexedPoints[group[0]]
 			var b = glyph.indexedPoints[group[1]]
@@ -213,7 +212,6 @@ function createAdjusters(){
 	var container = document.getElementById('adjusters');
 	function update(){
 		setTimeout(render, 100);
-		console.log(strategy);
 		var buf = [];
 		for(var k in strategy) if((typeof strategy[k] === 'number' || typeof strategy[k] === 'string') && strategy[k] !== defaultStrategy[k]) buf.push("--" + k + "=" + strategy[k]);
 		resultPanel.innerHTML = buf.join(' ');
