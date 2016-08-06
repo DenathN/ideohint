@@ -1,25 +1,25 @@
 {
-  "name": "sfdhanautohint",
-  "description": "An optimized gridfit generator for Han characters.",
-  "version": "0.1.5",
-  "main": "./instructor.js",
-  "dependencies": {
-    "yargs": "",
-    "combined-stream": "",
-    "glob": "",
-    "dev-null": "",
-    "event-stream": "",
-    "strip-bom": "",
-    "node-static": "",
-    "JSONStream": "*",
-    "toposort": "*"
-  },
-  "bin": {
-  	"hgfhint": "./bin/hgfhint",
-	"extract-features": "./bin/extract-features",
-	"applyhgi": "./bin/applyhgi",
-  	"mergehgi": "./bin/mergehgi",
-  	"mergehgf": "./bin/mergehgf",
-  	"paramadj": "./bin/paramadj"
-  }
+	"name": "sfdhanautohint",
+	"description": "An optimized gridfit generator for Han characters.",
+	"version": "0.2.0",
+	"main": "./instructor.js",
+	"dependencies": {
+		"yargs": "",
+		"combined-stream": "",
+		"glob": "",
+		"dev-null": "",
+		"event-stream": "",
+		"strip-bom": "",
+		"node-static": "",
+		"JSONStream": "*",
+		"toposort": "*"
+	},
+	"bin": {
+		"sah-extract-features": "./bin/extract-features",
+		"sah-hgfhint": "./bin/hgfhint",
+		"sah-applyhgi": "./bin/applyhgi",
+		"sah-mergehgi": "./bin/mergehgi",
+		"sah-mergehgf": "./bin/mergehgf",
+		"sah-paramadj": "./bin/paramadj"
+	}
 }

@@ -58,6 +58,8 @@ function BY_PRIORITY_SHORT(p, q){ return q[2] - p[2] }
 function BY_PRIORITY_IP(p, q){ return q[3] - p[3] }
 function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 	var rtg = roundings.Rtg(strategy.UPM, ppem);
+	var roundDown = roundings.Rdtg(strategy.UPM, ppem);
+
 	for(var j = 0; j < glyphs.length; j++){
 		var glyph = glyphs[j].glyph, features = glyphs[j].features;
 		untouchAll(glyph.contours);
@@ -66,7 +68,7 @@ function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 		// Top blues
 		features.topBluePoints.forEach(function(pid){
 			glyph.indexedPoints[pid].touched = true;
-			glyph.indexedPoints[pid].ytouch = rtg(strategy.BLUEZONE_TOP_CENTER)
+			glyph.indexedPoints[pid].ytouch = Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER) + roundDown(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER));
 		})
 		// Bottom blues
 		features.bottomBluePoints.forEach(function(pid){ 

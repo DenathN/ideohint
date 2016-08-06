@@ -1,6 +1,7 @@
 var util = require('util');
 
 function rtg(y, upm, ppem) { return Math.round(y / upm * ppem) / ppem * upm }
+function rdtg(y, upm, ppem) { return Math.floor(y / upm * ppem) / ppem * upm }
 function pushargs(tt) {
 	var vals = [];
 	for (var j = 1; j < arguments.length; j++) vals = vals.concat(arguments[j]);
@@ -110,12 +111,28 @@ function instruct(glyph, actions, strategy, cvt, padding, useMDRPnr) {
 	tt.push('PUSHB_1', strategy.PPEM_MIN, 'MPPEM', 'LTEQ', 'PUSHB_1', strategy.PPEM_MAX, 'MPPEM', 'GT', 'AND', 'IF');
 
 	// Blue zone alignment instructions
-	for (var k = 0; k < glyph.topBluePoints.length; k++) {
-		invocations.push([[glyph.topBluePoints[k], cvtTopID], ['MIAP[rnd]']])
-	};
 	for (var k = 0; k < glyph.bottomBluePoints.length; k++) {
 		invocations.push([[glyph.bottomBluePoints[k], cvtBottomID], ['MIAP[rnd]']])
 	};
+	// top finder
+	(function () {
+		var args = [], moves = [];
+		for (var ppem = actions.length - 1; ppem > 0; ppem--) {
+			var vtop = Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem) + rdtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem));
+			var cvtid = cvt.indexOf(vtop, padding);
+			args.push(cvtid);
+		}
+		moves.push('MPPEM', 'CINDEX');
+		invocations.push([args, moves]);
+	})();
+	tt = tt.concat(invokesToInstrs(invocations, STACK_DEPTH));
+	invocations = [];
+	for (var k = 0; k < glyph.topBluePoints.length; k++) {
+		tt.push('DUP');
+		pushargs(tt, glyph.topBluePoints[k]);
+		tt.push('SWAP', 'MIAP[rnd]');
+	};
+	tt.push('CLEAR');
 
 	// Microsoft eats my deltas, i have to add additional MDAPs
 	// cf. http://www.microsoft.com/typography/cleartype/truetypecleartype.aspx#Toc227035721

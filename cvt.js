@@ -1,4 +1,5 @@
 var fs = require('fs');
+var roundings = require('./roundings');
 function pushWhenAbsent(a, x) {
 	a.push(x)
 }
@@ -13,6 +14,11 @@ function createCvt(src, strategy, padding) {
 	var upm = strategy.UPM;
 	pushWhenAbsent(cvt, strategy.BLUEZONE_TOP_CENTER);
 	pushWhenAbsent(cvt, strategy.BLUEZONE_BOTTOM_CENTER);
+	for (var ppem = 1; ppem < strategy.PPEM_MAX; ppem++) {
+		var rtg = roundings.Rtg(strategy.UPM, ppem);
+		var roundDown = roundings.Rdtg(strategy.UPM, ppem);
+		pushWhenAbsent(cvt, Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER) + roundDown(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER)));
+	}
 	for (var w = 1; w <= MAX_SW; w++) {
 		for (var ppem = strategy.PPEM_MIN; ppem < strategy.PPEM_MAX; ppem++) {
 			pushWhenAbsent(cvt, -Math.round(strategy.UPM / ppem * w))
@@ -26,7 +32,7 @@ function createCvt(src, strategy, padding) {
 	return cvt;
 };
 
-exports.from = function(argv, strategy) {
+exports.from = function (argv, strategy) {
 	var cvt = createCvt([], strategy, argv.CVT_PADDING);
 	if (argv.use_cvt) cvt = JSON.parse(fs.readFileSync(argv.usd_cvt, 'utf-8')).cvt;
 	return cvt;

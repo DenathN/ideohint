@@ -1716,11 +1716,9 @@ function hint(glyph, ppem, strategy) {
 	var flexes = glyph.flexes;
 
 	var cyb = pixelBottom
-		+ (ppem <= PPEM_INCREASE_GLYPH_LIMIT ? 0 : roundDown(BLUEZONE_BOTTOM_DOTBAR - BLUEZONE_BOTTOM_CENTER))
-		+ Math.min(0, ppem <= PPEM_INCREASE_GLYPH_LIMIT ? pixelBottom - BLUEZONE_BOTTOM_BAR : pixelBottom - BLUEZONE_BOTTOM_CENTER);
+		+ (ppem <= PPEM_INCREASE_GLYPH_LIMIT ? 0 : roundDown(BLUEZONE_BOTTOM_DOTBAR - BLUEZONE_BOTTOM_CENTER));
 	var cyt = pixelTop
-		- (ppem <= PPEM_INCREASE_GLYPH_LIMIT ? 0 : roundDown(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_DOTBAR))
-		+ Math.max(0, ppem <= PPEM_INCREASE_GLYPH_LIMIT ? oPixelTop - BLUEZONE_TOP_BAR : oPixelTop - BLUEZONE_TOP_CENTER);
+		- (ppem <= PPEM_INCREASE_GLYPH_LIMIT ? 0 : roundDown(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_DOTBAR));
 	var cybx = pixelBottom
 		+ (ppem <= PPEM_INCREASE_GLYPH_LIMIT ? 0 : roundDown(BLUEZONE_BOTTOM_BAR - BLUEZONE_BOTTOM_CENTER))
 		+ Math.min(0, ppem <= PPEM_INCREASE_GLYPH_LIMIT ? pixelBottom - BLUEZONE_BOTTOM_BAR : pixelBottom - BLUEZONE_BOTTOM_CENTER);
@@ -1729,6 +1727,7 @@ function hint(glyph, ppem, strategy) {
 		+ Math.max(0, ppem <= PPEM_INCREASE_GLYPH_LIMIT ? oPixelTop - BLUEZONE_TOP_BAR : oPixelTop - BLUEZONE_TOP_CENTER);
 
 	function cy(y, w0, w, x) {
+		// x means this stroke is topmost or bottommost
 		var p = (y - w0 - BLUEZONE_BOTTOM_BAR) / (BLUEZONE_TOP_BAR - BLUEZONE_BOTTOM_BAR - w0);
 		if (x) {
 			return w + cybx + (cytx - cybx - w) * p;
@@ -1765,15 +1764,19 @@ function hint(glyph, ppem, strategy) {
 		for (var j = 0; j < stems.length; j++) {
 			var y0 = stems[j].yori, w0 = stems[j].width;
 			var w = calculateWidth(w0);
+
+			// The bottom limit of a stem
 			var lowlimit = atGlyphBottom(stems[j])
 				? pixelBottom + WIDTH_GEAR_MIN * uppx
 				: pixelBottom + WIDTH_GEAR_MIN * uppx + uppx;
 			if (stems[j].hasGlyphFoldBelow && !stems[j].hasGlyphStemBelow) {
 				lowlimit = Math.max(pixelBottom + (WIDTH_GEAR_MIN + 2) * uppx, lowlimit)
 			}
-			var highlimit = ppem <= PPEM_INCREASE_GLYPH_LIMIT
-				? pixelTop - (atGlyphTop(stems[j]) ? 0 : uppx)
-				: pixelTop - xclamp(
+
+			// The top limit of a stem ('s upper edge)
+			var highlimit = ppem <= PPEM_INCREASE_GLYPH_LIMIT // small sizes
+				? pixelTop - (atGlyphTop(stems[j]) ? 0 : uppx) // leave 0px for top stroke, 1 for non-top
+				: pixelTop - xclamp( // for larger size, consider BLUEZONE_TOP_BAR's value
 					atGlyphTop(stems[j]) ? 0 : uppx,
 					atGlyphTop(stems[j])
 						? round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_BAR) + roundDown(BLUEZONE_TOP_BAR - y0)
@@ -2326,6 +2329,8 @@ function BY_PRIORITY_SHORT(p, q){ return q[2] - p[2] }
 function BY_PRIORITY_IP(p, q){ return q[3] - p[3] }
 function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 	var rtg = roundings.Rtg(strategy.UPM, ppem);
+	var roundDown = roundings.Rdtg(strategy.UPM, ppem);
+
 	for(var j = 0; j < glyphs.length; j++){
 		var glyph = glyphs[j].glyph, features = glyphs[j].features;
 		untouchAll(glyph.contours);
@@ -2334,7 +2339,7 @@ function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 		// Top blues
 		features.topBluePoints.forEach(function(pid){
 			glyph.indexedPoints[pid].touched = true;
-			glyph.indexedPoints[pid].ytouch = rtg(strategy.BLUEZONE_TOP_CENTER)
+			glyph.indexedPoints[pid].ytouch = Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER) + roundDown(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER));
 		})
 		// Bottom blues
 		features.bottomBluePoints.forEach(function(pid){ 
