@@ -111,22 +111,16 @@ function instruct(glyph, actions, strategy, cvt, padding, useMDRPnr) {
 	tt.push('PUSHB_1', strategy.PPEM_MIN, 'MPPEM', 'LTEQ', 'PUSHB_1', strategy.PPEM_MAX, 'MPPEM', 'GT', 'AND', 'IF');
 
 	// Blue zone alignment instructions
+	// Bottom
 	for (var k = 0; k < glyph.bottomBluePoints.length; k++) {
 		invocations.push([[glyph.bottomBluePoints[k], cvtBottomID], ['MIAP[rnd]']])
 	};
-	// top finder
-	(function () {
-		var args = [], moves = [];
-		for (var ppem = actions.length - 1; ppem > 0; ppem--) {
-			var vtop = Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem) + rdtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem));
-			var cvtid = cvt.indexOf(vtop, padding);
-			args.push(cvtid);
-		}
-		moves.push('MPPEM', 'CINDEX');
-		invocations.push([args, moves]);
-	})();
 	tt = tt.concat(invokesToInstrs(invocations, STACK_DEPTH));
 	invocations = [];
+	// Padding + 3 + ppem is the CVT index of top blue zone center.
+	tt.push('MPPEM');
+	pushargs(tt, padding + 3);
+	tt.push('ADD');
 	for (var k = 0; k < glyph.topBluePoints.length; k++) {
 		tt.push('DUP');
 		pushargs(tt, glyph.topBluePoints[k]);
@@ -231,8 +225,12 @@ function instruct(glyph, actions, strategy, cvt, padding, useMDRPnr) {
 
 	var ip = [[], [], [], [], []];
 	var sa = [[], [], [], [], []];
-	for (var j = 0; j < glyph.interpolations.length; j++) { ip[glyph.interpolations[j][3]].push(glyph.interpolations[j]) }
-	for (var j = 0; j < glyph.shortAbsorptions.length; j++) { sa[glyph.shortAbsorptions[j][2]].push(glyph.shortAbsorptions[j]) }
+	for (var j = 0; j < glyph.interpolations.length; j++) {
+		ip[glyph.interpolations[j][3]].push(glyph.interpolations[j])
+	}
+	for (var j = 0; j < glyph.shortAbsorptions.length; j++) {
+		sa[glyph.shortAbsorptions[j][2]].push(glyph.shortAbsorptions[j])
+	}
 	var ipsacalls = [];
 	for (var j = ip.length - 1; j >= 0; j--) {
 		ipsacalls = ipsacalls.concat(ipInvokes(ip[j]), shortMdrpInvokes(sa[j]))

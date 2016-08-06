@@ -838,11 +838,13 @@ exports.extractFeature = function (glyph, strategy) {
 			if (point.ytouch >= strategy.BLUEZONE_TOP_LIMIT && point.yExtrema && !point.touched && !point.donttouch) {
 				point.touched = true;
 				point.keypoint = true;
+				point.blued = true;
 				topBluePoints.push(point);
 			}
 			if (point.ytouch <= strategy.BLUEZONE_BOTTOM_LIMIT && point.yExtrema && !point.touched && !point.donttouch) {
 				point.touched = true;
 				point.keypoint = true;
+				point.blued = true;
 				bottomBluePoints.push(point);
 			}
 
@@ -855,18 +857,23 @@ exports.extractFeature = function (glyph, strategy) {
 	function BY_YORI(p, q) { return p.yori - q.yori }
 
 	function interpolateByKeys(pts, keys, inSameRadical, priority) {
-		for (var k = 0; k < pts.length; k++) if (!pts[k].touched && !pts[k].donttouch) {
-			for (var m = 1; m < keys.length; m++) {
-				if (strategy.DO_SHORT_ABSORPTION && inSameRadical
-					&& Math.hypot(pts[k].yori - keys[m - 1].yori, pts[k].xori - keys[m - 1].xori) <= strategy.MOST_COMMON_STEM_WIDTH * 1.2) {
-					shortAbsorptions.push([keys[m - 1].id, pts[k].id, priority + (pts[k].yExtrema ? 1 : 0)]);
-					pts[k].touched = true;
-					break;
+		for (var k = 0; k < pts.length; k++) {
+			if (!pts[k].touched && !pts[k].donttouch && pts[k].on && strategy.DO_SHORT_ABSORPTION && inSameRadical && pts[k].xStrongExtrema) {
+				for (var m = 0; m < keys.length; m++) {
+					if (keys[m].blued && keys[m].yStrongExtrema && Math.hypot(pts[k].yori - keys[m].yori, pts[k].xori - keys[m].xori) <= strategy.MOST_COMMON_STEM_WIDTH * 1.2) {
+						shortAbsorptions.push([keys[m].id, pts[k].id, priority + (pts[k].yExtrema ? 1 : 0)]);
+						pts[k].touched = true;
+						break;
+					}
 				}
-				if (keys[m].yori > pts[k].yori && keys[m - 1].yori <= pts[k].yori) {
-					interpolations.push([keys[m - 1].id, keys[m].id, pts[k].id, priority + (pts[k].yExtrema ? 1 : 0)]);
-					pts[k].touched = true;
-					break;
+			};
+			if (!pts[k].touched && !pts[k].donttouch) {
+				for (var m = 1; m < keys.length; m++) {
+					if (keys[m].yori > pts[k].yori && keys[m - 1].yori <= pts[k].yori) {
+						interpolations.push([keys[m - 1].id, keys[m].id, pts[k].id, priority + (pts[k].yExtrema ? 1 : 0)]);
+						pts[k].touched = true;
+						break;
+					}
 				}
 			}
 		}
@@ -2385,6 +2392,7 @@ function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 			})
 		});
 		// IPs
+		console.log(features.shortAbsorptions);
 		features.shortAbsorptions.sort(BY_PRIORITY_SHORT).forEach(function(group){
 			var a = glyph.indexedPoints[group[0]]
 			var b = glyph.indexedPoints[group[1]]

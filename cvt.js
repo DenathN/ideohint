@@ -14,10 +14,12 @@ function createCvt(src, strategy, padding) {
 	var upm = strategy.UPM;
 	pushWhenAbsent(cvt, strategy.BLUEZONE_TOP_CENTER);
 	pushWhenAbsent(cvt, strategy.BLUEZONE_BOTTOM_CENTER);
-	for (var ppem = 1; ppem < strategy.PPEM_MAX; ppem++) {
+	pushWhenAbsent(cvt, 0);
+	for (var ppem = 1; ppem <= strategy.PPEM_MAX; ppem++) {
 		var rtg = roundings.Rtg(strategy.UPM, ppem);
 		var roundDown = roundings.Rdtg(strategy.UPM, ppem);
-		pushWhenAbsent(cvt, Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER) + roundDown(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER)));
+		var vtop = Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER) + roundDown(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER));
+		pushWhenAbsent(cvt, vtop);
 	}
 	for (var w = 1; w <= MAX_SW; w++) {
 		for (var ppem = strategy.PPEM_MIN; ppem < strategy.PPEM_MAX; ppem++) {

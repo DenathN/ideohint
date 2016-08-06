@@ -95,6 +95,7 @@ function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 			})
 		});
 		// IPs
+		console.log(features.shortAbsorptions);
 		features.shortAbsorptions.sort(BY_PRIORITY_SHORT).forEach(function(group){
 			var a = glyph.indexedPoints[group[0]]
 			var b = glyph.indexedPoints[group[1]]
