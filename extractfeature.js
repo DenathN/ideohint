@@ -336,6 +336,10 @@ exports.extractFeature = function (glyph, strategy) {
 
 				hasGlyphFoldBelow: s.hasGlyphFoldBelow,
 				hasRadicalFoldBelow: s.hasRadicalFoldBelow,
+				hasGlyphSideFoldBelow: s.hasGlyphSideFoldBelow,
+				hasRadicalSideFoldBelow: s.hasRadicalSideFoldBelow,
+				hasGlyphVFoldBelow: s.hasGlyphVFoldBelow,
+				hasRadicalVFoldBelow: s.hasRadicalVFoldBelow,
 
 				posKey: { id: s.posKey.id, yori: s.posKey.yori },
 				advKey: { id: s.advKey.id, yori: s.advKey.yori },

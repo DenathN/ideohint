@@ -130,7 +130,7 @@ function instruct(glyph, actions, strategy, cvt, padding, useMDRPnr) {
 	for (var k = 0; k < glyph.topBluePoints.length; k++) {
 		tt.push('DUP');
 		pushargs(tt, glyph.topBluePoints[k]);
-		tt.push('SWAP', 'MIAP[rnd]');
+		tt.push('SWAP', 'MIAP[0]'); // Don't round top absorptions
 	};
 	tt.push('CLEAR');
 
