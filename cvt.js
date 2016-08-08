@@ -18,7 +18,7 @@ function createCvt(src, strategy, padding) {
 	for (var ppem = 1; ppem <= strategy.PPEM_MAX; ppem++) {
 		var rtg = roundings.Rtg(strategy.UPM, ppem);
 		var roundDown = roundings.Rdtg(strategy.UPM, ppem);
-		var vtop = Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER) + roundDown(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER));
+		var vtop = Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER) + rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER));
 		pushWhenAbsent(cvt, vtop);
 	}
 	for (var w = 1; w <= MAX_SW; w++) {

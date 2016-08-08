@@ -19,8 +19,8 @@ function findStems(glyph, strategy) {
 	var COEFF_S = strategy.COEFF_S || 500;
 	var MIN_OVERLAP_RATIO = strategy.MIN_OVERLAP_RATIO || 0.3;
 	var MIN_STEM_OVERLAP_RATIO = strategy.MIN_STEM_OVERLAP_RATIO || 0.2;
-	var Y_FUZZ = strategy.Y_FUZZ || 7
-	var SLOPE_FUZZ = strategy.SLOPE_FUZZ || 0.04
+	var Y_FUZZ = strategy.Y_FUZZ || 7;
+	var SLOPE_FUZZ = strategy.SLOPE_FUZZ || 0.04;
 
 	var COLLISION_MIN_OVERLAP_RATIO = strategy.COLLISION_MIN_OVERLAP_RATIO || 0.2;
 
@@ -208,17 +208,24 @@ function findStems(glyph, strategy) {
 			}
 		}
 
-		segments = segments.sort(function (p, q) { return p.xori - q.xori })
+		segments = segments.sort(function (p, q) { return p[0].xori - q[0].xori })
 
 		for (var j = 0; j < segments.length; j++) if (segments[j]) {
 			var pivot = [segments[j]];
 			var pivotRadical = segments[j].radical;
 			var orientation = pivot[0][1].xori > pivot[0][0].xori
 			segments[j] = null;
-			for (var k = j + 1; k < segments.length; k++) if (segments[k] && Math.abs(segments[k][0].yori - pivot[0][0].yori) <= Y_FUZZ && segments[k].radical === pivotRadical && orientation === (segments[k][1].xori > segments[k][0].xori)) {
-				var r = pivot.radical;
-				pivot.push(segments[k])
-				segments[k] = null;
+			for (var k = j + 1; k < segments.length; k++) if (segments[k] && segments[k].radical === pivotRadical) {
+				var stemLength = Math.abs(segments[k][1].xori - segments[k][0].xori);
+				var distanceBetween = orientation ? Math.abs(segments[k][0].xori - pivot[pivot.length - 1][1].xori)
+					: Math.abs(segments[k][1].xori - pivot[pivot.length - 1][0].xori);
+				if (Math.abs(segments[k][0].yori - pivot[0][0].yori) <= Y_FUZZ
+					&& (stemLength < MAX_STEM_WIDTH || distanceBetween <= stemLength * 2)
+					&& orientation === (segments[k][1].xori > segments[k][0].xori)) {
+					var r = pivot.radical;
+					pivot.push(segments[k])
+					segments[k] = null;
+				}
 			}
 			radicals[pivotRadical].mergedSegments.push(pivot.sort(function (s1, s2) {
 				return orientation ? s1[0].xori - s2[0].xori : s2[0].xori - s1[0].xori

@@ -95,7 +95,7 @@ function hint(glyph, ppem, strategy) {
 	var uppx = upm / ppem;
 	var pixelBottom = round(BLUEZONE_BOTTOM_CENTER);
 	var oPixelTop = round(BLUEZONE_TOP_CENTER);
-	var pixelTop = pixelBottom + roundDown(BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER);
+	var pixelTop = pixelBottom + round(BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER);
 	var glyfBottom = pixelBottom;
 	var glyfTop = pixelTop;
 
