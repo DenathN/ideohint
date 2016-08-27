@@ -1295,7 +1295,7 @@ function findStems(glyph, strategy) {
 			}
 		}
 
-		segments = segments.sort(function (p, q) { return Math.min(p[0].xori, p[1].xori) - Math.min(q[0].xori, q[1].xori) })
+		segments = segments.sort(function (p, q) { return p[0].xori - q[0].xori })
 
 		for (var j = 0; j < segments.length; j++) if (segments[j]) {
 			var pivot = [segments[j]];
@@ -1308,9 +1308,8 @@ function findStems(glyph, strategy) {
 					: Math.abs(segments[k][1].xori - pivot[pivot.length - 1][0].xori);
 				if (Math.abs(segments[k][0].yori - pivot[0][0].yori) <= Y_FUZZ
 					&& orientation === (segments[k][1].xori > segments[k][0].xori)
-					&& (
-						pendingSegmentLength < MAX_STEM_WIDTH
-					 || distanceBetween <= pendingSegmentLength * 2 && distanceBetween <= MAX_SEGMERGE_DISTANCE)) {
+					&& (pendingSegmentLength < MAX_STEM_WIDTH
+						|| distanceBetween <= pendingSegmentLength && distanceBetween <= MAX_SEGMERGE_DISTANCE)) {
 					var r = pivot.radical;
 					pivot.push(segments[k])
 					segments[k] = null;
@@ -1322,33 +1321,38 @@ function findStems(glyph, strategy) {
 		}
 	}
 
+	function pairSegmentsForRadical(radical, r) {
+		var radicalStems = [];
+		var segs = radical.mergedSegments.sort(function (a, b) { return a[0][0].yori - b[0][0].yori });
+		var ori = radical.outline.ccw;
+		// We stem segments upward-down.
+		for (var j = segs.length - 1; j >= 0; j--) if (segs[j] && ori !== (segs[j][0][0].xori < segs[j][0][segs[j][0].length - 1].xori)) {
+			var stem = { high: segs[j] };
+			for (var k = j - 1; k >= 0; k--) if (segs[k]) {
+				var segOverlap = overlapInfo(segs[j], segs[k]);
+				if (segOverlap.len / segOverlap.la >= COLLISION_MIN_OVERLAP_RATIO || segOverlap.len / segOverlap.lb >= COLLISION_MIN_OVERLAP_RATIO) {
+					if (ori === (segs[k][0][0].xori < segs[k][0][segs[k][0].length - 1].xori)
+						&& segs[j][0][0].yori - segs[k][0][0].yori <= MAX_STEM_WIDTH
+						&& segs[j][0][0].yori - segs[k][0][0].yori >= MIN_STEM_WIDTH) {
+						// A stem is found
+						stem.low = segs[k];
+						stem.yori = stem.high[0][0].yori;
+						stem.width = Math.abs(stem.high[0][0].yori - stem.low[0][0].yori);
+						stem.belongRadical = r;
+						segs[j] = segs[k] = null;
+						radicalStems.push(stem);
+					}
+					break;
+				}
+			}
+		};
+		return radicalStems;
+	}
+
 	function pairSegments(radicals) {
 		var stems = [];
 		for (var r = 0; r < radicals.length; r++) {
-			var radicalStems = [];
-			var segs = radicals[r].mergedSegments.sort(function (a, b) { return a[0][0].yori - b[0][0].yori });
-			var ori = radicals[r].outline.ccw;
-			// We stem segments upward-down.
-			for (var j = segs.length - 1; j >= 0; j--) if (segs[j] && ori !== (segs[j][0][0].xori < segs[j][0][segs[j][0].length - 1].xori)) {
-				var stem = { high: segs[j] };
-				for (var k = j - 1; k >= 0; k--) if (segs[k]) {
-					var segOverlap = overlapInfo(segs[j], segs[k]);
-					if (segOverlap.len / segOverlap.la >= COLLISION_MIN_OVERLAP_RATIO || segOverlap.len / segOverlap.lb >= COLLISION_MIN_OVERLAP_RATIO) {
-						if (ori === (segs[k][0][0].xori < segs[k][0][segs[k][0].length - 1].xori)
-							&& segs[j][0][0].yori - segs[k][0][0].yori <= MAX_STEM_WIDTH
-							&& segs[j][0][0].yori - segs[k][0][0].yori >= MIN_STEM_WIDTH) {
-							// A stem is found
-							stem.low = segs[k];
-							stem.yori = stem.high[0][0].yori;
-							stem.width = Math.abs(stem.high[0][0].yori - stem.low[0][0].yori);
-							stem.belongRadical = r;
-							segs[j] = segs[k] = null;
-							radicalStems.push(stem);
-						}
-						break;
-					}
-				}
-			};
+			var radicalStems = pairSegmentsForRadical(radicals[r], r);
 			stems = stems.concat(radicalStems)
 			radicals[r].stems = radicalStems;
 		};
