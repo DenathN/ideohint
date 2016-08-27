@@ -145,7 +145,7 @@ exports.extractFeature = function (glyph, strategy) {
 		for (var k = 0; k < pts.length; k++) {
 			if (!pts[k].touched && !pts[k].donttouch && pts[k].on && strategy.DO_SHORT_ABSORPTION && inSameRadical && pts[k].xStrongExtrema) {
 				for (var m = 0; m < keys.length; m++) {
-					if (keys[m].blued && keys[m].yStrongExtrema && Math.hypot(pts[k].yori - keys[m].yori, pts[k].xori - keys[m].xori) <= strategy.MOST_COMMON_STEM_WIDTH * 1.2) {
+					if (keys[m].blued && keys[m].yStrongExtrema && Math.hypot(pts[k].yori - keys[m].yori, pts[k].xori - keys[m].xori) <= strategy.ABSORPTION_LIMIT) {
 						shortAbsorptions.push([keys[m].id, pts[k].id, priority + (pts[k].yExtrema ? 1 : 0)]);
 						pts[k].touched = true;
 						break;

@@ -3,6 +3,7 @@ function findStems(glyph, strategy) {
 
 	var MIN_STEM_WIDTH = strategy.MIN_STEM_WIDTH || 20;
 	var MAX_STEM_WIDTH = strategy.MAX_STEM_WIDTH || 120;
+	var MAX_SEGMERGE_DISTANCE = strategy.MAX_SEGMERGE_DISTANCE || 120;
 	var STEM_SIDE_MIN_RISE = strategy.STEM_SIDE_MIN_RISE || strategy.MIN_STEM_WIDTH;
 	var STEM_CENTER_MIN_RISE = strategy.STEM_CENTER_MIN_RISE || STEM_SIDE_MIN_RISE;
 	var STEM_SIDE_MIN_DESCENT = strategy.STEM_SIDE_MIN_DESCENT || strategy.MIN_STEM_WIDTH;
@@ -208,7 +209,7 @@ function findStems(glyph, strategy) {
 			}
 		}
 
-		segments = segments.sort(function (p, q) { return p[0].xori - q[0].xori })
+		segments = segments.sort(function (p, q) { return Math.min(p[0].xori, p[1].xori) - Math.min(q[0].xori, q[1].xori) })
 
 		for (var j = 0; j < segments.length; j++) if (segments[j]) {
 			var pivot = [segments[j]];
@@ -216,12 +217,14 @@ function findStems(glyph, strategy) {
 			var orientation = pivot[0][1].xori > pivot[0][0].xori
 			segments[j] = null;
 			for (var k = j + 1; k < segments.length; k++) if (segments[k] && segments[k].radical === pivotRadical) {
-				var stemLength = Math.abs(segments[k][1].xori - segments[k][0].xori);
+				var pendingSegmentLength = Math.abs(segments[k][1].xori - segments[k][0].xori);
 				var distanceBetween = orientation ? Math.abs(segments[k][0].xori - pivot[pivot.length - 1][1].xori)
 					: Math.abs(segments[k][1].xori - pivot[pivot.length - 1][0].xori);
 				if (Math.abs(segments[k][0].yori - pivot[0][0].yori) <= Y_FUZZ
-					&& (stemLength < MAX_STEM_WIDTH || distanceBetween <= stemLength * 2)
-					&& orientation === (segments[k][1].xori > segments[k][0].xori)) {
+					&& orientation === (segments[k][1].xori > segments[k][0].xori)
+					&& (
+						pendingSegmentLength < MAX_STEM_WIDTH
+					 || distanceBetween <= pendingSegmentLength * 2 && distanceBetween <= MAX_SEGMERGE_DISTANCE)) {
 					var r = pivot.radical;
 					pivot.push(segments[k])
 					segments[k] = null;

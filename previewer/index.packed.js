@@ -860,7 +860,7 @@ exports.extractFeature = function (glyph, strategy) {
 		for (var k = 0; k < pts.length; k++) {
 			if (!pts[k].touched && !pts[k].donttouch && pts[k].on && strategy.DO_SHORT_ABSORPTION && inSameRadical && pts[k].xStrongExtrema) {
 				for (var m = 0; m < keys.length; m++) {
-					if (keys[m].blued && keys[m].yStrongExtrema && Math.hypot(pts[k].yori - keys[m].yori, pts[k].xori - keys[m].xori) <= strategy.MOST_COMMON_STEM_WIDTH * 1.2) {
+					if (keys[m].blued && keys[m].yStrongExtrema && Math.hypot(pts[k].yori - keys[m].yori, pts[k].xori - keys[m].xori) <= strategy.ABSORPTION_LIMIT) {
 						shortAbsorptions.push([keys[m].id, pts[k].id, priority + (pts[k].yExtrema ? 1 : 0)]);
 						pts[k].touched = true;
 						break;
@@ -1089,6 +1089,7 @@ function findStems(glyph, strategy) {
 
 	var MIN_STEM_WIDTH = strategy.MIN_STEM_WIDTH || 20;
 	var MAX_STEM_WIDTH = strategy.MAX_STEM_WIDTH || 120;
+	var MAX_SEGMERGE_DISTANCE = strategy.MAX_SEGMERGE_DISTANCE || 120;
 	var STEM_SIDE_MIN_RISE = strategy.STEM_SIDE_MIN_RISE || strategy.MIN_STEM_WIDTH;
 	var STEM_CENTER_MIN_RISE = strategy.STEM_CENTER_MIN_RISE || STEM_SIDE_MIN_RISE;
 	var STEM_SIDE_MIN_DESCENT = strategy.STEM_SIDE_MIN_DESCENT || strategy.MIN_STEM_WIDTH;
@@ -1294,7 +1295,7 @@ function findStems(glyph, strategy) {
 			}
 		}
 
-		segments = segments.sort(function (p, q) { return p[0].xori - q[0].xori })
+		segments = segments.sort(function (p, q) { return Math.min(p[0].xori, p[1].xori) - Math.min(q[0].xori, q[1].xori) })
 
 		for (var j = 0; j < segments.length; j++) if (segments[j]) {
 			var pivot = [segments[j]];
@@ -1302,12 +1303,14 @@ function findStems(glyph, strategy) {
 			var orientation = pivot[0][1].xori > pivot[0][0].xori
 			segments[j] = null;
 			for (var k = j + 1; k < segments.length; k++) if (segments[k] && segments[k].radical === pivotRadical) {
-				var stemLength = Math.abs(segments[k][1].xori - segments[k][0].xori);
+				var pendingSegmentLength = Math.abs(segments[k][1].xori - segments[k][0].xori);
 				var distanceBetween = orientation ? Math.abs(segments[k][0].xori - pivot[pivot.length - 1][1].xori)
 					: Math.abs(segments[k][1].xori - pivot[pivot.length - 1][0].xori);
 				if (Math.abs(segments[k][0].yori - pivot[0][0].yori) <= Y_FUZZ
-					&& (stemLength < MAX_STEM_WIDTH || distanceBetween <= stemLength * 2)
-					&& orientation === (segments[k][1].xori > segments[k][0].xori)) {
+					&& orientation === (segments[k][1].xori > segments[k][0].xori)
+					&& (
+						pendingSegmentLength < MAX_STEM_WIDTH
+					 || distanceBetween <= pendingSegmentLength * 2 && distanceBetween <= MAX_SEGMERGE_DISTANCE)) {
 					var r = pivot.radical;
 					pivot.push(segments[k])
 					segments[k] = null;
@@ -2434,8 +2437,9 @@ function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 			// Layer 1 : Control outline
 			hTemp.moveTo(txp(contour.points[0].xtouch + m * strategy.UPM), typ(contour.points[0].ytouch))
 			for (var k = 1; k < contour.points.length; k++) {
-				if (contour.points[k].on) hTemp.lineTo(txp(contour.points[k].xtouch + m * strategy.UPM), typ(contour.points[k].ytouch))
-				else {
+				if (contour.points[k].on) {
+					hTemp.lineTo(txp(contour.points[k].xtouch + m * strategy.UPM), typ(contour.points[k].ytouch))
+				} else {
 					hTemp.quadraticCurveTo(txp(contour.points[k].xtouch + m * strategy.UPM), typ(contour.points[k].ytouch), txp(contour.points[k + 1].xtouch + m * strategy.UPM), typ(contour.points[k + 1].ytouch))
 					k += 1;
 				}
@@ -2506,7 +2510,7 @@ function render() {
 
 var strategyControlGroups = [
 	['UPM', 'BLUEZONE_WIDTH', 'BLUEZONE_TOP_CENTER', 'BLUEZONE_TOP_LIMIT', 'BLUEZONE_TOP_BAR', 'BLUEZONE_TOP_DOTBAR', 'BLUEZONE_BOTTOM_CENTER', 'BLUEZONE_BOTTOM_LIMIT', 'BLUEZONE_BOTTOM_BAR', 'BLUEZONE_BOTTOM_DOTBAR'],
-	['MIN_STEM_WIDTH', 'MAX_STEM_WIDTH', 'MOST_COMMON_STEM_WIDTH', 'STEM_SIDE_MIN_RISE', 'STEM_SIDE_MIN_DESCENT', 'STEM_CENTER_MIN_RISE', 'STEM_CENTER_MIN_DESCENT', 'STEM_SIDE_MIN_DIST_RISE', 'STEM_SIDE_MIN_DIST_DESCENT', 'SLOPE_FUZZ', 'Y_FUZZ'],
+	['MIN_STEM_WIDTH', 'MAX_STEM_WIDTH', 'MOST_COMMON_STEM_WIDTH', 'MAX_SEGMERGE_DISTANCE', 'ABSORPTION_LIMIT', 'STEM_SIDE_MIN_RISE', 'STEM_SIDE_MIN_DESCENT', 'STEM_CENTER_MIN_RISE', 'STEM_CENTER_MIN_DESCENT', 'STEM_SIDE_MIN_DIST_RISE', 'STEM_SIDE_MIN_DIST_DESCENT', 'SLOPE_FUZZ', 'Y_FUZZ'],
 	['POPULATION_LIMIT', 'CHILDREN_LIMIT', 'EVOLUTION_STAGES', 'MUTANT_PROBABLITY', 'ELITE_COUNT'],
 	['COEFF_DISTORT', 'ABLATION_IN_RADICAL', 'ABLATION_RADICAL_EDGE', 'ABLATION_GLYPH_EDGE', 'ABLATION_GLYPH_HARD_EDGE', 'COEFF_PORPORTION_DISTORTION', 'COEFF_A_MULTIPLIER', 'COEFF_A_SAME_RADICAL', 'COEFF_A_SHAPE_LOST', 'COEFF_A_FEATURE_LOSS', 'COEFF_A_RADICAL_MERGE', 'COEFF_C_MULTIPLIER', 'COEFF_C_SAME_RADICAL', 'COEFF_S', 'COLLISION_MIN_OVERLAP_RATIO']
 ]
