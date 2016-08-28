@@ -1265,7 +1265,7 @@ function findStems(glyph, strategy) {
 		};
 		return radicals;
 	};
-
+	var by_start = function (p, q) { return p[0].xori - q[0].xori };
 	// Stemfinding
 	function findHorizontalSegments(radicals) {
 		var segments = []
@@ -1321,6 +1321,31 @@ function findStems(glyph, strategy) {
 		}
 	}
 
+	function connectHangingSegments(segs, stem) {
+		for (var m = 0; m < segs.length; m++) if (segs[m] && segs[m][0]) {
+			var seg = segs[m];
+			var stemOverlap = overlapInfo(stem.low, stem.high);
+			if ((stem.low[0][1].xori >= stem.low[0][0].xori) === (seg[0][1].xori >= seg[0][0].xori) 
+				&& Math.abs(seg[0][0].yori - stem.low[0][0].yori) <= Y_FUZZ) {
+				var amendedOverlap = overlapInfo(stem.low.concat(seg).sort(by_start), stem.high);
+				console.log(stemOverlap, amendedOverlap);
+				if (amendedOverlap.len / amendedOverlap.lb > stemOverlap.len / stemOverlap.lb) {
+					stem.low = stem.low.concat(seg).sort(by_start);
+					segs[m] = null;
+				}
+			} else if (
+				(stem.high[0][1].xori >= stem.high[0][0].xori) === (seg[0][1].xori >= seg[0][0].xori) 
+				&& Math.abs(seg[0][0].yori - stem.high[0][0].yori) <= Y_FUZZ) {
+				var amendedOverlap = overlapInfo(stem.low, stem.high.concat(seg).sort(by_start));
+				console.log(stemOverlap, amendedOverlap);
+				if (amendedOverlap.len / amendedOverlap.la > stemOverlap.len / stemOverlap.la) {
+					stem.high = stem.high.concat(seg).sort(by_start);
+					segs[m] = null;
+				}
+			}
+		}
+	}
+
 	function pairSegmentsForRadical(radical, r) {
 		var radicalStems = [];
 		var segs = radical.mergedSegments.sort(function (a, b) { return a[0][0].yori - b[0][0].yori });
@@ -1341,6 +1366,7 @@ function findStems(glyph, strategy) {
 						stem.belongRadical = r;
 						segs[j] = segs[k] = null;
 						radicalStems.push(stem);
+						connectHangingSegments(segs, stem);
 					}
 					break;
 				}
