@@ -58,9 +58,16 @@ Contour.prototype.orient = function () {
 		jm = j; ym = this.points[j].yori;
 	}
 	var p0 = this.points[(jm ? jm - 1 : this.points.length - 2)], p1 = this.points[jm], p2 = this.points[jm + 1];
-	var x = ((p0.xori - p1.xori) * (p2.yori - p1.yori) - (p0.yori - p1.yori) * (p2.xori - p1.xori))
-	if (x < 0) this.ccw = true;
-	else if (x === 0) this.ccw = p2.xori > p1.xori
+	var x = ((p0.xori - p1.xori) * (p2.yori - p1.yori) - (p0.yori - p1.yori) * (p2.xori - p1.xori));
+	if (x < 0) { this.ccw = true; }
+	else if (x === 0) { this.ccw = p2.xori > p1.xori; }
+	// Adjacency
+	var pt = this.points[0];
+	for (var j = 0; j < this.points.length - 1; j++) if (this.points[j].on) {
+		this.points[j].prev = pt;
+		pt = this.points[j];
+	}
+	this.points[0].prev = pt;
 }
 var inPoly = function (point, vs) {
 	// ray-casting algorithm based on
@@ -74,7 +81,9 @@ var inPoly = function (point, vs) {
 		var xj = vs[j].xori, yj = vs[j].yori;
 
 		var intersect = ((yi > y) !== (yj > y))
-			&& (yj > yi ? (x - xi) * (yj - yi) < (xj - xi) * (y - yi) : (x - xi) * (yj - yi) > (xj - xi) * (y - yi));
+			&& (yj > yi ?
+				(x - xi) * (yj - yi) < (xj - xi) * (y - yi) :
+				(x - xi) * (yj - yi) > (xj - xi) * (y - yi));
 		if (intersect) inside = !inside;
 	}
 

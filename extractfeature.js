@@ -141,22 +141,26 @@ exports.extractFeature = function (glyph, strategy) {
 	var shortAbsorptions = [];
 	function BY_YORI(p, q) { return p.yori - q.yori }
 
-	function interpolateByKeys(pts, keys, inSameRadical, priority) {
+	function interpolateByKeys(pts, keys, inSameRadical, priority, ckonly) {
 		for (var k = 0; k < pts.length; k++) {
-			if (!pts[k].touched && !pts[k].donttouch && pts[k].on && strategy.DO_SHORT_ABSORPTION && inSameRadical && pts[k].xStrongExtrema) {
+			var pt = pts[k];
+			if (!pt.touched && !pt.donttouch && pt.on && strategy.DO_SHORT_ABSORPTION && inSameRadical) {
 				for (var m = 0; m < keys.length; m++) {
-					if (keys[m].blued && keys[m].yStrongExtrema && Math.hypot(pts[k].yori - keys[m].yori, pts[k].xori - keys[m].xori) <= strategy.ABSORPTION_LIMIT) {
-						shortAbsorptions.push([keys[m].id, pts[k].id, priority + (pts[k].yExtrema ? 1 : 0)]);
-						pts[k].touched = true;
+					var key = keys[m];
+					if (
+						key.blued && key.yStrongExtrema && Math.hypot(pt.yori - key.yori, pt.xori - key.xori) <= strategy.ABSORPTION_LIMIT && pt.xStrongExtrema
+						|| Math.abs(key.yori - pt.yori) <= strategy.BLUEZONE_WIDTH && Math.hypot(pt.yori - key.yori, pt.xori - key.xori) <= strategy.MAX_STEM_WIDTH && ckonly) {
+						shortAbsorptions.push([key.id, pt.id, priority + (pt.yExtrema ? 1 : 0)]);
+						pt.touched = true;
 						break;
 					}
 				}
 			};
-			if (!pts[k].touched && !pts[k].donttouch) {
-				out: for (var m = 0; m < keys.length - 1; m++) if (keys[m].yori < pts[k].yori - strategy.BLUEZONE_WIDTH) {
-					for (var n = m + 1; n < keys.length; n++) if (keys[n].yori > pts[k].yori + strategy.BLUEZONE_WIDTH) {
-						interpolations.push([keys[m].id, keys[n].id, pts[k].id, priority + (pts[k].yExtrema ? 1 : 0)]);
-						pts[k].touched = true;
+			if (!pt.touched && !pt.donttouch) {
+				out: for (var m = keys.length - 2; m >= 0; m--) if (keys[m].yori < pt.yori - strategy.BLUEZONE_WIDTH) {
+					for (var n = m + 1; n < keys.length; n++) if (keys[n].yori - keys[m].yori > strategy.BLUEZONE_WIDTH && keys[n].yori > pt.yori + strategy.BLUEZONE_WIDTH) {
+						interpolations.push([keys[m].id, keys[n].id, pt.id, priority + (pt.yExtrema ? 1 : 0)]);
+						pt.touched = true;
 						break out;
 					}
 				}
@@ -198,13 +202,13 @@ exports.extractFeature = function (glyph, strategy) {
 		};
 		for (var j = 0; j < contours.length; j++) {
 			if (records[j].ck.length > 1) {
-				interpolateByKeys(records[j].topbot, records[j].ck, true, 3)
+				interpolateByKeys(records[j].topbot, records[j].ck, true, 3, true)
 			}
 			interpolateByKeys(records[j].topbot, glyphKeypoints, false, 3)
 		};
 		for (var j = 0; j < contours.length; j++) {
 			if (records[j].ckx.length > 1) {
-				interpolateByKeys(records[j].midex, records[j].ckx, true, 1)
+				interpolateByKeys(records[j].midex, records[j].ckx, true, 1, true)
 			}
 			interpolateByKeys(records[j].midex, glyphKeypoints, false, 1)
 		};

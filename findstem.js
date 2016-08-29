@@ -239,7 +239,7 @@ function findStems(glyph, strategy) {
 		for (var m = 0; m < segs.length; m++) if (segs[m] && segs[m][0]) {
 			var seg = segs[m];
 			var stemOverlap = overlapInfo(stem.low, stem.high);
-			if ((stem.low[0][1].xori >= stem.low[0][0].xori) === (seg[0][1].xori >= seg[0][0].xori) 
+			if ((stem.low[0][1].xori >= stem.low[0][0].xori) === (seg[0][1].xori >= seg[0][0].xori)
 				&& Math.abs(seg[0][0].yori - stem.low[0][0].yori) <= Y_FUZZ) {
 				var amendedOverlap = overlapInfo(stem.low.concat(seg).sort(by_start), stem.high);
 				if (amendedOverlap.len / amendedOverlap.lb > stemOverlap.len / stemOverlap.lb) {
@@ -247,7 +247,7 @@ function findStems(glyph, strategy) {
 					segs[m] = null;
 				}
 			} else if (
-				(stem.high[0][1].xori >= stem.high[0][0].xori) === (seg[0][1].xori >= seg[0][0].xori) 
+				(stem.high[0][1].xori >= stem.high[0][0].xori) === (seg[0][1].xori >= seg[0][0].xori)
 				&& Math.abs(seg[0][0].yori - stem.high[0][0].yori) <= Y_FUZZ) {
 				var amendedOverlap = overlapInfo(stem.low, stem.high.concat(seg).sort(by_start));
 				if (amendedOverlap.len / amendedOverlap.la > stemOverlap.len / stemOverlap.la) {
@@ -300,9 +300,13 @@ function findStems(glyph, strategy) {
 	// Symmetric stem pairing
 	function pairSymmetricStems(stems) {
 		var res = [];
-		for (var j = 0; j < stems.length; j++) if (stems[j]) {
-			for (var k = 0; k < stems.length; k++) if (stems[k]) {
-				if (Math.abs(stems[j].yori - stems[j].width / 2 - stems[k].yori + stems[k].width / 2) <= upm * 0.005 && Math.abs(stems[j].width - stems[k].width) <= upm * 0.003 && stems[j].belongRadical !== stems[k].belongRadical) {
+		for (var j = 0; j < stems.length; j++) {
+			for (var k = j + 1; k < stems.length; k++) if (stems[j] && stems[k]) {
+				var delta1 = stems[j].belongRadical === stems[k].belongRadical ? 0.002 : 0.005;
+				var delta2 = stems[j].belongRadical === stems[k].belongRadical ? 0.001 : 0.003;
+				if (
+					Math.abs(stems[j].yori - stems[j].width / 2 - stems[k].yori + stems[k].width / 2) <= upm * delta1 && Math.abs(stems[j].width - stems[k].width) <= upm * delta1
+				) {
 					stems[j].high = stems[j].high.concat(stems[k].high);
 					stems[j].low = stems[j].low.concat(stems[k].low);
 					stems[k] = null
@@ -459,6 +463,19 @@ function findStems(glyph, strategy) {
 			}
 		}
 	};
+	function adjacent(z1, z2) {
+		return z1.prev === z2 || z2.prev === z1;
+	}
+	function segmentsPromixity(s1, s2) {
+		var count = 0;
+		for (var j = 0; j < s1.length; j++) for (var k = 0; k < s2.length; k++) {
+			if (adjacent(s1[j][0], s2[k][0])) count += 1;
+			if (adjacent(s1[j][0], s2[k][1])) count += 1;
+			if (adjacent(s1[j][1], s2[k][0])) count += 1;
+			if (adjacent(s1[j][1], s2[k][1])) count += 1;
+		}
+		return count;
+	}
 	// Collision matrices, used to calculate collision potential
 	function calculateCollisionMatrices(stems, overlaps, overlapLengths, pbs) {
 		// A : Alignment operator
@@ -477,6 +494,7 @@ function findStems(glyph, strategy) {
 			for (var k = 0; k < j; k++) {
 				var ovr = overlaps[j][k] * overlapLengths[j][k];
 				var coeffA = 1;
+				var promixity = segmentsPromixity(stems[j].low, stems[k].high) + segmentsPromixity(stems[j].high, stems[k].low);
 				if (pbs[j][k]) {
 					coeffA = COEFF_A_FEATURE_LOSS
 				} else if (stems[j].belongRadical === stems[k].belongRadical) {
@@ -488,11 +506,11 @@ function findStems(glyph, strategy) {
 				} else {
 					if (atRadicalBottom(stems[j]) && atRadicalTop(stems[k])) coeffA = COEFF_A_RADICAL_MERGE
 				}
-				A[j][k] = COEFF_A_MULTIPLIER * ovr * coeffA;
+				A[j][k] = COEFF_A_MULTIPLIER * ovr * coeffA * (1 + COEFF_C_MULTIPLIER / COEFF_A_MULTIPLIER * promixity);
 
 				var coeffC = 1;
 				if (stems[j].belongRadical === stems[k].belongRadical) coeffC = COEFF_C_SAME_RADICAL;
-				C[j][k] = COEFF_C_MULTIPLIER * ovr * coeffC;
+				C[j][k] = COEFF_C_MULTIPLIER * ovr * coeffC * (1 + promixity);
 
 				S[j][k] = COEFF_S;
 			};

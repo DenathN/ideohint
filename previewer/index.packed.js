@@ -856,22 +856,26 @@ exports.extractFeature = function (glyph, strategy) {
 	var shortAbsorptions = [];
 	function BY_YORI(p, q) { return p.yori - q.yori }
 
-	function interpolateByKeys(pts, keys, inSameRadical, priority) {
+	function interpolateByKeys(pts, keys, inSameRadical, priority, ckonly) {
 		for (var k = 0; k < pts.length; k++) {
-			if (!pts[k].touched && !pts[k].donttouch && pts[k].on && strategy.DO_SHORT_ABSORPTION && inSameRadical && pts[k].xStrongExtrema) {
+			var pt = pts[k];
+			if (!pt.touched && !pt.donttouch && pt.on && strategy.DO_SHORT_ABSORPTION && inSameRadical) {
 				for (var m = 0; m < keys.length; m++) {
-					if (keys[m].blued && keys[m].yStrongExtrema && Math.hypot(pts[k].yori - keys[m].yori, pts[k].xori - keys[m].xori) <= strategy.ABSORPTION_LIMIT) {
-						shortAbsorptions.push([keys[m].id, pts[k].id, priority + (pts[k].yExtrema ? 1 : 0)]);
-						pts[k].touched = true;
+					var key = keys[m];
+					if (
+						key.blued && key.yStrongExtrema && Math.hypot(pt.yori - key.yori, pt.xori - key.xori) <= strategy.ABSORPTION_LIMIT && pt.xStrongExtrema
+						|| Math.abs(key.yori - pt.yori) <= strategy.BLUEZONE_WIDTH && Math.hypot(pt.yori - key.yori, pt.xori - key.xori) <= strategy.MAX_STEM_WIDTH && ckonly) {
+						shortAbsorptions.push([key.id, pt.id, priority + (pt.yExtrema ? 1 : 0)]);
+						pt.touched = true;
 						break;
 					}
 				}
 			};
-			if (!pts[k].touched && !pts[k].donttouch) {
-				out: for (var m = 0; m < keys.length - 1; m++) if (keys[m].yori < pts[k].yori - strategy.BLUEZONE_WIDTH) {
-					for (var n = m + 1; n < keys.length; n++) if (keys[n].yori > pts[k].yori + strategy.BLUEZONE_WIDTH) {
-						interpolations.push([keys[m].id, keys[n].id, pts[k].id, priority + (pts[k].yExtrema ? 1 : 0)]);
-						pts[k].touched = true;
+			if (!pt.touched && !pt.donttouch) {
+				out: for (var m = keys.length - 2; m >= 0; m--) if (keys[m].yori < pt.yori - strategy.BLUEZONE_WIDTH) {
+					for (var n = m + 1; n < keys.length; n++) if (keys[n].yori - keys[m].yori > strategy.BLUEZONE_WIDTH && keys[n].yori > pt.yori + strategy.BLUEZONE_WIDTH) {
+						interpolations.push([keys[m].id, keys[n].id, pt.id, priority + (pt.yExtrema ? 1 : 0)]);
+						pt.touched = true;
 						break out;
 					}
 				}
@@ -913,13 +917,13 @@ exports.extractFeature = function (glyph, strategy) {
 		};
 		for (var j = 0; j < contours.length; j++) {
 			if (records[j].ck.length > 1) {
-				interpolateByKeys(records[j].topbot, records[j].ck, true, 3)
+				interpolateByKeys(records[j].topbot, records[j].ck, true, 3, true)
 			}
 			interpolateByKeys(records[j].topbot, glyphKeypoints, false, 3)
 		};
 		for (var j = 0; j < contours.length; j++) {
 			if (records[j].ckx.length > 1) {
-				interpolateByKeys(records[j].midex, records[j].ckx, true, 1)
+				interpolateByKeys(records[j].midex, records[j].ckx, true, 1, true)
 			}
 			interpolateByKeys(records[j].midex, glyphKeypoints, false, 1)
 		};
@@ -1325,19 +1329,17 @@ function findStems(glyph, strategy) {
 		for (var m = 0; m < segs.length; m++) if (segs[m] && segs[m][0]) {
 			var seg = segs[m];
 			var stemOverlap = overlapInfo(stem.low, stem.high);
-			if ((stem.low[0][1].xori >= stem.low[0][0].xori) === (seg[0][1].xori >= seg[0][0].xori) 
+			if ((stem.low[0][1].xori >= stem.low[0][0].xori) === (seg[0][1].xori >= seg[0][0].xori)
 				&& Math.abs(seg[0][0].yori - stem.low[0][0].yori) <= Y_FUZZ) {
 				var amendedOverlap = overlapInfo(stem.low.concat(seg).sort(by_start), stem.high);
-				console.log(stemOverlap, amendedOverlap);
 				if (amendedOverlap.len / amendedOverlap.lb > stemOverlap.len / stemOverlap.lb) {
 					stem.low = stem.low.concat(seg).sort(by_start);
 					segs[m] = null;
 				}
 			} else if (
-				(stem.high[0][1].xori >= stem.high[0][0].xori) === (seg[0][1].xori >= seg[0][0].xori) 
+				(stem.high[0][1].xori >= stem.high[0][0].xori) === (seg[0][1].xori >= seg[0][0].xori)
 				&& Math.abs(seg[0][0].yori - stem.high[0][0].yori) <= Y_FUZZ) {
 				var amendedOverlap = overlapInfo(stem.low, stem.high.concat(seg).sort(by_start));
-				console.log(stemOverlap, amendedOverlap);
 				if (amendedOverlap.len / amendedOverlap.la > stemOverlap.len / stemOverlap.la) {
 					stem.high = stem.high.concat(seg).sort(by_start);
 					segs[m] = null;
@@ -1388,9 +1390,13 @@ function findStems(glyph, strategy) {
 	// Symmetric stem pairing
 	function pairSymmetricStems(stems) {
 		var res = [];
-		for (var j = 0; j < stems.length; j++) if (stems[j]) {
-			for (var k = 0; k < stems.length; k++) if (stems[k]) {
-				if (Math.abs(stems[j].yori - stems[j].width / 2 - stems[k].yori + stems[k].width / 2) <= upm * 0.005 && Math.abs(stems[j].width - stems[k].width) <= upm * 0.003 && stems[j].belongRadical !== stems[k].belongRadical) {
+		for (var j = 0; j < stems.length; j++) {
+			for (var k = j + 1; k < stems.length; k++) if (stems[j] && stems[k]) {
+				var delta1 = stems[j].belongRadical === stems[k].belongRadical ? 0.002 : 0.005;
+				var delta2 = stems[j].belongRadical === stems[k].belongRadical ? 0.001 : 0.003;
+				if (
+					Math.abs(stems[j].yori - stems[j].width / 2 - stems[k].yori + stems[k].width / 2) <= upm * delta1 && Math.abs(stems[j].width - stems[k].width) <= upm * delta1
+				) {
 					stems[j].high = stems[j].high.concat(stems[k].high);
 					stems[j].low = stems[j].low.concat(stems[k].low);
 					stems[k] = null
@@ -1547,6 +1553,19 @@ function findStems(glyph, strategy) {
 			}
 		}
 	};
+	function adjacent(z1, z2) {
+		return z1.prev === z2 || z2.prev === z1;
+	}
+	function segmentsPromixity(s1, s2) {
+		var count = 0;
+		for (var j = 0; j < s1.length; j++) for (var k = 0; k < s2.length; k++) {
+			if (adjacent(s1[j][0], s2[k][0])) count += 1;
+			if (adjacent(s1[j][0], s2[k][1])) count += 1;
+			if (adjacent(s1[j][1], s2[k][0])) count += 1;
+			if (adjacent(s1[j][1], s2[k][1])) count += 1;
+		}
+		return count;
+	}
 	// Collision matrices, used to calculate collision potential
 	function calculateCollisionMatrices(stems, overlaps, overlapLengths, pbs) {
 		// A : Alignment operator
@@ -1565,6 +1584,7 @@ function findStems(glyph, strategy) {
 			for (var k = 0; k < j; k++) {
 				var ovr = overlaps[j][k] * overlapLengths[j][k];
 				var coeffA = 1;
+				var promixity = segmentsPromixity(stems[j].low, stems[k].high) + segmentsPromixity(stems[j].high, stems[k].low);
 				if (pbs[j][k]) {
 					coeffA = COEFF_A_FEATURE_LOSS
 				} else if (stems[j].belongRadical === stems[k].belongRadical) {
@@ -1576,11 +1596,11 @@ function findStems(glyph, strategy) {
 				} else {
 					if (atRadicalBottom(stems[j]) && atRadicalTop(stems[k])) coeffA = COEFF_A_RADICAL_MERGE
 				}
-				A[j][k] = COEFF_A_MULTIPLIER * ovr * coeffA;
+				A[j][k] = COEFF_A_MULTIPLIER * ovr * coeffA * (1 + COEFF_C_MULTIPLIER / COEFF_A_MULTIPLIER * promixity);
 
 				var coeffC = 1;
 				if (stems[j].belongRadical === stems[k].belongRadical) coeffC = COEFF_C_SAME_RADICAL;
-				C[j][k] = COEFF_C_MULTIPLIER * ovr * coeffC;
+				C[j][k] = COEFF_C_MULTIPLIER * ovr * coeffC * (1 + promixity);
 
 				S[j][k] = COEFF_S;
 			};
@@ -2796,9 +2816,16 @@ Contour.prototype.orient = function () {
 		jm = j; ym = this.points[j].yori;
 	}
 	var p0 = this.points[(jm ? jm - 1 : this.points.length - 2)], p1 = this.points[jm], p2 = this.points[jm + 1];
-	var x = ((p0.xori - p1.xori) * (p2.yori - p1.yori) - (p0.yori - p1.yori) * (p2.xori - p1.xori))
-	if (x < 0) this.ccw = true;
-	else if (x === 0) this.ccw = p2.xori > p1.xori
+	var x = ((p0.xori - p1.xori) * (p2.yori - p1.yori) - (p0.yori - p1.yori) * (p2.xori - p1.xori));
+	if (x < 0) { this.ccw = true; }
+	else if (x === 0) { this.ccw = p2.xori > p1.xori; }
+	// Adjacency
+	var pt = this.points[0];
+	for (var j = 0; j < this.points.length - 1; j++) if (this.points[j].on) {
+		this.points[j].prev = pt;
+		pt = this.points[j];
+	}
+	this.points[0].prev = pt;
 }
 var inPoly = function (point, vs) {
 	// ray-casting algorithm based on
@@ -2812,7 +2839,9 @@ var inPoly = function (point, vs) {
 		var xj = vs[j].xori, yj = vs[j].yori;
 
 		var intersect = ((yi > y) !== (yj > y))
-			&& (yj > yi ? (x - xi) * (yj - yi) < (xj - xi) * (y - yi) : (x - xi) * (yj - yi) > (xj - xi) * (y - yi));
+			&& (yj > yi ?
+				(x - xi) * (yj - yi) < (xj - xi) * (y - yi) :
+				(x - xi) * (yj - yi) > (xj - xi) * (y - yi));
 		if (intersect) inside = !inside;
 	}
 
