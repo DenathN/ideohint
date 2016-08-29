@@ -506,7 +506,7 @@ function findStems(glyph, strategy) {
 				} else {
 					if (atRadicalBottom(stems[j]) && atRadicalTop(stems[k])) coeffA = COEFF_A_RADICAL_MERGE
 				}
-				A[j][k] = COEFF_A_MULTIPLIER * ovr * coeffA * (1 + COEFF_C_MULTIPLIER / COEFF_A_MULTIPLIER * promixity);
+				A[j][k] = COEFF_A_MULTIPLIER * ovr * coeffA * (1 + (promixity > 2 ? COEFF_C_MULTIPLIER / COEFF_A_MULTIPLIER : 1) * promixity);
 
 				var coeffC = 1;
 				if (stems[j].belongRadical === stems[k].belongRadical) coeffC = COEFF_C_SAME_RADICAL;
