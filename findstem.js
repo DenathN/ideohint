@@ -376,18 +376,18 @@ function findStems(glyph, strategy) {
 						stem.hasRadicalPointBelow = true;
 						stem.radicalCenterDescent = Math.max(stem.radicalCenterDescent || 0, stem.yori - stem.width - point.yori);
 					}
-					if (point.xStrongExtrema) {
-						if (point.xori > xmin + (xmax - xmin) * 0.2 && point.xori < xmax - (xmax - xmin) * 0.2) {
-							stem.hasGlyphFoldBelow = true;
-							if (sameRadical) { stem.hasRadicalFoldBelow = true }
-						} else {
-							stem.hasGlyphSideFoldBelow = true;
-							if (sameRadical) { stem.hasRadicalSideFoldBelow = true }
-						}
-					}
 					if (point.yStrongExtrema) {
 						stem.hasGlyphVFoldBelow = true;
 						if (sameRadical) { stem.hasRadicalVFoldBelow = true }
+					}
+				}
+				if (point.xStrongExtrema && point.yori < stem.yori - stem.width - blueFuzz && point.xori < xmax + stem.width && point.xori > xmin - stem.width) {
+					if (!point.atleft && point.xori > xmin + (xmax - xmin) * 0.2 || point.atleft && point.xori < xmax - (xmax - xmin) * 0.2) {
+						stem.hasGlyphFoldBelow = true;
+						if (sameRadical) { stem.hasRadicalFoldBelow = true }
+					} else {
+						stem.hasGlyphSideFoldBelow = true;
+						if (sameRadical) { stem.hasRadicalSideFoldBelow = true }
 					}
 				}
 				if (point.yori < stem.yori - stem.width && point.xori >= xmax - blueFuzz && point.xori <= xmax + blueFuzz) {
@@ -510,7 +510,7 @@ function findStems(glyph, strategy) {
 
 				var coeffC = 1;
 				if (stems[j].belongRadical === stems[k].belongRadical) coeffC = COEFF_C_SAME_RADICAL;
-				C[j][k] = COEFF_C_MULTIPLIER * ovr * coeffC * (1 + promixity);
+				C[j][k] = COEFF_C_MULTIPLIER * ovr * coeffC * (1 + (promixity > 2 ? COEFF_C_MULTIPLIER / COEFF_A_MULTIPLIER : 1) * promixity);
 
 				S[j][k] = COEFF_S;
 			};

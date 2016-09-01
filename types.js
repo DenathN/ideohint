@@ -28,6 +28,9 @@ Contour.prototype.stat = function () {
 		points[0].xExtrema = true;
 		points[0].xStrongExtrema = points[0].xori > points[points.length - 2].xori + 1 && points[0].xori > points[1].xori - 1
 			|| points[0].xori < points[points.length - 2].xori + 1 && points[0].xori < points[1].xori - 1;
+		if (points[0].xStrongExtrema) {
+			points[0].atleft = points[0].xori < points[points.length - 2].xori + 1 && points[0].xori < points[1].xori - 1;
+		}
 	}
 	for (var j = 1; j < points.length - 1; j++) {
 		if (points[j].yori > points[j - 1].yori && points[j].yori >= points[j + 1].yori
@@ -41,6 +44,9 @@ Contour.prototype.stat = function () {
 			points[j].xExtrema = true;
 			points[j].xStrongExtrema = points[j].xori > points[j - 1].xori + 1 && points[j].xori >= points[j + 1].xori - 1
 				|| points[j].xori < points[j - 1].xori + 1 && points[j].xori <= points[j + 1].xori - 1;
+			if (points[j].xStrongExtrema) {
+				points[j].atleft = points[j].xori < points[j - 1].xori + 1 && points[j].xori <= points[j + 1].xori - 1;
+			}
 		}
 	};
 	var xoris = this.points.map(function (p) { return p.xori });

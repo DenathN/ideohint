@@ -1466,18 +1466,18 @@ function findStems(glyph, strategy) {
 						stem.hasRadicalPointBelow = true;
 						stem.radicalCenterDescent = Math.max(stem.radicalCenterDescent || 0, stem.yori - stem.width - point.yori);
 					}
-					if (point.xStrongExtrema) {
-						if (point.xori > xmin + (xmax - xmin) * 0.2 && point.xori < xmax - (xmax - xmin) * 0.2) {
-							stem.hasGlyphFoldBelow = true;
-							if (sameRadical) { stem.hasRadicalFoldBelow = true }
-						} else {
-							stem.hasGlyphSideFoldBelow = true;
-							if (sameRadical) { stem.hasRadicalSideFoldBelow = true }
-						}
-					}
 					if (point.yStrongExtrema) {
 						stem.hasGlyphVFoldBelow = true;
 						if (sameRadical) { stem.hasRadicalVFoldBelow = true }
+					}
+				}
+				if (point.xStrongExtrema && point.yori < stem.yori - stem.width - blueFuzz && point.xori < xmax + stem.width && point.xori > xmin - stem.width) {
+					if (!point.atleft && point.xori > xmin + (xmax - xmin) * 0.2 || point.atleft && point.xori < xmax - (xmax - xmin) * 0.2) {
+						stem.hasGlyphFoldBelow = true;
+						if (sameRadical) { stem.hasRadicalFoldBelow = true }
+					} else {
+						stem.hasGlyphSideFoldBelow = true;
+						if (sameRadical) { stem.hasRadicalSideFoldBelow = true }
 					}
 				}
 				if (point.yori < stem.yori - stem.width && point.xori >= xmax - blueFuzz && point.xori <= xmax + blueFuzz) {
@@ -1600,7 +1600,7 @@ function findStems(glyph, strategy) {
 
 				var coeffC = 1;
 				if (stems[j].belongRadical === stems[k].belongRadical) coeffC = COEFF_C_SAME_RADICAL;
-				C[j][k] = COEFF_C_MULTIPLIER * ovr * coeffC * (1 + promixity);
+				C[j][k] = COEFF_C_MULTIPLIER * ovr * coeffC * (1 + (promixity > 2 ? COEFF_C_MULTIPLIER / COEFF_A_MULTIPLIER : 1) * promixity);
 
 				S[j][k] = COEFF_S;
 			};
@@ -2027,7 +2027,7 @@ function hint(glyph, ppem, strategy) {
 		};
 		return population;
 	};
-	function uncollide(stems) {
+	function uncollide(stems, multiplier) {
 		if (!stems.length) return;
 
 		var n = stems.length;
@@ -2042,8 +2042,12 @@ function hint(glyph, ppem, strategy) {
 				population.push(new Individual(y1));
 			};
 		};
-		population.push(new Individual(y0.map(function (y, j) { return xclamp(avaliables[j].low, y - 1, avaliables[j].high) })));
-		population.push(new Individual(y0.map(function (y, j) { return xclamp(avaliables[j].low, y + 1, avaliables[j].high) })));
+		population.push(new Individual(y0.map(function (y, j) {
+			return xclamp(avaliables[j].low, y - 1, avaliables[j].high)
+		})));
+		population.push(new Individual(y0.map(function (y, j) {
+			return xclamp(avaliables[j].low, y + 1, avaliables[j].high)
+		})));
 
 		for (var c = population.length; c < POPULATION_LIMIT; c++) {
 			// fill population with random individuals
@@ -2055,19 +2059,24 @@ function hint(glyph, ppem, strategy) {
 		}
 
 		var elites = [new Individual(y0)];
+		var totalStages = Math.max(EVOLUTION_STAGES, Math.ceil(stems.length * EVOLUTION_STAGES * (multiplier || 1) * (stems.length / ppem)));
 		// Build a swapchain
 		var p = population, q = new Array(population.length);
-		for (var s = 0; s < EVOLUTION_STAGES; s++) {
-			population = evolve(p, q, !s % 2);
+		for (var s = 0; s < totalStages; s++) {
+			population = evolve(p, q, !(s % 2));
 			var elite = population[0];
-			for (var j = 0; j < population.length; j++) if (population[j].fitness > elite.fitness) elite = population[j];
+			for (var j = 0; j < population.length; j++) if (population[j].fitness > elite.fitness) {
+				elite = population[j];
+			}
 			elites.push(elite);
 			if (elite.collidePotential <= 0) break;
 		};
 
 		population = elites.concat(population);
 		var best = population[0];
-		for (var j = 1; j < population.length; j++) if (population[j].fitness > best.fitness) best = population[j];
+		for (var j = 1; j < population.length; j++) if (population[j].fitness > best.fitness) {
+			best = population[j];
+		}
 		// Assign
 		for (var j = 0; j < stems.length; j++) {
 			stems[j].ytouch = best.gene[j] * uppx;
@@ -2084,8 +2093,6 @@ function hint(glyph, ppem, strategy) {
 			if (!atGlyphTop(stems[j]) && !atGlyphBottom(stems[j])) {
 				if (canBeAdjustedDown(stems, j, 1.8 * uppx) && stems[j].ytouch > avaliables[j].low * uppx) {
 					if (stems[j].ytouch - avaliables[j].center > 0.6 * uppx) {
-						stems[j].ytouch -= uppx
-					} else if (spaceAbove(stems, j, upm * 3) < 0.5 * uppx) {
 						stems[j].ytouch -= uppx
 					}
 				} else if (canBeAdjustedUp(stems, j, 1.8 * uppx) && stems[j].ytouch < avaliables[j].high * uppx) {
@@ -2279,9 +2286,9 @@ function hint(glyph, ppem, strategy) {
 			}
 		} else {
 			earlyAdjust(stems);
-			uncollide(stems);
+			uncollide(stems, 1);
 			rebalance(stems);
-			uncollide(stems);
+			uncollide(stems, 0.5);
 			rebalance(stems);
 		};
 	})();
@@ -2786,6 +2793,9 @@ Contour.prototype.stat = function () {
 		points[0].xExtrema = true;
 		points[0].xStrongExtrema = points[0].xori > points[points.length - 2].xori + 1 && points[0].xori > points[1].xori - 1
 			|| points[0].xori < points[points.length - 2].xori + 1 && points[0].xori < points[1].xori - 1;
+		if (points[0].xStrongExtrema) {
+			points[0].atleft = points[0].xori < points[points.length - 2].xori + 1 && points[0].xori < points[1].xori - 1;
+		}
 	}
 	for (var j = 1; j < points.length - 1; j++) {
 		if (points[j].yori > points[j - 1].yori && points[j].yori >= points[j + 1].yori
@@ -2799,6 +2809,9 @@ Contour.prototype.stat = function () {
 			points[j].xExtrema = true;
 			points[j].xStrongExtrema = points[j].xori > points[j - 1].xori + 1 && points[j].xori >= points[j + 1].xori - 1
 				|| points[j].xori < points[j - 1].xori + 1 && points[j].xori <= points[j + 1].xori - 1;
+			if (points[j].xStrongExtrema) {
+				points[j].atleft = points[j].xori < points[j - 1].xori + 1 && points[j].xori <= points[j + 1].xori - 1;
+			}
 		}
 	};
 	var xoris = this.points.map(function (p) { return p.xori });

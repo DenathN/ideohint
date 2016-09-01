@@ -380,7 +380,7 @@ function hint(glyph, ppem, strategy) {
 		};
 		return population;
 	};
-	function uncollide(stems) {
+	function uncollide(stems, multiplier) {
 		if (!stems.length) return;
 
 		var n = stems.length;
@@ -395,8 +395,12 @@ function hint(glyph, ppem, strategy) {
 				population.push(new Individual(y1));
 			};
 		};
-		population.push(new Individual(y0.map(function (y, j) { return xclamp(avaliables[j].low, y - 1, avaliables[j].high) })));
-		population.push(new Individual(y0.map(function (y, j) { return xclamp(avaliables[j].low, y + 1, avaliables[j].high) })));
+		population.push(new Individual(y0.map(function (y, j) {
+			return xclamp(avaliables[j].low, y - 1, avaliables[j].high)
+		})));
+		population.push(new Individual(y0.map(function (y, j) {
+			return xclamp(avaliables[j].low, y + 1, avaliables[j].high)
+		})));
 
 		for (var c = population.length; c < POPULATION_LIMIT; c++) {
 			// fill population with random individuals
@@ -408,19 +412,24 @@ function hint(glyph, ppem, strategy) {
 		}
 
 		var elites = [new Individual(y0)];
+		var totalStages = Math.max(EVOLUTION_STAGES, Math.ceil(stems.length * EVOLUTION_STAGES * (multiplier || 1) * (stems.length / ppem)));
 		// Build a swapchain
 		var p = population, q = new Array(population.length);
-		for (var s = 0; s < EVOLUTION_STAGES; s++) {
-			population = evolve(p, q, !s % 2);
+		for (var s = 0; s < totalStages; s++) {
+			population = evolve(p, q, !(s % 2));
 			var elite = population[0];
-			for (var j = 0; j < population.length; j++) if (population[j].fitness > elite.fitness) elite = population[j];
+			for (var j = 0; j < population.length; j++) if (population[j].fitness > elite.fitness) {
+				elite = population[j];
+			}
 			elites.push(elite);
 			if (elite.collidePotential <= 0) break;
 		};
 
 		population = elites.concat(population);
 		var best = population[0];
-		for (var j = 1; j < population.length; j++) if (population[j].fitness > best.fitness) best = population[j];
+		for (var j = 1; j < population.length; j++) if (population[j].fitness > best.fitness) {
+			best = population[j];
+		}
 		// Assign
 		for (var j = 0; j < stems.length; j++) {
 			stems[j].ytouch = best.gene[j] * uppx;
@@ -437,8 +446,6 @@ function hint(glyph, ppem, strategy) {
 			if (!atGlyphTop(stems[j]) && !atGlyphBottom(stems[j])) {
 				if (canBeAdjustedDown(stems, j, 1.8 * uppx) && stems[j].ytouch > avaliables[j].low * uppx) {
 					if (stems[j].ytouch - avaliables[j].center > 0.6 * uppx) {
-						stems[j].ytouch -= uppx
-					} else if (spaceAbove(stems, j, upm * 3) < 0.5 * uppx) {
 						stems[j].ytouch -= uppx
 					}
 				} else if (canBeAdjustedUp(stems, j, 1.8 * uppx) && stems[j].ytouch < avaliables[j].high * uppx) {
@@ -632,9 +639,9 @@ function hint(glyph, ppem, strategy) {
 			}
 		} else {
 			earlyAdjust(stems);
-			uncollide(stems);
+			uncollide(stems, 1);
 			rebalance(stems);
-			uncollide(stems);
+			uncollide(stems, 0.5);
 			rebalance(stems);
 		};
 	})();
