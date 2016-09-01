@@ -66,7 +66,7 @@ exports.extractFeature = function (glyph, strategy) {
 			&& !(s.hasRadicalPointBelow && s.radicalCenterDescent > strategy.STEM_CENTER_MIN_DESCENT)
 			&& !(s.hasRadicalLeftAdjacentPointBelow && s.radicalLeftAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT)
 			&& !(s.hasRadicalRightAdjacentPointBelow && s.radicalRightAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT)
-			&& !s.hasGlyphStemBelow
+			&& !s.hasGlyphStemBelow;
 		var slope = (slopeOf(s.high) + slopeOf(s.low)) / 2
 		// get highkey and lowkey
 		var highkey = s.high[0][0], lowkey = s.low[0][0], highnonkey = [], lownonkey = [];
@@ -104,6 +104,7 @@ exports.extractFeature = function (glyph, strategy) {
 				s.low[j][k].donttouch = true
 			}
 		};
+		s.slope = slope;
 		s.yori = highkey.yori;
 		s.width = highkey.yori - lowkey.yori;
 		s.posKey = b ? lowkey : highkey;
@@ -112,6 +113,8 @@ exports.extractFeature = function (glyph, strategy) {
 		s.advAlign = b ? highnonkey : lownonkey;
 		s.posKeyAtTop = !b;
 		s.posKey.keypoint = true;
+		//s.advKey.keypoint = true;
+		s.posKey.slope = s.advKey.slope = s.slope;
 	}
 
 	// Blue zone points
@@ -136,6 +139,8 @@ exports.extractFeature = function (glyph, strategy) {
 		}
 	}
 
+	// Lone point absorption
+
 	// Interpolations
 	var interpolations = [];
 	var shortAbsorptions = [];
@@ -149,7 +154,7 @@ exports.extractFeature = function (glyph, strategy) {
 					var key = keys[m];
 					if (
 						key.blued && key.yStrongExtrema && Math.hypot(pt.yori - key.yori, pt.xori - key.xori) <= strategy.ABSORPTION_LIMIT && pt.xStrongExtrema
-						|| Math.abs(key.yori - pt.yori) <= strategy.BLUEZONE_WIDTH && Math.hypot(pt.yori - key.yori, pt.xori - key.xori) <= strategy.MAX_STEM_WIDTH && ckonly) {
+						|| Math.abs(key.yori + (pt.xori - key.xori) * (key.slope || 0) - pt.yori) <= strategy.Y_FUZZ && ckonly) {
 						shortAbsorptions.push([key.id, pt.id, priority + (pt.yExtrema ? 1 : 0)]);
 						pt.touched = true;
 						break;
@@ -356,7 +361,8 @@ exports.extractFeature = function (glyph, strategy) {
 				advKey: { id: s.advKey.id, yori: s.advKey.yori },
 				posAlign: s.posAlign.map(function (x) { return x.id }),
 				advAlign: s.advAlign.map(function (x) { return x.id }),
-				posKeyAtTop: s.posKeyAtTop
+				posKeyAtTop: s.posKeyAtTop,
+				slope: s.slope
 			}
 		}),
 		stemOverlaps: glyph.stemOverlaps,
