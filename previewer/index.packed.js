@@ -1471,7 +1471,7 @@ function findStems(glyph, strategy) {
 						if (sameRadical) { stem.hasRadicalVFoldBelow = true }
 					}
 				}
-				if (point.xStrongExtrema && point.yori < stem.yori - stem.width - blueFuzz && point.xori < xmax + stem.width && point.xori > xmin - stem.width) {
+				if (point.xStrongExtrema && !(point.yExtrema && !point.yStrongExtrema) && point.yori < stem.yori - stem.width - blueFuzz && point.xori < xmax + stem.width && point.xori > xmin - stem.width) {
 					if (!point.atleft && point.xori > xmin + (xmax - xmin) * 0.2 || point.atleft && point.xori < xmax - (xmax - xmin) * 0.2) {
 						stem.hasGlyphFoldBelow = true;
 						if (sameRadical) { stem.hasRadicalFoldBelow = true }
