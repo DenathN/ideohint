@@ -1,7 +1,7 @@
 {
 	"name": "sfdhanautohint",
 	"description": "An optimized gridfit generator for Han characters.",
-	"version": "0.2.2",
+	"version": "0.3.0",
 	"main": "./instructor.js",
 	"dependencies": {
 		"yargs": "",
