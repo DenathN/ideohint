@@ -304,15 +304,32 @@ function hint(glyph, ppem, strategy) {
 	// The optimization target is the "collision potential" evaluated using stroke position
 	// state vector |y>. Due to randomized mutations, the result is not deterministic, though
 	// reliable under most cases.
-	function collidePotential(y, A, C, S, avaliables) {
+	function collidePotential(y, A, C, F, S, avaliables) {
 		var p = 0;
 		var n = y.length;
 		for (var j = 0; j < n; j++) {
 			for (var k = 0; k < j; k++) {
-				if (y[j] === y[k]) p += A[j][k];
-				else if (y[j] === y[k] + 1 || y[j] + 1 === y[k]) p += C[j][k];
+				if (y[j] === y[k]) { p += A[j][k] }
+				else if (y[j] === y[k] + 1 || y[j] + 1 === y[k]) { p += C[j][k] }
+
 				if (y[j] < y[k] || Math.abs(avaliables[j].center - avaliables[k].center) < 4 && y[j] !== y[k]) p += S[j][k];
 			};
+		};
+		return p;
+	};
+	function ablationPotential(y, A, C, F, S, avaliables) {
+		var p = 0;
+		var n = y.length;
+		var ymin = ppem, ymax = -ppem;
+		for (var j = 0; j < n; j++) {
+			if (y[j] > ymax) ymax = y[j];
+			if (y[j] < ymin) ymin = y[j];
+		}
+		var ymaxt = Math.max(ymax, glyfTop);
+		var ymint = Math.min(ymin, glyfBottom);
+		for (var j = 0; j < y.length; j++) {
+			p += avaliables[j].ablationCoeff * Math.abs(y[j] * uppx - avaliables[j].center)
+			p += COEFF_PORPORTION_DISTORTION * Math.abs(y[j] - (ymin + avaliables[j].proportion * (ymax - ymin)))
 		};
 		for (var t = 0; t < triplets.length; t++) {
 			var j = triplets[t][0], k = triplets[t][1], w = triplets[t][2], d = triplets[t][3];
@@ -328,27 +345,11 @@ function hint(glyph, ppem, strategy) {
 		};
 		return p;
 	};
-	function ablationPotential(y, A, C, S, avaliables) {
-		var p = 0;
-		var n = y.length;
-		var ymin = ppem, ymax = -ppem;
-		for (var j = 0; j < n; j++) {
-			if (y[j] > ymax) ymax = y[j];
-			if (y[j] < ymin) ymin = y[j];
-		}
-		var ymaxt = Math.max(ymax, glyfTop);
-		var ymint = Math.min(ymin, glyfBottom);
-		for (var j = 0; j < y.length; j++) {
-			p += avaliables[j].ablationCoeff * Math.abs(y[j] * uppx - avaliables[j].center)
-			p += COEFF_PORPORTION_DISTORTION * Math.abs(y[j] - (ymin + avaliables[j].proportion * (ymax - ymin)))
-		};
-		return p;
-	};
 
 	function Individual(y) {
 		this.gene = y;
-		this.collidePotential = collidePotential(y, glyph.collisionMatrices.alignment, glyph.collisionMatrices.collision, glyph.collisionMatrices.swap, avaliables);
-		this.ablationPotential = ablationPotential(y, glyph.collisionMatrices.alignment, glyph.collisionMatrices.collision, glyph.collisionMatrices.swap, avaliables);
+		this.collidePotential = collidePotential(y, glyph.collisionMatrices.alignment, glyph.collisionMatrices.collision, glyph.collisionMatrices.far, glyph.collisionMatrices.swap, avaliables);
+		this.ablationPotential = ablationPotential(y, glyph.collisionMatrices.alignment, glyph.collisionMatrices.collision, glyph.collisionMatrices.far, glyph.collisionMatrices.swap, avaliables);
 		this.fitness = 1 / (1 + Math.max(0, this.collidePotential * 8 + this.ablationPotential / 16))
 	};
 	var beta = 1;

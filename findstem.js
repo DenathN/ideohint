@@ -1,3 +1,5 @@
+var slopeOf = require('./types').slopeOf;
+
 function findStems(glyph, strategy) {
 	var upm = strategy.UPM || 1000;
 
@@ -13,7 +15,8 @@ function findStems(glyph, strategy) {
 	var COEFF_A_MULTIPLIER = strategy.COEFF_A_MULTIPLIER || 5;
 	var COEFF_A_SAME_RADICAL = strategy.COEFF_A_SAME_RADICAL || 4;
 	var COEFF_A_SHAPE_LOST = strategy.COEFF_A_SHAPE_LOST || 25;
-	var COEFF_A_FEATURE_LOSS = strategy.COEFF_A_FEATURE_LOSS || 5000;
+	var COEFF_A_FEATURE_LOSS = strategy.COEFF_A_FEATURE_LOSS || 30;
+	var COEFF_C_FEATURE_LOSS = strategy.COEFF_C_FEATURE_LOSS || 12;
 	var COEFF_A_RADICAL_MERGE = strategy.COEFF_A_RADICAL_MERGE || 1;
 	var COEFF_C_MULTIPLIER = strategy.COEFF_C_MULTIPLIER || 25;
 	var COEFF_C_SAME_RADICAL = strategy.COEFF_C_SAME_RADICAL || 3;
@@ -432,15 +435,16 @@ function findStems(glyph, strategy) {
 		for (var sj = 0; sj < stems.length; sj++) {
 			res[sj] = [];
 			for (var sk = 0; sk < sj; sk++) {
-				res[sj][sk] = false;
+				res[sj][sk] = 0;
 				for (var rad = 0; rad < glyph.radicals.length; rad++) {
 					var radical = glyph.radicals[rad];
 					for (var j = 0; j < radical.parts.length; j++) for (var k = 0; k < radical.parts[j].points.length - 1; k++) {
 						var point = radical.parts[j].points[k];
-						if (point.yori > stems[sk].yori && point.yori < stems[sj].yori - stems[sj].width
+						if (point.yori > stems[sk].yori + blueFuzz && point.yori < stems[sj].yori - stems[sj].width - blueFuzz
 							&& point.xori > stems[sk].xmin + blueFuzz && point.xori < stems[sk].xmax - blueFuzz
 							&& point.xori > stems[sj].xmin + blueFuzz && point.xori < stems[sj].xmax - blueFuzz) {
-							res[sj][sk] = true;
+							if (res[sj][sk] < 1) res[sj][sk] = 1;
+							if (point.xStrongExtrema && res[sj][sk] < 2) { res[sj][sk] = 2; }
 						}
 					}
 				}
@@ -481,20 +485,27 @@ function findStems(glyph, strategy) {
 		// A : Alignment operator
 		// C : Collision operator
 		// S : Swap operator
-		var A = [], C = [], S = [], n = stems.length;
+		var A = [], C = [], S = [], F = [], n = stems.length;
 		for (var j = 0; j < n; j++) {
 			A[j] = [];
 			C[j] = [];
 			S[j] = [];
+			F[j] = [];
 			for (var k = 0; k < n; k++) {
-				A[j][k] = C[j][k] = S[j][k] = 0
+				A[j][k] = C[j][k] = S[j][k] = F[j][k] = 0
 			}
 		};
+		var slopes = stems.map(function (s) { return (slopeOf(s.high) + slopeOf(s.low)) / 2 });
 		for (var j = 0; j < n; j++) {
 			for (var k = 0; k < j; k++) {
 				var ovr = overlaps[j][k] * overlapLengths[j][k];
-				var coeffA = 1;
+				var slopesCoeff = !pbs[j][k] && stems[j].belongRadical === stems[k].belongRadical ? Math.max(0.25, 1 - Math.abs(slopes[j] - slopes[k]) * 20) : 1;
 				var promixity = segmentsPromixity(stems[j].low, stems[k].high) + segmentsPromixity(stems[j].high, stems[k].low);
+				if (pbs[j][k] && promixity < 3) { promixity = 3; }
+				var promixityCoeff = (1 + (promixity > 2 ? COEFF_C_MULTIPLIER / COEFF_A_MULTIPLIER : 1) * promixity);
+
+				// Alignment coefficients
+				var coeffA = 1;
 				if (pbs[j][k]) {
 					coeffA = COEFF_A_FEATURE_LOSS
 				} else if (stems[j].belongRadical === stems[k].belongRadical) {
@@ -506,18 +517,22 @@ function findStems(glyph, strategy) {
 				} else {
 					if (atRadicalBottom(stems[j]) && atRadicalTop(stems[k])) coeffA = COEFF_A_RADICAL_MERGE
 				}
-				A[j][k] = COEFF_A_MULTIPLIER * ovr * coeffA * (1 + (promixity > 2 ? COEFF_C_MULTIPLIER / COEFF_A_MULTIPLIER : 1) * promixity);
+				A[j][k] = COEFF_A_MULTIPLIER * ovr * coeffA * promixityCoeff * slopesCoeff;
 
+				// Collision coefficients
 				var coeffC = 1;
 				if (stems[j].belongRadical === stems[k].belongRadical) coeffC = COEFF_C_SAME_RADICAL;
-				C[j][k] = COEFF_C_MULTIPLIER * ovr * coeffC * (1 + (promixity > 2 ? COEFF_C_MULTIPLIER / COEFF_A_MULTIPLIER : 1) * promixity);
+				if (pbs[j][k]) coeffC *= COEFF_C_FEATURE_LOSS / 2;
+				C[j][k] = COEFF_C_MULTIPLIER * ovr * coeffC * promixityCoeff * slopesCoeff;
 
 				S[j][k] = COEFF_S;
+				if (pbs[j][k] > 1) { F[j][k] = 1; }
 			};
 		};
 		return {
 			alignment: A,
 			collision: C,
+			far: F,
 			swap: S
 		}
 	};

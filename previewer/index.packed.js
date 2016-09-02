@@ -713,23 +713,9 @@ function hasOwnProperty(obj, prop) {
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"./support/isBuffer":3,"_process":2,"inherits":1}],5:[function(require,module,exports){
-toposort = require('toposort');
+var toposort = require('toposort');
+var slopeOf = require('./types').slopeOf;
 
-function slopeOf(segs) {
-	var sy = 0, sx = 0, n = 0;
-	for (var j = 0; j < segs.length; j++) for (var k = 0; k < segs[j].length; k++) {
-		sy += segs[j][k].yori;
-		sx += segs[j][k].xori;
-		n += 1;
-	};
-	var ax = sx / n, ay = sy / n;
-	var b1num = 0, b1den = 0;
-	for (var j = 0; j < segs.length; j++) for (var k = 0; k < segs[j].length; k++) {
-		b1num += (segs[j][k].xori - ax) * (segs[j][k].yori - ay);
-		b1den += (segs[j][k].xori - ax) * (segs[j][k].xori - ax);
-	};
-	return b1num / b1den
-}
 function intercept(point, slope) {
 	return point.yori - point.xori * slope;
 }
@@ -860,8 +846,7 @@ exports.extractFeature = function (glyph, strategy) {
 	var interpolations = [];
 	var shortAbsorptions = [];
 	function BY_YORI(p, q) { return p.yori - q.yori }
-
-	function interpolateByKeys(pts, keys, inSameRadical, priority, ckonly) {
+	function shortAbsorptionByKeys(pts, keys, inSameRadical, priority, ckonly){
 		for (var k = 0; k < pts.length; k++) {
 			var pt = pts[k];
 			if (!pt.touched && !pt.donttouch && pt.on && strategy.DO_SHORT_ABSORPTION && inSameRadical) {
@@ -876,6 +861,11 @@ exports.extractFeature = function (glyph, strategy) {
 					}
 				}
 			};
+		}
+	}
+	function interpolateByKeys(pts, keys, inSameRadical, priority, ckonly) {
+		for (var k = 0; k < pts.length; k++) {
+			var pt = pts[k];
 			if (!pt.touched && !pt.donttouch) {
 				out: for (var m = keys.length - 2; m >= 0; m--) if (keys[m].yori < pt.yori - strategy.BLUEZONE_WIDTH) {
 					for (var n = m + 1; n < keys.length; n++) if (keys[n].yori - keys[m].yori > strategy.BLUEZONE_WIDTH && keys[n].yori > pt.yori + strategy.BLUEZONE_WIDTH) {
@@ -899,7 +889,8 @@ exports.extractFeature = function (glyph, strategy) {
 
 		for (var j = 0; j < contours.length; j++) {
 			var contourpoints = contours[j].points
-			var contourKeypoints = contourpoints.filter(function (p) { return p.touched }).sort(BY_YORI);
+			var contourKeypoints = contourpoints.filter(function (p) { return p.keypoint }).sort(BY_YORI);
+			var contourAlignPoints = contourpoints.filter(function (p) { return p.touched }).sort(BY_YORI);
 			var contourExtrema = contourpoints.filter(function (p) { return p.xExtrema || p.yExtrema }).sort(BY_YORI);
 
 			if (contourExtrema.length > 1) {
@@ -908,6 +899,7 @@ exports.extractFeature = function (glyph, strategy) {
 				records.push({
 					topbot: topbot,
 					midex: midex,
+					cka: contourAlignPoints,
 					ck: contourKeypoints,
 					ckx: contourKeypoints.concat(topbot).sort(BY_YORI)
 				})
@@ -915,6 +907,7 @@ exports.extractFeature = function (glyph, strategy) {
 				records.push({
 					topbot: [],
 					midex: midex,
+					cka: contourAlignPoints,
 					ck: contourKeypoints,
 					ckx: contourKeypoints
 				})
@@ -922,6 +915,7 @@ exports.extractFeature = function (glyph, strategy) {
 		};
 		for (var j = 0; j < contours.length; j++) {
 			if (records[j].ck.length > 1) {
+				shortAbsorptionByKeys(records[j].topbot, records[j].cka, true, 3, true)
 				interpolateByKeys(records[j].topbot, records[j].ck, true, 3, true)
 			}
 			interpolateByKeys(records[j].topbot, glyphKeypoints, false, 3)
@@ -1093,7 +1087,9 @@ exports.extractFeature = function (glyph, strategy) {
 		shortAbsorptions: shortAbsorptions
 	}
 }
-},{"toposort":8}],6:[function(require,module,exports){
+},{"./types":12,"toposort":8}],6:[function(require,module,exports){
+var slopeOf = require('./types').slopeOf;
+
 function findStems(glyph, strategy) {
 	var upm = strategy.UPM || 1000;
 
@@ -1109,7 +1105,8 @@ function findStems(glyph, strategy) {
 	var COEFF_A_MULTIPLIER = strategy.COEFF_A_MULTIPLIER || 5;
 	var COEFF_A_SAME_RADICAL = strategy.COEFF_A_SAME_RADICAL || 4;
 	var COEFF_A_SHAPE_LOST = strategy.COEFF_A_SHAPE_LOST || 25;
-	var COEFF_A_FEATURE_LOSS = strategy.COEFF_A_FEATURE_LOSS || 5000;
+	var COEFF_A_FEATURE_LOSS = strategy.COEFF_A_FEATURE_LOSS || 30;
+	var COEFF_C_FEATURE_LOSS = strategy.COEFF_C_FEATURE_LOSS || 12;
 	var COEFF_A_RADICAL_MERGE = strategy.COEFF_A_RADICAL_MERGE || 1;
 	var COEFF_C_MULTIPLIER = strategy.COEFF_C_MULTIPLIER || 25;
 	var COEFF_C_SAME_RADICAL = strategy.COEFF_C_SAME_RADICAL || 3;
@@ -1528,15 +1525,16 @@ function findStems(glyph, strategy) {
 		for (var sj = 0; sj < stems.length; sj++) {
 			res[sj] = [];
 			for (var sk = 0; sk < sj; sk++) {
-				res[sj][sk] = false;
+				res[sj][sk] = 0;
 				for (var rad = 0; rad < glyph.radicals.length; rad++) {
 					var radical = glyph.radicals[rad];
 					for (var j = 0; j < radical.parts.length; j++) for (var k = 0; k < radical.parts[j].points.length - 1; k++) {
 						var point = radical.parts[j].points[k];
-						if (point.yori > stems[sk].yori && point.yori < stems[sj].yori - stems[sj].width
+						if (point.yori > stems[sk].yori + blueFuzz && point.yori < stems[sj].yori - stems[sj].width - blueFuzz
 							&& point.xori > stems[sk].xmin + blueFuzz && point.xori < stems[sk].xmax - blueFuzz
 							&& point.xori > stems[sj].xmin + blueFuzz && point.xori < stems[sj].xmax - blueFuzz) {
-							res[sj][sk] = true;
+							if (res[sj][sk] < 1) res[sj][sk] = 1;
+							if (point.xStrongExtrema && res[sj][sk] < 2) { res[sj][sk] = 2; }
 						}
 					}
 				}
@@ -1577,20 +1575,27 @@ function findStems(glyph, strategy) {
 		// A : Alignment operator
 		// C : Collision operator
 		// S : Swap operator
-		var A = [], C = [], S = [], n = stems.length;
+		var A = [], C = [], S = [], F = [], n = stems.length;
 		for (var j = 0; j < n; j++) {
 			A[j] = [];
 			C[j] = [];
 			S[j] = [];
+			F[j] = [];
 			for (var k = 0; k < n; k++) {
-				A[j][k] = C[j][k] = S[j][k] = 0
+				A[j][k] = C[j][k] = S[j][k] = F[j][k] = 0
 			}
 		};
+		var slopes = stems.map(function (s) { return (slopeOf(s.high) + slopeOf(s.low)) / 2 });
 		for (var j = 0; j < n; j++) {
 			for (var k = 0; k < j; k++) {
 				var ovr = overlaps[j][k] * overlapLengths[j][k];
-				var coeffA = 1;
+				var slopesCoeff = !pbs[j][k] && stems[j].belongRadical === stems[k].belongRadical ? Math.max(0.25, 1 - Math.abs(slopes[j] - slopes[k]) * 20) : 1;
 				var promixity = segmentsPromixity(stems[j].low, stems[k].high) + segmentsPromixity(stems[j].high, stems[k].low);
+				if (pbs[j][k] && promixity < 3) { promixity = 3; }
+				var promixityCoeff = (1 + (promixity > 2 ? COEFF_C_MULTIPLIER / COEFF_A_MULTIPLIER : 1) * promixity);
+
+				// Alignment coefficients
+				var coeffA = 1;
 				if (pbs[j][k]) {
 					coeffA = COEFF_A_FEATURE_LOSS
 				} else if (stems[j].belongRadical === stems[k].belongRadical) {
@@ -1602,18 +1607,22 @@ function findStems(glyph, strategy) {
 				} else {
 					if (atRadicalBottom(stems[j]) && atRadicalTop(stems[k])) coeffA = COEFF_A_RADICAL_MERGE
 				}
-				A[j][k] = COEFF_A_MULTIPLIER * ovr * coeffA * (1 + (promixity > 2 ? COEFF_C_MULTIPLIER / COEFF_A_MULTIPLIER : 1) * promixity);
+				A[j][k] = COEFF_A_MULTIPLIER * ovr * coeffA * promixityCoeff * slopesCoeff;
 
+				// Collision coefficients
 				var coeffC = 1;
 				if (stems[j].belongRadical === stems[k].belongRadical) coeffC = COEFF_C_SAME_RADICAL;
-				C[j][k] = COEFF_C_MULTIPLIER * ovr * coeffC * (1 + (promixity > 2 ? COEFF_C_MULTIPLIER / COEFF_A_MULTIPLIER : 1) * promixity);
+				if (pbs[j][k]) coeffC *= COEFF_C_FEATURE_LOSS / 2;
+				C[j][k] = COEFF_C_MULTIPLIER * ovr * coeffC * promixityCoeff * slopesCoeff;
 
 				S[j][k] = COEFF_S;
+				if (pbs[j][k] > 1) { F[j][k] = 1; }
 			};
 		};
 		return {
 			alignment: A,
 			collision: C,
+			far: F,
 			swap: S
 		}
 	};
@@ -1650,7 +1659,7 @@ function findStems(glyph, strategy) {
 }
 
 exports.findStems = findStems;
-},{}],7:[function(require,module,exports){
+},{"./types":12}],7:[function(require,module,exports){
 // THIS IS XUANXUE
 
 
@@ -1957,15 +1966,32 @@ function hint(glyph, ppem, strategy) {
 	// The optimization target is the "collision potential" evaluated using stroke position
 	// state vector |y>. Due to randomized mutations, the result is not deterministic, though
 	// reliable under most cases.
-	function collidePotential(y, A, C, S, avaliables) {
+	function collidePotential(y, A, C, F, S, avaliables) {
 		var p = 0;
 		var n = y.length;
 		for (var j = 0; j < n; j++) {
 			for (var k = 0; k < j; k++) {
-				if (y[j] === y[k]) p += A[j][k];
-				else if (y[j] === y[k] + 1 || y[j] + 1 === y[k]) p += C[j][k];
+				if (y[j] === y[k]) { p += A[j][k] }
+				else if (y[j] === y[k] + 1 || y[j] + 1 === y[k]) { p += C[j][k] }
+
 				if (y[j] < y[k] || Math.abs(avaliables[j].center - avaliables[k].center) < 4 && y[j] !== y[k]) p += S[j][k];
 			};
+		};
+		return p;
+	};
+	function ablationPotential(y, A, C, F, S, avaliables) {
+		var p = 0;
+		var n = y.length;
+		var ymin = ppem, ymax = -ppem;
+		for (var j = 0; j < n; j++) {
+			if (y[j] > ymax) ymax = y[j];
+			if (y[j] < ymin) ymin = y[j];
+		}
+		var ymaxt = Math.max(ymax, glyfTop);
+		var ymint = Math.min(ymin, glyfBottom);
+		for (var j = 0; j < y.length; j++) {
+			p += avaliables[j].ablationCoeff * Math.abs(y[j] * uppx - avaliables[j].center)
+			p += COEFF_PORPORTION_DISTORTION * Math.abs(y[j] - (ymin + avaliables[j].proportion * (ymax - ymin)))
 		};
 		for (var t = 0; t < triplets.length; t++) {
 			var j = triplets[t][0], k = triplets[t][1], w = triplets[t][2], d = triplets[t][3];
@@ -1981,27 +2007,11 @@ function hint(glyph, ppem, strategy) {
 		};
 		return p;
 	};
-	function ablationPotential(y, A, C, S, avaliables) {
-		var p = 0;
-		var n = y.length;
-		var ymin = ppem, ymax = -ppem;
-		for (var j = 0; j < n; j++) {
-			if (y[j] > ymax) ymax = y[j];
-			if (y[j] < ymin) ymin = y[j];
-		}
-		var ymaxt = Math.max(ymax, glyfTop);
-		var ymint = Math.min(ymin, glyfBottom);
-		for (var j = 0; j < y.length; j++) {
-			p += avaliables[j].ablationCoeff * Math.abs(y[j] * uppx - avaliables[j].center)
-			p += COEFF_PORPORTION_DISTORTION * Math.abs(y[j] - (ymin + avaliables[j].proportion * (ymax - ymin)))
-		};
-		return p;
-	};
 
 	function Individual(y) {
 		this.gene = y;
-		this.collidePotential = collidePotential(y, glyph.collisionMatrices.alignment, glyph.collisionMatrices.collision, glyph.collisionMatrices.swap, avaliables);
-		this.ablationPotential = ablationPotential(y, glyph.collisionMatrices.alignment, glyph.collisionMatrices.collision, glyph.collisionMatrices.swap, avaliables);
+		this.collidePotential = collidePotential(y, glyph.collisionMatrices.alignment, glyph.collisionMatrices.collision, glyph.collisionMatrices.far, glyph.collisionMatrices.swap, avaliables);
+		this.ablationPotential = ablationPotential(y, glyph.collisionMatrices.alignment, glyph.collisionMatrices.collision, glyph.collisionMatrices.far, glyph.collisionMatrices.swap, avaliables);
 		this.fitness = 1 / (1 + Math.max(0, this.collidePotential * 8 + this.ablationPotential / 16))
 	};
 	var beta = 1;
@@ -2890,4 +2900,23 @@ Glyph.prototype.containsPoint = function (x, y) {
 exports.Glyph = Glyph;
 exports.Contour = Contour;
 exports.Point = Point;
+
+
+///
+function slopeOf(segs) {
+	var sy = 0, sx = 0, n = 0;
+	for (var j = 0; j < segs.length; j++) for (var k = 0; k < segs[j].length; k++) {
+		sy += segs[j][k].yori;
+		sx += segs[j][k].xori;
+		n += 1;
+	};
+	var ax = sx / n, ay = sy / n;
+	var b1num = 0, b1den = 0;
+	for (var j = 0; j < segs.length; j++) for (var k = 0; k < segs[j].length; k++) {
+		b1num += (segs[j][k].xori - ax) * (segs[j][k].yori - ay);
+		b1den += (segs[j][k].xori - ax) * (segs[j][k].xori - ax);
+	};
+	return b1num / b1den
+}
+exports.slopeOf = slopeOf;
 },{}]},{},[9]);

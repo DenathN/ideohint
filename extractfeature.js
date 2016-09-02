@@ -1,20 +1,6 @@
-toposort = require('toposort');
+var toposort = require('toposort');
+var slopeOf = require('./types').slopeOf;
 
-function slopeOf(segs) {
-	var sy = 0, sx = 0, n = 0;
-	for (var j = 0; j < segs.length; j++) for (var k = 0; k < segs[j].length; k++) {
-		sy += segs[j][k].yori;
-		sx += segs[j][k].xori;
-		n += 1;
-	};
-	var ax = sx / n, ay = sy / n;
-	var b1num = 0, b1den = 0;
-	for (var j = 0; j < segs.length; j++) for (var k = 0; k < segs[j].length; k++) {
-		b1num += (segs[j][k].xori - ax) * (segs[j][k].yori - ay);
-		b1den += (segs[j][k].xori - ax) * (segs[j][k].xori - ax);
-	};
-	return b1num / b1den
-}
 function intercept(point, slope) {
 	return point.yori - point.xori * slope;
 }
@@ -145,8 +131,7 @@ exports.extractFeature = function (glyph, strategy) {
 	var interpolations = [];
 	var shortAbsorptions = [];
 	function BY_YORI(p, q) { return p.yori - q.yori }
-
-	function interpolateByKeys(pts, keys, inSameRadical, priority, ckonly) {
+	function shortAbsorptionByKeys(pts, keys, inSameRadical, priority, ckonly){
 		for (var k = 0; k < pts.length; k++) {
 			var pt = pts[k];
 			if (!pt.touched && !pt.donttouch && pt.on && strategy.DO_SHORT_ABSORPTION && inSameRadical) {
@@ -161,6 +146,11 @@ exports.extractFeature = function (glyph, strategy) {
 					}
 				}
 			};
+		}
+	}
+	function interpolateByKeys(pts, keys, inSameRadical, priority, ckonly) {
+		for (var k = 0; k < pts.length; k++) {
+			var pt = pts[k];
 			if (!pt.touched && !pt.donttouch) {
 				out: for (var m = keys.length - 2; m >= 0; m--) if (keys[m].yori < pt.yori - strategy.BLUEZONE_WIDTH) {
 					for (var n = m + 1; n < keys.length; n++) if (keys[n].yori - keys[m].yori > strategy.BLUEZONE_WIDTH && keys[n].yori > pt.yori + strategy.BLUEZONE_WIDTH) {
@@ -184,7 +174,8 @@ exports.extractFeature = function (glyph, strategy) {
 
 		for (var j = 0; j < contours.length; j++) {
 			var contourpoints = contours[j].points
-			var contourKeypoints = contourpoints.filter(function (p) { return p.touched }).sort(BY_YORI);
+			var contourKeypoints = contourpoints.filter(function (p) { return p.keypoint }).sort(BY_YORI);
+			var contourAlignPoints = contourpoints.filter(function (p) { return p.touched }).sort(BY_YORI);
 			var contourExtrema = contourpoints.filter(function (p) { return p.xExtrema || p.yExtrema }).sort(BY_YORI);
 
 			if (contourExtrema.length > 1) {
@@ -193,6 +184,7 @@ exports.extractFeature = function (glyph, strategy) {
 				records.push({
 					topbot: topbot,
 					midex: midex,
+					cka: contourAlignPoints,
 					ck: contourKeypoints,
 					ckx: contourKeypoints.concat(topbot).sort(BY_YORI)
 				})
@@ -200,6 +192,7 @@ exports.extractFeature = function (glyph, strategy) {
 				records.push({
 					topbot: [],
 					midex: midex,
+					cka: contourAlignPoints,
 					ck: contourKeypoints,
 					ckx: contourKeypoints
 				})
@@ -207,6 +200,7 @@ exports.extractFeature = function (glyph, strategy) {
 		};
 		for (var j = 0; j < contours.length; j++) {
 			if (records[j].ck.length > 1) {
+				shortAbsorptionByKeys(records[j].topbot, records[j].cka, true, 3, true)
 				interpolateByKeys(records[j].topbot, records[j].ck, true, 3, true)
 			}
 			interpolateByKeys(records[j].topbot, glyphKeypoints, false, 3)
