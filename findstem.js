@@ -478,7 +478,7 @@ function findStems(glyph, strategy) {
 			if (adjacent(s1[j][1], s2[k][0])) count += 1;
 			if (adjacent(s1[j][1], s2[k][1])) count += 1;
 		}
-		return count;
+		return 2 * count / (s1.length + s2.length);
 	}
 	// Collision matrices, used to calculate collision potential
 	function calculateCollisionMatrices(stems, overlaps, overlapLengths, pbs) {
@@ -500,7 +500,7 @@ function findStems(glyph, strategy) {
 			for (var k = 0; k < j; k++) {
 				var ovr = overlaps[j][k] * overlapLengths[j][k];
 				var slopesCoeff = !pbs[j][k] && stems[j].belongRadical === stems[k].belongRadical ? Math.max(0.25, 1 - Math.abs(slopes[j] - slopes[k]) * 20) : 1;
-				var promixity = segmentsPromixity(stems[j].low, stems[k].high) + segmentsPromixity(stems[j].high, stems[k].low);
+				var promixity = segmentsPromixity(stems[j].low, stems[k].high) + segmentsPromixity(stems[j].high, stems[k].low) + segmentsPromixity(stems[j].low, stems[k].low) + segmentsPromixity(stems[j].high, stems[k].high);
 				if (pbs[j][k] && promixity < 3) { promixity = 3; }
 				var promixityCoeff = (1 + (promixity > 2 ? COEFF_C_MULTIPLIER / COEFF_A_MULTIPLIER : 1) * promixity);
 
