@@ -1686,7 +1686,6 @@ function findStems(glyph, strategy) {
 				if (pbs[j][k] > 1) { F[j][k] = 1; }
 			};
 		};
-		debugger;
 		for (var j = 0; j < n; j++) {
 			var isBottomMost = true;
 			for (var k = 0; k < j; k++) { if (C[j][k] > 0) isBottomMost = false };
@@ -1751,7 +1750,6 @@ function findStems(glyph, strategy) {
 	analyzeStemSpatialRelationships(stems, overlaps);
 	var pointBetweenStems = analyzePointBetweenStems(stems);
 	glyph.collisionMatrices = calculateCollisionMatrices(stems, overlaps, overlapLengths, pointBetweenStems);
-	debugger;
 	glyph.stems = stems;
 	return glyph;
 }
@@ -2390,15 +2388,12 @@ function hint(glyph, ppem, strategy) {
 		stems[j].ytouch = stems[j].yori;
 		stems[j].touchwidth = uppx;
 	};
-	if(ppem==13) console.log(ppem, stems.map(function(s){ return [s.yori, s.ytouch / uppx, s.width, s.touchwidth / uppx]}));
 	(function () {
 		var y0 = [];
 		for (var j = 0; j < stems.length; j++) {
 			y0[j] = Math.round(avaliables[j].center / uppx);
 		}
-		if(ppem==13)debugger;
 		var og = new Individual(y0);
-		if(ppem==13)console.log(og);
 		if (og.collidePotential <= 0) {
 			for (var j = 0; j < stems.length; j++) {
 				stems[j].ytouch = og.gene[j] * uppx;
@@ -2412,11 +2407,8 @@ function hint(glyph, ppem, strategy) {
 			rebalance(stems);
 		};
 	})();
-	if(ppem==13) console.log(ppem, stems.map(function(s){ return [s.yori, s.ytouch / uppx, s.width, s.touchwidth / uppx]}));
 	allocateWidth(stems);
 	touchStemPoints(stems);
-	if(ppem==13) console.log(ppem, stems.map(function(s){ return [s.yori, s.ytouch / uppx, s.width, s.touchwidth / uppx]}));
-	if(ppem==13) console.log(instructions);
 	return instructions;
 }
 
@@ -3061,6 +3053,8 @@ $.getJSON("/characters.json", function (data) {
 	});
 });
 },{"../cvt":6,"../extractfeature":7,"../findstem":8,"../hinter":9,"../instructor":10,"../roundings":13,"../sfdParser":14}],13:[function(require,module,exports){
+"use strict"
+
 function toF26D6(x) {
 	return Math.round(x * 64) / 64
 }
@@ -3104,6 +3098,8 @@ exports.Rtg = Rtg;
 exports.Rutg = Rutg;
 exports.Rdtg = Rdtg;
 },{}],14:[function(require,module,exports){
+"use strict"
+
 var Contour = require('./types.js').Contour;
 var Point = require('./types.js').Point;
 var Glyph = require('./types.js').Glyph;
@@ -3162,6 +3158,8 @@ function parseSFD(input) {
 
 exports.parseSFD = parseSFD;
 },{"./types.js":15}],15:[function(require,module,exports){
+"use strict"
+
 function Point(x, y, on, id) {
 	this.xori = x;
 	this.yori = y;
