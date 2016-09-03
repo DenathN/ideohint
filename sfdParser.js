@@ -1,3 +1,5 @@
+"use strict"
+
 var Contour = require('./types.js').Contour;
 var Point = require('./types.js').Point;
 var Glyph = require('./types.js').Glyph;

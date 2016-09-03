@@ -1,3 +1,5 @@
+"use strict"
+
 var toposort = require('toposort');
 var slopeOf = require('./types').slopeOf;
 
@@ -303,6 +305,8 @@ exports.extractFeature = function (glyph, strategy) {
 				xmax: s.xmax,
 				yori: s.yori,
 				width: s.width,
+				ytouch: s.yori,
+				touchwidth: s.width,
 				atGlyphTop: s.atGlyphTop,
 				atGlyphBottom: s.atGlyphBottom,
 				belongRadical: s.belongRadical,

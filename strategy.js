@@ -1,3 +1,5 @@
+"use strict"
+
 var DefaultStrategy = function() {
 	var g = [[0, 1, 1], [23, 2, 2], [36, 3, 2]]
 	return {

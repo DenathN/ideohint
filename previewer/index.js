@@ -3,6 +3,8 @@ var findStems = require('../findstem').findStems;
 var extractFeature = require('../extractfeature').extractFeature;
 var hint = require('../hinter').hint;
 var roundings = require('../roundings');
+var instruct = require('../instructor').instruct;
+var createCvt = require('../cvt').createCvt;
 
 
 
@@ -202,6 +204,25 @@ function render() {
 		y += Math.round(ppem * 1.2) * DPI
 	}
 };
+
+window.testInstruct = function(m){
+	var cvt = createCvt([], strategy, 0);
+	var glyph = glyphs[m].features;
+	var stemActions = [];
+	var nMDRPnr = 0, nMDRPr = 0;
+	for (var ppem = strategy.PPEM_MIN; ppem < strategy.PPEM_MAX; ppem++) {
+		var actions = hint(glyph, ppem, strategy);
+		for (var k = 0; k < actions.length; k++) {
+			if (actions[k].length === 4) {
+				nMDRPnr += 1
+			} else if (Math.round(actions[k][3]) === actions[k][4] && Math.abs(actions[k][3] - actions[k][4]) < 0.48) {
+				nMDRPr += 1
+			}
+		}
+		stemActions[ppem] = actions;
+	}
+	console.log(instruct(glyph, stemActions, strategy, cvt, 0, nMDRPnr > nMDRPr))
+}
 
 var strategyControlGroups = [
 	['UPM', 'BLUEZONE_WIDTH', 'BLUEZONE_TOP_CENTER', 'BLUEZONE_TOP_LIMIT', 'BLUEZONE_TOP_BAR', 'BLUEZONE_TOP_DOTBAR', 'BLUEZONE_BOTTOM_CENTER', 'BLUEZONE_BOTTOM_LIMIT', 'BLUEZONE_BOTTOM_BAR', 'BLUEZONE_BOTTOM_DOTBAR'],

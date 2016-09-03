@@ -1,5 +1,4 @@
-// THIS IS XUANXUE
-
+"use strict"
 
 var util = require('util');
 var roundings = require('./roundings');
@@ -98,17 +97,6 @@ function hint(glyph, ppem, strategy) {
 	var pixelTop = pixelBottom + round(BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER);
 	var glyfBottom = pixelBottom;
 	var glyfTop = pixelTop;
-
-	function roundDownStem(stem) {
-		stem.roundMethod = -1; // Positive for round up, negative for round down
-		stem.ytouch = roundDown(stem.yori);
-		stem.deltaY = 0
-	}
-	function roundUpStem(stem) {
-		stem.roundMethod = 1;
-		stem.ytouch = roundUp(stem.yori);
-		stem.deltaY = 0
-	}
 
 	function calculateWidth(w) {
 		return Math.round(Math.max(WIDTH_GEAR_MIN, Math.min(WIDTH_GEAR_PROPER, w / MOST_COMMON_STEM_WIDTH * WIDTH_GEAR_PROPER))) * uppx
@@ -435,7 +423,6 @@ function hint(glyph, ppem, strategy) {
 		for (var j = 0; j < stems.length; j++) {
 			stems[j].ytouch = best.gene[j] * uppx;
 			stems[j].touchwidth = uppx;
-			stems[j].roundMethod = stems[j].ytouch >= stems[j].yori ? 1 : -1;
 		};
 	};
 
@@ -653,7 +640,6 @@ function hint(glyph, ppem, strategy) {
 			for (var j = 0; j < stems.length; j++) {
 				stems[j].ytouch = og.gene[j] * uppx;
 				stems[j].touchwidth = uppx;
-				stems[j].roundMethod = stems[j].ytouch >= stems[j].yori ? 1 : -1;
 			}
 		} else {
 			earlyAdjust(stems);

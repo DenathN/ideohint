@@ -1,3 +1,5 @@
+"use strict"
+
 function toF26D6(x) {
 	return Math.round(x * 64) / 64
 }

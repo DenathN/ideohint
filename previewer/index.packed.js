@@ -1,4 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+
+},{}],2:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -23,7 +25,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],2:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -115,14 +117,14 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -712,7 +714,52 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":3,"_process":2,"inherits":1}],5:[function(require,module,exports){
+},{"./support/isBuffer":4,"_process":3,"inherits":2}],6:[function(require,module,exports){
+var fs = require('fs');
+var roundings = require('./roundings');
+function pushWhenAbsent(a, x) {
+	a.push(x)
+}
+
+function createCvt(src, strategy, padding) {
+	var MAX_SW = 4;
+	var cvt = (src || []).slice(0);
+	padding = padding || 0;
+	if (padding) cvt = cvt.slice(0, padding);
+	while (cvt.length < padding) cvt.push(0);
+	pushWhenAbsent(cvt, 0);
+	var upm = strategy.UPM;
+	pushWhenAbsent(cvt, strategy.BLUEZONE_TOP_CENTER);
+	pushWhenAbsent(cvt, strategy.BLUEZONE_BOTTOM_CENTER);
+	pushWhenAbsent(cvt, 0);
+	for (var ppem = 1; ppem <= strategy.PPEM_MAX; ppem++) {
+		var rtg = roundings.Rtg(strategy.UPM, ppem);
+		var roundDown = roundings.Rdtg(strategy.UPM, ppem);
+		var vtop = Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER) + rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER));
+		pushWhenAbsent(cvt, vtop);
+	}
+	for (var w = 1; w <= MAX_SW; w++) {
+		for (var ppem = strategy.PPEM_MIN; ppem < strategy.PPEM_MAX; ppem++) {
+			pushWhenAbsent(cvt, -Math.round(strategy.UPM / ppem * w))
+		}
+	};
+	for (var w = 1; w <= MAX_SW; w++) {
+		for (var ppem = strategy.PPEM_MIN; ppem < strategy.PPEM_MAX; ppem++) {
+			pushWhenAbsent(cvt, Math.round(strategy.UPM / ppem * w))
+		}
+	};
+	return cvt;
+};
+
+exports.from = function (argv, strategy) {
+	var cvt = createCvt([], strategy, argv.CVT_PADDING);
+	if (argv.use_cvt) cvt = JSON.parse(fs.readFileSync(argv.usd_cvt, 'utf-8')).cvt;
+	return cvt;
+}
+exports.createCvt = createCvt;
+},{"./roundings":13,"fs":1}],7:[function(require,module,exports){
+"use strict"
+
 var toposort = require('toposort');
 var slopeOf = require('./types').slopeOf;
 
@@ -1018,6 +1065,8 @@ exports.extractFeature = function (glyph, strategy) {
 				xmax: s.xmax,
 				yori: s.yori,
 				width: s.width,
+				ytouch: s.yori,
+				touchwidth: s.width,
 				atGlyphTop: s.atGlyphTop,
 				atGlyphBottom: s.atGlyphBottom,
 				belongRadical: s.belongRadical,
@@ -1096,7 +1145,9 @@ exports.extractFeature = function (glyph, strategy) {
 		shortAbsorptions: shortAbsorptions
 	}
 }
-},{"./types":12,"toposort":8}],6:[function(require,module,exports){
+},{"./types":15,"toposort":11}],8:[function(require,module,exports){
+"use strict"
+
 var slopeOf = require('./types').slopeOf;
 
 function findStems(glyph, strategy) {
@@ -1626,7 +1677,7 @@ function findStems(glyph, strategy) {
 				A[j][k] = COEFF_A_MULTIPLIER * ovr * coeffA * promixityCoeff * slopesCoeff;
 
 				// Collision coefficients
-				var coeffC = 1 - unbalance;
+				var coeffC = 1;
 				if (stems[j].belongRadical === stems[k].belongRadical) coeffC = COEFF_C_SAME_RADICAL;
 				if (pbs[j][k]) coeffC *= COEFF_C_FEATURE_LOSS / 2;
 				C[j][k] = COEFF_C_MULTIPLIER * ovr * coeffC * promixityCoeff * slopesCoeff;
@@ -1635,6 +1686,7 @@ function findStems(glyph, strategy) {
 				if (pbs[j][k] > 1) { F[j][k] = 1; }
 			};
 		};
+		debugger;
 		for (var j = 0; j < n; j++) {
 			var isBottomMost = true;
 			for (var k = 0; k < j; k++) { if (C[j][k] > 0) isBottomMost = false };
@@ -1699,14 +1751,14 @@ function findStems(glyph, strategy) {
 	analyzeStemSpatialRelationships(stems, overlaps);
 	var pointBetweenStems = analyzePointBetweenStems(stems);
 	glyph.collisionMatrices = calculateCollisionMatrices(stems, overlaps, overlapLengths, pointBetweenStems);
+	debugger;
 	glyph.stems = stems;
 	return glyph;
 }
 
 exports.findStems = findStems;
-},{"./types":12}],7:[function(require,module,exports){
-// THIS IS XUANXUE
-
+},{"./types":15}],9:[function(require,module,exports){
+"use strict"
 
 var util = require('util');
 var roundings = require('./roundings');
@@ -1805,17 +1857,6 @@ function hint(glyph, ppem, strategy) {
 	var pixelTop = pixelBottom + round(BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER);
 	var glyfBottom = pixelBottom;
 	var glyfTop = pixelTop;
-
-	function roundDownStem(stem) {
-		stem.roundMethod = -1; // Positive for round up, negative for round down
-		stem.ytouch = roundDown(stem.yori);
-		stem.deltaY = 0
-	}
-	function roundUpStem(stem) {
-		stem.roundMethod = 1;
-		stem.ytouch = roundUp(stem.yori);
-		stem.deltaY = 0
-	}
 
 	function calculateWidth(w) {
 		return Math.round(Math.max(WIDTH_GEAR_MIN, Math.min(WIDTH_GEAR_PROPER, w / MOST_COMMON_STEM_WIDTH * WIDTH_GEAR_PROPER))) * uppx
@@ -2142,7 +2183,6 @@ function hint(glyph, ppem, strategy) {
 		for (var j = 0; j < stems.length; j++) {
 			stems[j].ytouch = best.gene[j] * uppx;
 			stems[j].touchwidth = uppx;
-			stems[j].roundMethod = stems[j].ytouch >= stems[j].yori ? 1 : -1;
 		};
 	};
 
@@ -2350,17 +2390,19 @@ function hint(glyph, ppem, strategy) {
 		stems[j].ytouch = stems[j].yori;
 		stems[j].touchwidth = uppx;
 	};
+	if(ppem==13) console.log(ppem, stems.map(function(s){ return [s.yori, s.ytouch / uppx, s.width, s.touchwidth / uppx]}));
 	(function () {
 		var y0 = [];
 		for (var j = 0; j < stems.length; j++) {
 			y0[j] = Math.round(avaliables[j].center / uppx);
 		}
+		if(ppem==13)debugger;
 		var og = new Individual(y0);
+		if(ppem==13)console.log(og);
 		if (og.collidePotential <= 0) {
 			for (var j = 0; j < stems.length; j++) {
 				stems[j].ytouch = og.gene[j] * uppx;
 				stems[j].touchwidth = uppx;
-				stems[j].roundMethod = stems[j].ytouch >= stems[j].yori ? 1 : -1;
 			}
 		} else {
 			earlyAdjust(stems);
@@ -2370,13 +2412,271 @@ function hint(glyph, ppem, strategy) {
 			rebalance(stems);
 		};
 	})();
+	if(ppem==13) console.log(ppem, stems.map(function(s){ return [s.yori, s.ytouch / uppx, s.width, s.touchwidth / uppx]}));
 	allocateWidth(stems);
 	touchStemPoints(stems);
+	if(ppem==13) console.log(ppem, stems.map(function(s){ return [s.yori, s.ytouch / uppx, s.width, s.touchwidth / uppx]}));
+	if(ppem==13) console.log(instructions);
 	return instructions;
 }
 
 exports.hint = hint;
-},{"./roundings":10,"util":4}],8:[function(require,module,exports){
+},{"./roundings":13,"util":5}],10:[function(require,module,exports){
+(function (process){
+var util = require('util');
+
+function rtg(y, upm, ppem) { return Math.round(y / upm * ppem) / ppem * upm }
+function rdtg(y, upm, ppem) { return Math.floor(y / upm * ppem) / ppem * upm }
+function pushargs(tt) {
+	var vals = [];
+	for (var j = 1; j < arguments.length; j++) vals = vals.concat(arguments[j]);
+	if (!vals.length) return;
+	var datatype = 'B';
+	var shortpush = vals.length <= 8;
+	for (var j = 0; j < vals.length; j++) if (vals[j] < 0 || vals[j] > 255) datatype = 'W';
+	if (shortpush) {
+		tt.push('PUSH' + datatype + '_' + vals.length);
+		for (var j = 0; j < vals.length; j++) tt.push(vals[j])
+	} else if (vals.length < 250) {
+		tt.push('NPUSH' + datatype);
+		tt.push(vals.length);
+		for (var j = 0; j < vals.length; j++) tt.push(vals[j])
+	}
+};
+function invokesToInstrs(invocations, limit) {
+	var stackSofar = [];
+	var actionsSofar = [];
+	var instrs = [];
+	for (var j = 0; j < invocations.length; j++) {
+		var arg = invocations[j][0];
+		var action = invocations[j][1];
+		if (stackSofar.length + arg.length > limit) {
+			pushargs(instrs, stackSofar);
+			instrs = instrs.concat(actionsSofar);
+			stackSofar = [];
+			actionsSofar = [];
+		}
+		stackSofar = arg.concat(stackSofar);
+		actionsSofar = actionsSofar.concat(action);
+	};
+	pushargs(instrs, stackSofar);
+	instrs = instrs.concat(actionsSofar);
+	return instrs;
+}
+
+function by_rp(a, b) {
+	return a[0] - b[0] || a[1] - b[1]
+}
+function ipInvokes(actions) {
+	var invokes = [];
+	actions = actions.sort(by_rp);
+	var cur_rp1 = -1;
+	var cur_rp2 = -1;
+	for (var k = 0; k < actions.length; k++) {
+		var rp1 = actions[k][0];
+		var rp2 = actions[k][1];
+		if (cur_rp1 !== rp1) {
+			cur_rp1 = rp1;
+			invokes.push([[rp1], ['SRP1']])
+		};
+		if (cur_rp2 !== rp2) {
+			cur_rp2 = rp2;
+			invokes.push([[rp2], ['SRP2']])
+		};
+		invokes.push([[actions[k][2]], ['IP']])
+	};
+	return invokes;
+}
+function by_rp_alt(a, b) {
+	return a[0] - b[0] || a[1] - b[1]
+}
+function shortMdrpInvokes(actions) {
+	var invokes = [];
+	actions = actions.sort(by_rp);
+	var cur_rp0 = 0;
+	for (var k = 0; k < actions.length; k++) {
+		var rp0 = actions[k][0];
+		if (cur_rp0 !== rp0) {
+			cur_rp0 = rp0;
+			invokes.push([[rp0], ['SRP0']])
+		};
+		invokes.push([[actions[k][1]], ['MDRP[0]']])
+	};
+	return invokes;
+}
+
+function instruct(glyph, actions, strategy, cvt, padding, useMDRPnr) {
+	var padding = padding || 0;
+	var upm = strategy.UPM || 1000;
+	var cvtTopID = cvt.indexOf(strategy.BLUEZONE_TOP_CENTER, padding);
+	var cvtBottomID = cvt.indexOf(strategy.BLUEZONE_BOTTOM_CENTER, padding);
+
+	function decideDelta(gear, original, target, upm, ppem) {
+		var rounded = rtg(original, upm, ppem);
+		var d = Math.round(gear * (target - rounded) / (upm / ppem));
+		var roundBias = (original - rounded) / (upm / ppem);
+		if (roundBias >= 0.4375 && roundBias <= 0.5625) {
+			// RTG rounds TK down, but it is close to the middle
+			d -= 1
+		} else if (roundBias >= -0.5625 && roundBias <= -0.4375) {
+			d += 1
+		};
+		if (!d) return -1;
+		if (d < -8 || d > 8) return -2;
+		var selector = (d > 0 ? d + 7 : d + 8);
+		var deltappem = (ppem - strategy.PPEM_MIN) % 16;
+		return deltappem * 16 + selector;
+	}
+
+	var STACK_DEPTH = strategy.STACK_DEPTH || 200;
+	var invocations = [];
+
+	// if(!glyph.stems.length) return;
+	var tt = ['SVTCA[y-axis]', 'RTG'];
+	tt.push('PUSHB_1', strategy.PPEM_MIN, 'MPPEM', 'LTEQ', 'PUSHB_1', strategy.PPEM_MAX, 'MPPEM', 'GT', 'AND', 'IF');
+
+	// Blue zone alignment instructions
+	// Bottom
+	for (var k = 0; k < glyph.bottomBluePoints.length; k++) {
+		invocations.push([[glyph.bottomBluePoints[k], cvtBottomID], ['MIAP[rnd]']])
+	};
+	tt = tt.concat(invokesToInstrs(invocations, STACK_DEPTH));
+	invocations = [];
+	// Padding + 3 + ppem is the CVT index of top blue zone center.
+	tt.push('MPPEM');
+	pushargs(tt, padding + 3);
+	tt.push('ADD');
+	for (var k = 0; k < glyph.topBluePoints.length; k++) {
+		tt.push('DUP');
+		pushargs(tt, glyph.topBluePoints[k]);
+		tt.push('SWAP', 'MIAP[0]'); // Don't round top absorptions
+	};
+	tt.push('CLEAR');
+
+	// Microsoft eats my deltas, i have to add additional MDAPs
+	// cf. http://www.microsoft.com/typography/cleartype/truetypecleartype.aspx#Toc227035721
+	if (glyph.stems.length) {
+		for (var k = 0; k < glyph.stems.length; k++) {
+			invocations.push([[glyph.stems[k].posKey.id], ['MDAP[0]']]);
+			invocations.push([[glyph.stems[k].advKey.id], ['MDAP[0]']]);
+		};
+	};
+
+
+	var deltaInstructions = [];
+	invocations.push([[1, strategy.PPEM_MIN], ['SDB', 'SDS']]);
+
+	var mirps = [];
+	if (glyph.stems.length) {
+		for (var ppem = 0; ppem < actions.length; ppem++) {
+			if (actions[ppem]) {
+				var instrs = actions[ppem];
+				var deltas = [];
+				var args = [];
+				var movements = [];
+				for (var k = 0; k < instrs.length; k++) {
+					var d = decideDelta(2, instrs[k].pos[2], instrs[k].pos[3], upm, ppem);
+					if (d >= 0) deltas.push({ id: instrs[k].pos[1], delta: d });
+
+					if (instrs[k].adv.length > 4) {
+						var touchedStemWidthPixels = (instrs[k].adv[4] || 0);
+						var originalStemWidthPixels = (instrs[k].adv[3] || 0);
+						var originalAdvKeyPosition = instrs[k].pos[2] + (instrs[k].orient ? (-1) : 1) * instrs[k].adv[3] * (upm / ppem);
+						var targetAdvKeyPosition = instrs[k].pos[3] + (instrs[k].orient ? (-1) : 1) * instrs[k].adv[4] * (upm / ppem);
+						var d = decideDelta(2, originalAdvKeyPosition, targetAdvKeyPosition, upm, ppem);
+						if (d >= 0) {
+							deltas.push({ id: instrs[k].adv[2], delta: d });
+						} else if (d === -1) {
+							// IGNORE
+						} else if (Math.round(originalStemWidthPixels) === touchedStemWidthPixels && Math.abs(originalStemWidthPixels - touchedStemWidthPixels) < 0.48) {
+							args.push(instrs[k].adv[2], instrs[k].pos[1]);
+							movements.push('MDRP[rnd,grey]', 'SRP0');
+						} else {
+							var cvtwidth = (instrs[k].orient ? (-1) : 1) * Math.round(upm / ppem * touchedStemWidthPixels);
+							var cvtj = cvt.indexOf(cvtwidth, padding);
+							if (cvtj >= 0) {
+								args.push(instrs[k].adv[2], cvtj, instrs[k].pos[1]);
+								movements.push('MIRP[0]', 'SRP0');
+							} else {
+								process.stderr.write([ppem, touchedStemWidthPixels, (instrs[k].orient ? (-1) : 1) * Math.round(upm / ppem * touchedStemWidthPixels)] + '\n')
+								var msirpwidth = (instrs[k].orient ? (-1) : 1) * ((instrs[k].adv[3] | 0) * 64);
+								args.push(instrs[k].adv[2], msirpwidth, instrs[k].pos[1]);
+								movements.push('MSIRP[0]', 'SRP0');
+							}
+						};
+					} else {
+						args.push(instrs[k].adv[2], instrs[k].pos[1]);
+						movements.push('MDRP[0]', 'SRP0');
+					}
+				};
+				if (deltas.length) {
+					var deltapArgs = [];
+					for (var j = 0; j < deltas.length; j++) {
+						deltapArgs.push(deltas[j].delta, deltas[j].id)
+					};
+					deltapArgs.push(deltapArgs.length >> 1);
+					invocations.push([deltapArgs, ['DELTAP' + (1 + Math.floor((ppem - strategy.PPEM_MIN) / 16))]])
+				};
+				var ppemSpecificMRPs = [];
+				if (args.length) {
+					pushargs(ppemSpecificMRPs, args)
+					ppemSpecificMRPs = ppemSpecificMRPs.concat(movements.reverse());
+				};
+				if (ppemSpecificMRPs.length) {
+					mirps.push('MPPEM', 'PUSHB_1', ppem, 'EQ', 'IF');
+					mirps = mirps.concat(ppemSpecificMRPs);
+					mirps.push('EIF');
+				}
+			}
+		};
+	};
+
+	if (glyph.stems.length) {
+		for (var k = 0; k < glyph.stems.length; k++) {
+			invocations.push([[glyph.stems[k].posKey.id], ['MDAP[rnd]']]);
+			invocations.push([[glyph.stems[k].advKey.id], ['MDAP[rnd]']]);
+		};
+	};
+
+	var isalInvocations = [];
+	// In-stem alignments
+	for (var j = 0; j < glyph.stems.length; j++) {
+		[[glyph.stems[j].posKey.id, glyph.stems[j].posAlign], [glyph.stems[j].advKey.id, glyph.stems[j].advAlign]].forEach(function (x) {
+			if (x[1].length) {
+				isalInvocations.push([x[1].concat([x[0]]), ['SRP0'].concat(x[1].map(function (x) { return 'MDRP[0]' }))]);
+			}
+		});
+	};
+
+	var ip = [[], [], [], [], []];
+	var sa = [[], [], [], [], []];
+	for (var j = 0; j < glyph.interpolations.length; j++) {
+		ip[glyph.interpolations[j][3]].push(glyph.interpolations[j])
+	}
+	for (var j = 0; j < glyph.shortAbsorptions.length; j++) {
+		sa[glyph.shortAbsorptions[j][2]].push(glyph.shortAbsorptions[j])
+	}
+	var ipsacalls = [];
+	for (var j = ip.length - 1; j >= 0; j--) {
+		ipsacalls = ipsacalls.concat(ipInvokes(ip[j]), shortMdrpInvokes(sa[j]))
+	}
+
+	// Interpolations
+	tt = tt.concat(
+		invokesToInstrs(invocations, STACK_DEPTH),
+		mirps,
+		invokesToInstrs([].concat(
+			ipsacalls,
+			isalInvocations
+		), STACK_DEPTH));
+
+	tt.push('EIF', 'IUP[y]');
+	return tt.join("\n")
+};
+
+exports.instruct = instruct;
+}).call(this,require('_process'))
+},{"_process":3,"util":5}],11:[function(require,module,exports){
 
 /**
  * Topological sorting function
@@ -2437,12 +2737,14 @@ function uniqueNodes(arr){
   return res
 }
 
-},{}],9:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 var parseSFD = require('../sfdParser').parseSFD;
 var findStems = require('../findstem').findStems;
 var extractFeature = require('../extractfeature').extractFeature;
 var hint = require('../hinter').hint;
 var roundings = require('../roundings');
+var instruct = require('../instructor').instruct;
+var createCvt = require('../cvt').createCvt;
 
 
 
@@ -2643,6 +2945,25 @@ function render() {
 	}
 };
 
+window.testInstruct = function(m){
+	var cvt = createCvt([], strategy, 0);
+	var glyph = glyphs[m].features;
+	var stemActions = [];
+	var nMDRPnr = 0, nMDRPr = 0;
+	for (var ppem = strategy.PPEM_MIN; ppem < strategy.PPEM_MAX; ppem++) {
+		var actions = hint(glyph, ppem, strategy);
+		for (var k = 0; k < actions.length; k++) {
+			if (actions[k].length === 4) {
+				nMDRPnr += 1
+			} else if (Math.round(actions[k][3]) === actions[k][4] && Math.abs(actions[k][3] - actions[k][4]) < 0.48) {
+				nMDRPr += 1
+			}
+		}
+		stemActions[ppem] = actions;
+	}
+	console.log(instruct(glyph, stemActions, strategy, cvt, 0, nMDRPnr > nMDRPr))
+}
+
 var strategyControlGroups = [
 	['UPM', 'BLUEZONE_WIDTH', 'BLUEZONE_TOP_CENTER', 'BLUEZONE_TOP_LIMIT', 'BLUEZONE_TOP_BAR', 'BLUEZONE_TOP_DOTBAR', 'BLUEZONE_BOTTOM_CENTER', 'BLUEZONE_BOTTOM_LIMIT', 'BLUEZONE_BOTTOM_BAR', 'BLUEZONE_BOTTOM_DOTBAR'],
 	['MIN_STEM_WIDTH', 'MAX_STEM_WIDTH', 'MOST_COMMON_STEM_WIDTH', 'MAX_SEGMERGE_DISTANCE', 'ABSORPTION_LIMIT', 'STEM_SIDE_MIN_RISE', 'STEM_SIDE_MIN_DESCENT', 'STEM_CENTER_MIN_RISE', 'STEM_CENTER_MIN_DESCENT', 'STEM_SIDE_MIN_DIST_RISE', 'STEM_SIDE_MIN_DIST_DESCENT', 'SLOPE_FUZZ', 'Y_FUZZ'],
@@ -2739,7 +3060,7 @@ $.getJSON("/characters.json", function (data) {
 		createAdjusters();
 	});
 });
-},{"../extractfeature":5,"../findstem":6,"../hinter":7,"../roundings":10,"../sfdParser":11}],10:[function(require,module,exports){
+},{"../cvt":6,"../extractfeature":7,"../findstem":8,"../hinter":9,"../instructor":10,"../roundings":13,"../sfdParser":14}],13:[function(require,module,exports){
 function toF26D6(x) {
 	return Math.round(x * 64) / 64
 }
@@ -2782,7 +3103,7 @@ exports.rdtg = rdtg;
 exports.Rtg = Rtg;
 exports.Rutg = Rutg;
 exports.Rdtg = Rdtg;
-},{}],11:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 var Contour = require('./types.js').Contour;
 var Point = require('./types.js').Point;
 var Glyph = require('./types.js').Glyph;
@@ -2840,7 +3161,7 @@ function parseSFD(input) {
 }
 
 exports.parseSFD = parseSFD;
-},{"./types.js":12}],12:[function(require,module,exports){
+},{"./types.js":15}],15:[function(require,module,exports){
 function Point(x, y, on, id) {
 	this.xori = x;
 	this.yori = y;
@@ -2981,4 +3302,4 @@ function slopeOf(segs) {
 	return b1num / b1den
 }
 exports.slopeOf = slopeOf;
-},{}]},{},[9]);
+},{}]},{},[12]);

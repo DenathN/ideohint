@@ -1,3 +1,5 @@
+"use strict"
+
 var slopeOf = require('./types').slopeOf;
 
 function findStems(glyph, strategy) {
@@ -527,7 +529,7 @@ function findStems(glyph, strategy) {
 				A[j][k] = COEFF_A_MULTIPLIER * ovr * coeffA * promixityCoeff * slopesCoeff;
 
 				// Collision coefficients
-				var coeffC = 1 - unbalance;
+				var coeffC = 1;
 				if (stems[j].belongRadical === stems[k].belongRadical) coeffC = COEFF_C_SAME_RADICAL;
 				if (pbs[j][k]) coeffC *= COEFF_C_FEATURE_LOSS / 2;
 				C[j][k] = COEFF_C_MULTIPLIER * ovr * coeffC * promixityCoeff * slopesCoeff;

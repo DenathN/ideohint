@@ -1,3 +1,5 @@
+"use strict"
+
 function Point(x, y, on, id) {
 	this.xori = x;
 	this.yori = y;
