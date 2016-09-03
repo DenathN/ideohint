@@ -950,6 +950,7 @@ exports.extractFeature = function (glyph, strategy) {
 			d[j] = [];
 			for (var k = 0; k < j; k++) {
 				d[j][k] = glyph.stemOverlaps[j][k] > strategy.COLLISION_MIN_OVERLAP_RATIO && !edgetouch(glyph.stems[j], glyph.stems[k])
+				if(glyph.collisionMatrices.collision[j][k] <= 0) d[j][k] = false;
 			}
 		};
 		for (var x = 0; x < d.length; x++) for (var y = 0; y < d.length; y++) for (var z = 0; z < d.length; z++) {
@@ -1121,6 +1122,8 @@ function findStems(glyph, strategy) {
 	var COEFF_S = strategy.COEFF_S || 500;
 	var MIN_OVERLAP_RATIO = strategy.MIN_OVERLAP_RATIO || 0.3;
 	var MIN_STEM_OVERLAP_RATIO = strategy.MIN_STEM_OVERLAP_RATIO || 0.2;
+	var SIDETOUCH_LIMIT = strategy.SIDETOUCH_LIMIT || 0.2;
+	var TBST_LIMIT = strategy.TBST_LIMIT || 0.2;
 	var Y_FUZZ = strategy.Y_FUZZ || 7;
 	var SLOPE_FUZZ = strategy.SLOPE_FUZZ || 0.04;
 
@@ -1596,12 +1599,17 @@ function findStems(glyph, strategy) {
 		var slopes = stems.map(function (s) { return (slopeOf(s.high) + slopeOf(s.low)) / 2 });
 		for (var j = 0; j < n; j++) {
 			for (var k = 0; k < j; k++) {
+				// Overlap weight
 				var ovr = overlaps[j][k] * overlapLengths[j][k];
+				var isSideTouch = stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax
+					|| stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax;
+				// For side touches witn low overlap, drop it.
+				if (ovr < SIDETOUCH_LIMIT && isSideTouch) { ovr = 0; }
+
 				var slopesCoeff = !pbs[j][k] && stems[j].belongRadical === stems[k].belongRadical ? Math.max(0.25, 1 - Math.abs(slopes[j] - slopes[k]) * 20) : 1;
 				var promixity = segmentsPromixity(stems[j].low, stems[k].high) + segmentsPromixity(stems[j].high, stems[k].low) + segmentsPromixity(stems[j].low, stems[k].low) + segmentsPromixity(stems[j].high, stems[k].high);
 				if (pbs[j][k] && promixity < 3) { promixity = 3; }
 				var promixityCoeff = (1 + (promixity > 2 ? COEFF_C_MULTIPLIER / COEFF_A_MULTIPLIER : 1) * promixity);
-
 				// Alignment coefficients
 				var coeffA = 1;
 				if (pbs[j][k]) {
@@ -1618,7 +1626,7 @@ function findStems(glyph, strategy) {
 				A[j][k] = COEFF_A_MULTIPLIER * ovr * coeffA * promixityCoeff * slopesCoeff;
 
 				// Collision coefficients
-				var coeffC = 1;
+				var coeffC = 1 - unbalance;
 				if (stems[j].belongRadical === stems[k].belongRadical) coeffC = COEFF_C_SAME_RADICAL;
 				if (pbs[j][k]) coeffC *= COEFF_C_FEATURE_LOSS / 2;
 				C[j][k] = COEFF_C_MULTIPLIER * ovr * coeffC * promixityCoeff * slopesCoeff;
@@ -1627,6 +1635,34 @@ function findStems(glyph, strategy) {
 				if (pbs[j][k] > 1) { F[j][k] = 1; }
 			};
 		};
+		for (var j = 0; j < n; j++) {
+			var isBottomMost = true;
+			for (var k = 0; k < j; k++) { if (C[j][k] > 0) isBottomMost = false };
+			if (isBottomMost) {
+				for (var k = j + 1; k < n; k++) {
+					var isSideTouch = stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax
+						|| stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax;
+					var mindiff = Math.abs(stems[j].xmax - stems[k].xmin);
+					var maxdiff = Math.abs(stems[j].xmin - stems[k].xmax);
+					var unbalance = (mindiff + maxdiff <= 0) ? 0 : Math.abs(mindiff - maxdiff) / (mindiff + maxdiff);
+					if (!isSideTouch && unbalance >= TBST_LIMIT) A[k][j] *= COEFF_A_FEATURE_LOSS;
+				}
+			}
+		}
+		for (var j = 0; j < n; j++) {
+			var isTopMost = true;
+			for (var k = j + 1; k < n; k++) { if (C[k][j] > 0) isTopMost = false };
+			if (isTopMost) {
+				for (var k = 0; k < j; k++) {
+					var isSideTouch = stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax
+						|| stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax;
+					var mindiff = Math.abs(stems[j].xmax - stems[k].xmin);
+					var maxdiff = Math.abs(stems[j].xmin - stems[k].xmax);
+					var unbalance = (mindiff + maxdiff <= 0) ? 0 : Math.abs(mindiff - maxdiff) / (mindiff + maxdiff);
+					if (!isSideTouch && unbalance >= TBST_LIMIT) A[j][k] *= COEFF_A_FEATURE_LOSS;
+				}
+			}
+		}
 		return {
 			alignment: A,
 			collision: C,
@@ -1658,7 +1694,8 @@ function findStems(glyph, strategy) {
 
 	var overlaps = OverlapMatrix(function (p, q) { return stemOverlapRatio(p, q, OP_MIN) });
 	glyph.stemOverlaps = OverlapMatrix(function (p, q) { return stemOverlapRatio(p, q, OP_MAX) });
-	var overlapLengths = glyph.stemOverlapLengths = OverlapMatrix(function (p, q) { return stemOverlapLength(p, q, OP_MIN) })
+	glyph.stemMinOverlaps = overlaps;
+	var overlapLengths = glyph.stemOverlapLengths = OverlapMatrix(function (p, q) { return stemOverlapLength(p, q, OP_MIN) });
 	analyzeStemSpatialRelationships(stems, overlaps);
 	var pointBetweenStems = analyzePointBetweenStems(stems);
 	glyph.collisionMatrices = calculateCollisionMatrices(stems, overlaps, overlapLengths, pointBetweenStems);
@@ -2197,7 +2234,7 @@ function hint(glyph, ppem, strategy) {
 			}
 		};
 
-		for (var pass = 0; pass < 3; pass++) {
+		for (var pass = 0; pass < 5; pass++) {
 			// Allocate top and bottom stems
 			for (var j = 0; j < stems.length; j++) if ((atGlyphTop(stems[j]) || atGlyphBottom(stems[j])) && !allocated[j]) { allocateDown(j) };
 			for (var j = stems.length - 1; j >= 0; j--) if ((atGlyphTop(stems[j]) || atGlyphBottom(stems[j])) && !allocated[j]) { allocateUp(j) };
@@ -2238,22 +2275,39 @@ function hint(glyph, ppem, strategy) {
 			// Triplet balancing
 			for (var t = 0; t < triplets.length; t++) {
 				var j = triplets[t][0], k = triplets[t][1], m = triplets[t][2];
+				var y1 = y.slice(0), w1 = w.slice(0);
 				// [3] 2 [3] 1 [2] -> [3] 1 [3] 1 [3]
-				if (w[m] <= properWidths[j] - 1 && y[j] - w[j] - y[k] >= 2 && y[k] - w[k] - y[m] === 1 && y[k] < avaliables[k].high && y[m] < avaliables[k].high) {
-					y[k] += 1; y[m] += 1; w[m] += 1;
-					if (spaceAbove(y, w, k, pixelTopPixels + 1) < 1 || spaceAbove(y, w, m, pixelTopPixels + 1) < 1 || spaceBelow(y, w, k, pixelBottomPixels - 1) < 1) {
-						y[k] -= 1;
-						y[m] -= 1;
-						w[m] -= 1;
-					}
+				if (properWidths[j] > 2 && w[m] <= properWidths[j] - 1 && y[j] - w[j] - y[k] >= 2 && y[k] - w[k] - y[m] === 1) {
+					y[k] += 1, y[m] += 1, w[m] += 1;
+				}
+				// [2] 2 [3] 1 [3] -> [3] 1 [3] 1 [3]
+				else if (properWidths[m] > 2 && w[j] <= properWidths[j] - 1 && y[j] - w[j] - y[k] >= 2 && y[k] - w[k] - y[m] === 1) {
+					w[j] += 1;
+				}
+				// [3] 1 [3] 2 [2] -> [3] 1 [3] 1 [3]
+				else if (properWidths[j] > 2 && w[m] <= properWidths[j] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] >= 2) {
+					y[m] += 1, w[m] += 1;
+				}
+				// [2] 1 [3] 2 [3] -> [3] 1 [3] 1 [3]
+				else if (properWidths[m] > 2 && w[j] <= properWidths[j] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] >= 2) {
+					w[j] += 1, y[k] -= 1;
+				}
+				// [3] 1 [2] 1 [1] -> [2] 1 [2] 1 [2]
+				else if (properWidths[j] > 2 && w[j] == properWidths[j] && w[k] <= properWidths[j] - 1 && w[m] <= properWidths[j] - 2) {
+					w[j] -= 1, y[k] += 1, y[m] += 1, w[m] += 1;
+				}
+				// [1] 1 [2] 1 [3] -> [2] 1 [2] 1 [2]
+				else if (properWidths[m] > 2 && w[m] == properWidths[m] && w[k] <= properWidths[j] - 1 && w[j] <= properWidths[j] - 2) {
+					w[j] += 1, w[m] -= 1, y[k] -= 1, y[m] -= 1;
 				}
 				// [1] 1 [2] 2 [2] -> [2] 1 [2] 1 [2]
-				else if (w[j] <= properWidths[j] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] === 2 && y[k] > avaliables[k].low) {
-					w[j] += 1; y[k] -= 1;
-					if (spaceBelow(y, w, j, pixelBottomPixels - 1) < 1 || spaceBelow(y, w, k, pixelBottomPixels - 1) < 1 || spaceAbove(y, w, m, pixelTopPixels + 1) < 1) { // reroll when a collision is made
-						w[j] -= 1;
-						y[k] += 1;
-					}
+				else if (w[j] <= properWidths[j] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] === 2) {
+					w[j] += 1, y[k] -= 1;
+				}
+
+				// rollback when no space
+				if (spaceAbove(y, w, k, pixelTopPixels + 1) < 1 || spaceAbove(y, w, m, pixelTopPixels + 1) < 1 || spaceBelow(y, w, k, pixelBottomPixels - 1) < 1) {
+					y = y1; w = w1;
 				}
 			}
 			// Edge touch balancing

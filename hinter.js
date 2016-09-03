@@ -527,7 +527,7 @@ function hint(glyph, ppem, strategy) {
 			}
 		};
 
-		for (var pass = 0; pass < 3; pass++) {
+		for (var pass = 0; pass < 5; pass++) {
 			// Allocate top and bottom stems
 			for (var j = 0; j < stems.length; j++) if ((atGlyphTop(stems[j]) || atGlyphBottom(stems[j])) && !allocated[j]) { allocateDown(j) };
 			for (var j = stems.length - 1; j >= 0; j--) if ((atGlyphTop(stems[j]) || atGlyphBottom(stems[j])) && !allocated[j]) { allocateUp(j) };
@@ -568,22 +568,39 @@ function hint(glyph, ppem, strategy) {
 			// Triplet balancing
 			for (var t = 0; t < triplets.length; t++) {
 				var j = triplets[t][0], k = triplets[t][1], m = triplets[t][2];
+				var y1 = y.slice(0), w1 = w.slice(0);
 				// [3] 2 [3] 1 [2] -> [3] 1 [3] 1 [3]
-				if (w[m] <= properWidths[j] - 1 && y[j] - w[j] - y[k] >= 2 && y[k] - w[k] - y[m] === 1 && y[k] < avaliables[k].high && y[m] < avaliables[k].high) {
-					y[k] += 1; y[m] += 1; w[m] += 1;
-					if (spaceAbove(y, w, k, pixelTopPixels + 1) < 1 || spaceAbove(y, w, m, pixelTopPixels + 1) < 1 || spaceBelow(y, w, k, pixelBottomPixels - 1) < 1) {
-						y[k] -= 1;
-						y[m] -= 1;
-						w[m] -= 1;
-					}
+				if (properWidths[j] > 2 && w[m] <= properWidths[j] - 1 && y[j] - w[j] - y[k] >= 2 && y[k] - w[k] - y[m] === 1) {
+					y[k] += 1, y[m] += 1, w[m] += 1;
+				}
+				// [2] 2 [3] 1 [3] -> [3] 1 [3] 1 [3]
+				else if (properWidths[m] > 2 && w[j] <= properWidths[j] - 1 && y[j] - w[j] - y[k] >= 2 && y[k] - w[k] - y[m] === 1) {
+					w[j] += 1;
+				}
+				// [3] 1 [3] 2 [2] -> [3] 1 [3] 1 [3]
+				else if (properWidths[j] > 2 && w[m] <= properWidths[j] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] >= 2) {
+					y[m] += 1, w[m] += 1;
+				}
+				// [2] 1 [3] 2 [3] -> [3] 1 [3] 1 [3]
+				else if (properWidths[m] > 2 && w[j] <= properWidths[j] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] >= 2) {
+					w[j] += 1, y[k] -= 1;
+				}
+				// [3] 1 [2] 1 [1] -> [2] 1 [2] 1 [2]
+				else if (properWidths[j] > 2 && w[j] == properWidths[j] && w[k] <= properWidths[j] - 1 && w[m] <= properWidths[j] - 2) {
+					w[j] -= 1, y[k] += 1, y[m] += 1, w[m] += 1;
+				}
+				// [1] 1 [2] 1 [3] -> [2] 1 [2] 1 [2]
+				else if (properWidths[m] > 2 && w[m] == properWidths[m] && w[k] <= properWidths[j] - 1 && w[j] <= properWidths[j] - 2) {
+					w[j] += 1, w[m] -= 1, y[k] -= 1, y[m] -= 1;
 				}
 				// [1] 1 [2] 2 [2] -> [2] 1 [2] 1 [2]
-				else if (w[j] <= properWidths[j] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] === 2 && y[k] > avaliables[k].low) {
-					w[j] += 1; y[k] -= 1;
-					if (spaceBelow(y, w, j, pixelBottomPixels - 1) < 1 || spaceBelow(y, w, k, pixelBottomPixels - 1) < 1 || spaceAbove(y, w, m, pixelTopPixels + 1) < 1) { // reroll when a collision is made
-						w[j] -= 1;
-						y[k] += 1;
-					}
+				else if (w[j] <= properWidths[j] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] === 2) {
+					w[j] += 1, y[k] -= 1;
+				}
+
+				// rollback when no space
+				if (spaceAbove(y, w, k, pixelTopPixels + 1) < 1 || spaceAbove(y, w, m, pixelTopPixels + 1) < 1 || spaceBelow(y, w, k, pixelBottomPixels - 1) < 1) {
+					y = y1; w = w1;
 				}
 			}
 			// Edge touch balancing

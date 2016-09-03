@@ -23,6 +23,8 @@ function findStems(glyph, strategy) {
 	var COEFF_S = strategy.COEFF_S || 500;
 	var MIN_OVERLAP_RATIO = strategy.MIN_OVERLAP_RATIO || 0.3;
 	var MIN_STEM_OVERLAP_RATIO = strategy.MIN_STEM_OVERLAP_RATIO || 0.2;
+	var SIDETOUCH_LIMIT = strategy.SIDETOUCH_LIMIT || 0.2;
+	var TBST_LIMIT = strategy.TBST_LIMIT || 0.2;
 	var Y_FUZZ = strategy.Y_FUZZ || 7;
 	var SLOPE_FUZZ = strategy.SLOPE_FUZZ || 0.04;
 
@@ -498,12 +500,17 @@ function findStems(glyph, strategy) {
 		var slopes = stems.map(function (s) { return (slopeOf(s.high) + slopeOf(s.low)) / 2 });
 		for (var j = 0; j < n; j++) {
 			for (var k = 0; k < j; k++) {
+				// Overlap weight
 				var ovr = overlaps[j][k] * overlapLengths[j][k];
+				var isSideTouch = stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax
+					|| stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax;
+				// For side touches witn low overlap, drop it.
+				if (ovr < SIDETOUCH_LIMIT && isSideTouch) { ovr = 0; }
+
 				var slopesCoeff = !pbs[j][k] && stems[j].belongRadical === stems[k].belongRadical ? Math.max(0.25, 1 - Math.abs(slopes[j] - slopes[k]) * 20) : 1;
 				var promixity = segmentsPromixity(stems[j].low, stems[k].high) + segmentsPromixity(stems[j].high, stems[k].low) + segmentsPromixity(stems[j].low, stems[k].low) + segmentsPromixity(stems[j].high, stems[k].high);
 				if (pbs[j][k] && promixity < 3) { promixity = 3; }
 				var promixityCoeff = (1 + (promixity > 2 ? COEFF_C_MULTIPLIER / COEFF_A_MULTIPLIER : 1) * promixity);
-
 				// Alignment coefficients
 				var coeffA = 1;
 				if (pbs[j][k]) {
@@ -520,7 +527,7 @@ function findStems(glyph, strategy) {
 				A[j][k] = COEFF_A_MULTIPLIER * ovr * coeffA * promixityCoeff * slopesCoeff;
 
 				// Collision coefficients
-				var coeffC = 1;
+				var coeffC = 1 - unbalance;
 				if (stems[j].belongRadical === stems[k].belongRadical) coeffC = COEFF_C_SAME_RADICAL;
 				if (pbs[j][k]) coeffC *= COEFF_C_FEATURE_LOSS / 2;
 				C[j][k] = COEFF_C_MULTIPLIER * ovr * coeffC * promixityCoeff * slopesCoeff;
@@ -529,6 +536,34 @@ function findStems(glyph, strategy) {
 				if (pbs[j][k] > 1) { F[j][k] = 1; }
 			};
 		};
+		for (var j = 0; j < n; j++) {
+			var isBottomMost = true;
+			for (var k = 0; k < j; k++) { if (C[j][k] > 0) isBottomMost = false };
+			if (isBottomMost) {
+				for (var k = j + 1; k < n; k++) {
+					var isSideTouch = stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax
+						|| stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax;
+					var mindiff = Math.abs(stems[j].xmax - stems[k].xmin);
+					var maxdiff = Math.abs(stems[j].xmin - stems[k].xmax);
+					var unbalance = (mindiff + maxdiff <= 0) ? 0 : Math.abs(mindiff - maxdiff) / (mindiff + maxdiff);
+					if (!isSideTouch && unbalance >= TBST_LIMIT) A[k][j] *= COEFF_A_FEATURE_LOSS;
+				}
+			}
+		}
+		for (var j = 0; j < n; j++) {
+			var isTopMost = true;
+			for (var k = j + 1; k < n; k++) { if (C[k][j] > 0) isTopMost = false };
+			if (isTopMost) {
+				for (var k = 0; k < j; k++) {
+					var isSideTouch = stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax
+						|| stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax;
+					var mindiff = Math.abs(stems[j].xmax - stems[k].xmin);
+					var maxdiff = Math.abs(stems[j].xmin - stems[k].xmax);
+					var unbalance = (mindiff + maxdiff <= 0) ? 0 : Math.abs(mindiff - maxdiff) / (mindiff + maxdiff);
+					if (!isSideTouch && unbalance >= TBST_LIMIT) A[j][k] *= COEFF_A_FEATURE_LOSS;
+				}
+			}
+		}
 		return {
 			alignment: A,
 			collision: C,
@@ -560,7 +595,8 @@ function findStems(glyph, strategy) {
 
 	var overlaps = OverlapMatrix(function (p, q) { return stemOverlapRatio(p, q, OP_MIN) });
 	glyph.stemOverlaps = OverlapMatrix(function (p, q) { return stemOverlapRatio(p, q, OP_MAX) });
-	var overlapLengths = glyph.stemOverlapLengths = OverlapMatrix(function (p, q) { return stemOverlapLength(p, q, OP_MIN) })
+	glyph.stemMinOverlaps = overlaps;
+	var overlapLengths = glyph.stemOverlapLengths = OverlapMatrix(function (p, q) { return stemOverlapLength(p, q, OP_MIN) });
 	analyzeStemSpatialRelationships(stems, overlaps);
 	var pointBetweenStems = analyzePointBetweenStems(stems);
 	glyph.collisionMatrices = calculateCollisionMatrices(stems, overlaps, overlapLengths, pointBetweenStems);

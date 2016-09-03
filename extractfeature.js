@@ -235,6 +235,7 @@ exports.extractFeature = function (glyph, strategy) {
 			d[j] = [];
 			for (var k = 0; k < j; k++) {
 				d[j][k] = glyph.stemOverlaps[j][k] > strategy.COLLISION_MIN_OVERLAP_RATIO && !edgetouch(glyph.stems[j], glyph.stems[k])
+				if(glyph.collisionMatrices.collision[j][k] <= 0) d[j][k] = false;
 			}
 		};
 		for (var x = 0; x < d.length; x++) for (var y = 0; y < d.length; y++) for (var z = 0; z < d.length; z++) {
