@@ -27,13 +27,13 @@ function findStems(glyph, strategy) {
 	var stems = analyzeStems(radicals, strategy);
 
 	var overlaps = glyph.stemMinOverlaps = OverlapMatrix(stems, function (p, q) {
-		return stemOverlapRatio(p, q, Math.min, strategy)
+		return stemOverlapRatio(p, q, Math.min, strategy);
 	});
 	glyph.stemOverlaps = OverlapMatrix(stems, function (p, q) {
-		return stemOverlapRatio(p, q, Math.max, strategy)
+		return stemOverlapRatio(p, q, Math.max, strategy);
 	});
 	var overlapLengths = glyph.stemOverlapLengths = OverlapMatrix(stems, function (p, q) {
-		return stemOverlapLength(p, q, Math.min, strategy)
+		return stemOverlapLength(p, q, strategy);
 	});
 	analyzeStemSpatialRelationships(stems, radicals, overlaps, strategy);
 	var pointBetweenStems = analyzePointBetweenStems(stems, radicals, strategy);

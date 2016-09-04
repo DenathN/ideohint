@@ -21638,7 +21638,7 @@ function findStems(glyph, strategy) {
 		return stemOverlapRatio(p, q, Math.max, strategy)
 	});
 	var overlapLengths = glyph.stemOverlapLengths = OverlapMatrix(stems, function (p, q) {
-		return stemOverlapLength(p, q, Math.min, strategy)
+		return stemOverlapLength(p, q, strategy)
 	});
 	analyzeStemSpatialRelationships(stems, radicals, overlaps, strategy);
 	var pointBetweenStems = analyzePointBetweenStems(stems, radicals, strategy);
@@ -21709,7 +21709,7 @@ function stemOverlapLength(a, b, strategy) {
 		overlapInfo(a.high, b.low, strategy).len,
 		overlapInfo(a.low, b.high, strategy).len,
 		overlapInfo(a.high, b.high, strategy).len
-	) / strategy.upm
+	) / strategy.UPM;
 }
 
 

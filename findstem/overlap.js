@@ -58,7 +58,7 @@ function stemOverlapLength(a, b, strategy) {
 		overlapInfo(a.high, b.low, strategy).len,
 		overlapInfo(a.low, b.high, strategy).len,
 		overlapInfo(a.high, b.high, strategy).len
-	) / strategy.upm
+	) / strategy.UPM;
 }
 
 
