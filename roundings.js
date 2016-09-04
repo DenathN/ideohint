@@ -7,6 +7,8 @@ function rtg(x, upm, ppem) {
 	if (x >= 0) return Math.round(toF26D6(x / upm * ppem)) / ppem * upm;
 	else return -Math.round(toF26D6(-x / upm * ppem)) / ppem * upm;
 }
+function rtg_raw(y, upm, ppem) { return Math.round(y / upm * ppem) / ppem * upm }
+
 function Rtg(upm, ppem) {
 	var uppx = upm / ppem;
 	return function (x) {
@@ -39,6 +41,7 @@ function Rdtg(upm, ppem) {
 exports.rtg = rtg;
 exports.rutg = rutg;
 exports.rdtg = rdtg;
+exports.rtg_raw = rtg_raw;
 exports.Rtg = Rtg;
 exports.Rutg = Rutg;
 exports.Rdtg = Rdtg;

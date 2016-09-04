@@ -1,7 +1,7 @@
-var util = require('util');
+"use strict"
 
-function rtg(y, upm, ppem) { return Math.round(y / upm * ppem) / ppem * upm }
-function rdtg(y, upm, ppem) { return Math.floor(y / upm * ppem) / ppem * upm }
+var rtg = require('./roundings').rtg_raw;
+
 function pushargs(tt) {
 	var vals = [];
 	for (var j = 1; j < arguments.length; j++) vals = vals.concat(arguments[j]);
@@ -39,9 +39,7 @@ function invokesToInstrs(invocations, limit) {
 	return instrs;
 }
 
-function by_rp(a, b) {
-	return a[0] - b[0] || a[1] - b[1]
-}
+function by_rp(a, b) { return a[0] - b[0] || a[1] - b[1] }
 function ipInvokes(actions) {
 	var invokes = [];
 	actions = actions.sort(by_rp);
@@ -61,9 +59,6 @@ function ipInvokes(actions) {
 		invokes.push([[actions[k][2]], ['IP']])
 	};
 	return invokes;
-}
-function by_rp_alt(a, b) {
-	return a[0] - b[0] || a[1] - b[1]
 }
 function shortMdrpInvokes(actions) {
 	var invokes = [];

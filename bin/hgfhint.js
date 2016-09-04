@@ -76,7 +76,7 @@ function finish(){
 			process.stderr.write('HGFHINT: Hinting [' +  pb + '](#' + pad(j, ' ', 5) + '/' + pad(pendings.length, ' ', 5) + ')' + ' of ' + (argv._[0] || '(stdin)') + ' ' + pad(modulo, '0', 3) + "d" + pad(divide, '0', 3) + '\n');
 			currentProgress = pb;
 		}
-		var glyph = data[1];
+		var glyph = data[2];
 		var stemActions = [];
 		var nMDRPnr = 0, nMDRPr = 0;
 		for(var ppem = strategy.PPEM_MIN; ppem < strategy.PPEM_MAX; ppem++){
@@ -90,8 +90,9 @@ function finish(){
 			}
 			stemActions[ppem] = actions;
 		}
-		ans.push([data[0], instruct(glyph, stemActions, strategy, cvt, argv.CVT_PADDING || 0, nMDRPnr > nMDRPr)]);
+		ans.push([data[0], data[1], instruct(glyph, stemActions, strategy, cvt, argv.CVT_PADDING || 0, nMDRPnr > nMDRPr)]);
 	};
+	process.stderr.write('HGFHINT: Hinting [' +  progressbar(1, PROGRESS_LENGTH) + '](#' + pad(j, ' ', 5) + '/' + pad(pendings.length, ' ', 5) + ')' + ' of ' + (argv._[0] || '(stdin)') + ' ' + pad(modulo, '0', 3) + "d" + pad(divide, '0', 3) + '\n');
 	outStream.write(JSON.stringify(ans));
 }
 

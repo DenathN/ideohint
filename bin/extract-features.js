@@ -2,14 +2,16 @@
 var fs = require('fs');
 var readline = require('readline');
 var stream = require('stream');
-var parseSFD = require('../sfdParser').parseSFD;
 var findStems = require('../findstem').findStems;
 var extractFeature = require('../extractfeature').extractFeature;
 var devnull = require('dev-null');
 var util = require('util');
 
+var parseSFD = require('../sfdParser').parseSFD;
+var parseOTD = require('../otdParser').parseOTD;
+
 var crypto = require('crypto');
-function md5 (text) {
+function md5(text) {
 	return crypto.createHash('md5').update(text).digest('hex');
 };
 
@@ -35,58 +37,85 @@ var yargs = require('yargs')
 	.describe('verbose', 'Run in verbose mode')
 
 var argv = yargs.argv;
+var format = argv.format || 'sfd';
 
-if(argv.help) {
+if (argv.help) {
 	yargs.showHelp();
 	process.exit(0)
 }
 
-var instream = argv._[0] ? fs.createReadStream(argv._[0]): process.stdin;
-var outstream = argv.o ? fs.createWriteStream(argv.o, { encoding: 'utf-8' }): process.stdout;
-var rl = readline.createInterface(instream, devnull());
+var instream = argv._[0] ? fs.createReadStream(argv._[0]) : process.stdin;
+var outstream = argv.o ? fs.createWriteStream(argv.o, { encoding: 'utf-8' }) : process.stdout;
 
 var strategy = require('../strategy').from(argv);
 
-var buf = '';
-var started = false;
+var formatMap = {
+	sfd: processSFD,
+	otd: processOTD
+}
+formatMap[format]();
 
-var curChar = null;
-var readingSpline = false;
+function processSFD() {
+	var rl = readline.createInterface(instream, devnull());
+	var buf = '';
+	var started = false;
 
-var divide = argv.d || 1;
-var modulo = argv.m || 0;
-var n = 0;
-var j = 0;
+	var curChar = null;
+	var readingSpline = false;
 
-rl.on('line', function(line) {
-	if(/^StartChar:/.test(line)) {
-		curChar = { input: '', id: line.split(' ')[1] }
-	} else if(/^SplineSet/.test(line)) {
-		readingSpline = true;
-	} else if(/^EndSplineSet/.test(line)) {
-		readingSpline = false;
-	} else if(curChar && readingSpline) {
-		curChar.input += line + '\n';
-	} else if(/^EndChar/.test(line)) {
-		if(curChar) {
-			if(n % divide === modulo) {
-				var hash = md5(curChar.input);
-				var glyphdata = extractFeature(findStems(parseSFD(curChar.input), strategy), strategy);
-				glyphdata.id = curChar.id;
-				buf += JSON.stringify([hash, glyphdata, j]) + '\n';
-				j += 1;
-				started = true;
-			}
-			n += 1;
+	var divide = argv.d || 1;
+	var modulo = argv.m || 0;
+	var n = 0;
+	var j = 0;
+
+	rl.on('line', function (line) {
+		if (/^StartChar:/.test(line)) {
+			curChar = { input: '', id: line.split(' ')[1] }
+		} else if (/^SplineSet/.test(line)) {
+			readingSpline = true;
+		} else if (/^EndSplineSet/.test(line)) {
+			readingSpline = false;
+		} else if (curChar && readingSpline) {
+			curChar.input += line + '\n';
+		} else if (/^EndChar/.test(line)) {
+			if (curChar) {
+				if (n % divide === modulo) {
+					var hash = md5(curChar.input);
+					var glyphdata = extractFeature(findStems(parseSFD(curChar.input), strategy), strategy);
+					glyphdata.id = curChar.id;
+					buf += JSON.stringify([curChar.id, hash, glyphdata, j]) + '\n';
+					j += 1;
+					started = true;
+				}
+				n += 1;
+			};
+			curChar = null;
 		};
-		curChar = null;
-	};
-	if(buf.length >= 16384) {
-		outstream.write(buf);
-		buf = '';
-	}
-});
+		if (buf.length >= 16384) {
+			outstream.write(buf);
+			buf = '';
+		}
+	});
 
-rl.on('close', function() {
-	outstream.write(buf + '\n')
-});
+	rl.on('close', function () {
+		outstream.write(buf + '\n')
+	});
+}
+
+function processOTD() {
+	var rl = readline.createInterface(instream, devnull());
+	var divide = argv.d || 1;
+	var modulo = argv.m || 0;
+	var n = 0;
+	var j = 0;
+	rl.on('line', function (line) {
+		if (n % divide === modulo) {
+			var data = JSON.parse(line);
+			var glyphdata = extractFeature(findStems(parseOTD(data[2]), strategy), strategy);
+			glyphdata.id = data[0];
+			outstream.write(JSON.stringify([data[0], data[1], glyphdata, j]) + '\n');
+			j++
+		}
+		n++;
+	});
+}

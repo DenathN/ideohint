@@ -8,9 +8,10 @@ var util = require('util');
 var JSONStream = require('JSONStream');
 var es = require('event-stream');
 var stripBom = require('strip-bom');
+var hashContours = require('../otdParser').hashContours;
 
 var crypto = require('crypto');
-function md5 (text) {
+function md5(text) {
 	return crypto.createHash('md5').update(text).digest('hex');
 };
 
@@ -39,30 +40,30 @@ var yargs = require('yargs')
 
 var argv = yargs.argv;
 
-if(argv.help) {
-	yargs.showHelp();
-	process.exit(0)
-}
+if (argv.help) { yargs.showHelp(), process.exit(0) }
 
 var hgiStream = argv._[1] ? fs.createReadStream(argv._[0]) : process.stdin;
-var outStream = argv.o ? fs.createWriteStream(argv.o, { encoding: 'utf-8' }): process.stdout;
+var outStream = argv.o ? fs.createWriteStream(argv.o, { encoding: 'utf-8' }) : process.stdout;
 var strategy = require('../strategy').from(argv);
 var cvt = require('../cvt').from(argv, strategy);
 var createCvt = require('../cvt').createCvt;
 
 var buf = '';
-hgiStream.on('data', function(d){ buf += d });
-hgiStream.on('end', function(){
+hgiStream.on('data', function (d) { buf += d });
+hgiStream.on('end', function () {
 	var a = JSON.parse(stripBom(buf));
 	var activeInstructions = {};
-	for(var j = 0; j < a.length; j++) activeInstructions[a[j][0]] = a[j][1];
-	pass_weaveSFD(activeInstructions);
+	for (var j = 0; j < a.length; j++) activeInstructions[a[j][1]] = a[j][2];
+
+	var format = argv.format || 'sfd';
+	var formatMap = {
+		sfd: pass_weaveSFD,
+		otd: pass_weaveOTD
+	}
+	formatMap[format](activeInstructions);
 });
 
-if(argv.subpattern) {
-	var pattern = new RegExp(argv.subpattern, argv.subflag || '');
-	var replacement = argv.subreplacement
-}
+if (argv.subpattern) { var pattern = new RegExp(argv.subpattern, argv.subflag || ''); var replacement = argv.subreplacement }
 
 function pass_weaveSFD(activeInstructions) {
 	var sfdStream = argv._[1] ? fs.createReadStream(argv._[1]) : fs.createReadStream(argv._[0]);
@@ -80,59 +81,80 @@ function pass_weaveSFD(activeInstructions) {
 	var readingTT = false;
 	var sourceCvt = '';
 	var readingCvt = false;
-	rl.on('line', function(line) {
+	rl.on('line', function (line) {
 		line = line.replace(/\r$/, '');
 
-		if(/^ShortTable: cvt /.test(line)) {
+		if (/^ShortTable: cvt /.test(line)) {
 			sourceCvt += line + "\n";
 			readingCvt = true;
 			return;
-		} else if(readingCvt) {
+		} else if (readingCvt) {
 			sourceCvt += line + "\n";
-			if(/^EndShort/.test(line)) { 
+			if (/^EndShort/.test(line)) {
 				readingCvt = false;
-				cvt = createCvt(sourceCvt.trim().split('\n').slice(1, -1).map(function(x){ return x.trim() - 0 }), strategy, argv.CVT_PADDING);
-				if(argv.dump_cvt) {
-					fs.writeFileSync(argv.dump_cvt, JSON.stringify({cvt: cvt}), 'utf-8')
+				cvt = createCvt(sourceCvt.trim().split('\n').slice(1, -1).map(function (x) { return x.trim() - 0 }), strategy, argv.CVT_PADDING);
+				if (argv.dump_cvt) {
+					fs.writeFileSync(argv.dump_cvt, JSON.stringify({ cvt: cvt }), 'utf-8')
 				}
 			};
 			return;
-		} else if(/^StartChar:/.test(line)) {
+		} else if (/^StartChar:/.test(line)) {
 			curChar = { input: '', id: line.split(' ')[1] }
-		} else if(/^SplineSet/.test(line)) {
+		} else if (/^SplineSet/.test(line)) {
 			readingSpline = true;
-		} else if(/^EndSplineSet/.test(line)) {
+		} else if (/^EndSplineSet/.test(line)) {
 			readingSpline = false;
-		} else if(curChar && readingSpline) {
+		} else if (curChar && readingSpline) {
 			curChar.input += line + '\n';
-		} else if(/^EndChar/.test(line)) {
-			if(curChar){
+		} else if (/^EndChar/.test(line)) {
+			if (curChar) {
 				var hash = md5(curChar.input);
-				if(!argv.just_modify_cvt && activeInstructions[hash]) {
+				if (!argv.just_modify_cvt && activeInstructions[hash]) {
 					nApplied += 1;
 					buf += "TtInstrs:\n" + activeInstructions[hash] + "\nEndTTInstrs\n";
 				}
 				nGlyphs += 1;
 			};
 			curChar = null;
-		} else if(/^BeginChars:/.test(line)) {
+		} else if (/^BeginChars:/.test(line)) {
 			buf += 'ShortTable: cvt  ' + cvt.length + '\n' + cvt.join('\n') + '\nEndShort\n'
 		};
 
-		if(pattern) line = line.replace(pattern, replacement);
+		if (pattern) line = line.replace(pattern, replacement);
 
 		buf += line + '\n';
-		if(buf.length >= 4096) {
+		if (buf.length >= 4096) {
 			outStream.write(buf);
 			buf = '';
 		}
 	});
 
-	rl.on('close', function() {
+	rl.on('close', function () {
 		process.stderr.write('WEAVE: ' + nGlyphs + ' glyphs processed; ' + nApplied + ' glyphs applied hint.\n');
-		if(buf) outStream.write(buf);
+		if (buf) outStream.write(buf);
 		outStream.end();
 	});
 }
 
-//pass_ReadHGI();
+function pass_weaveOTD(activeInstructions) {
+	var otdPath = argv._[1] ? argv._[1] : argv._[0];
+	var otd = JSON.parse(fs.readFileSync(otdPath, 'utf-8'));
+	if (otd.cvt_) {
+		otd.cvt_ = createCvt(otd.cvt_, strategy, argv.CVT_PADDING);
+	} else {
+		otd.cvt_ = createCvt([], strategy, argv.CVT_PADDING);
+	}
+	if (otd.maxp && otd.maxp.maxStackElements < strategy.STACK_DEPTH + 10) {
+		otd.maxp.maxStackElements = strategy.STACK_DEPTH + 10;
+	}
+	for (var k in otd.glyf) {
+		var glyph = otd.glyf[k];
+		if (!glyph.contours || !glyph.contours.length) continue;
+		var hash = hashContours(glyph.contours);
+		if (!argv.just_modify_cvt && activeInstructions[hash]) {
+			glyph.instructions = activeInstructions[hash].split('\n');
+		}
+	}
+	outStream.write(JSON.stringify(otd));
+	outStream.end();
+}
