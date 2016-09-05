@@ -63,7 +63,7 @@ function ipInvokes(actions) {
 function shortMdrpInvokes(actions) {
 	var invokes = [];
 	actions = actions.sort(by_rp);
-	var cur_rp0 = 0;
+	var cur_rp0 = -1;
 	for (var k = 0; k < actions.length; k++) {
 		var rp0 = actions[k][0];
 		if (cur_rp0 !== rp0) {
@@ -208,16 +208,7 @@ function instruct(glyph, actions, strategy, cvt, padding, useMDRPnr) {
 		};
 	};
 
-	var isalInvocations = [];
-	// In-stem alignments
-	for (var j = 0; j < glyph.stems.length; j++) {
-		[[glyph.stems[j].posKey.id, glyph.stems[j].posAlign], [glyph.stems[j].advKey.id, glyph.stems[j].advAlign]].forEach(function (x) {
-			if (x[1].length) {
-				isalInvocations.push([x[1].concat([x[0]]), ['SRP0'].concat(x[1].map(function (x) { return 'MDRP[0]' }))]);
-			}
-		});
-	};
-
+	// Interpolations and short absorptions
 	var ip = [[], [], [], [], []];
 	var sa = [[], [], [], [], []];
 	for (var j = 0; j < glyph.interpolations.length; j++) {
@@ -230,6 +221,16 @@ function instruct(glyph, actions, strategy, cvt, padding, useMDRPnr) {
 	for (var j = ip.length - 1; j >= 0; j--) {
 		ipsacalls = ipsacalls.concat(ipInvokes(ip[j]), shortMdrpInvokes(sa[j]))
 	}
+
+	var isalInvocations = [];
+	// In-stem alignments
+	for (var j = 0; j < glyph.stems.length; j++) {
+		[[glyph.stems[j].posKey.id, glyph.stems[j].posAlign], [glyph.stems[j].advKey.id, glyph.stems[j].advAlign]].forEach(function (x) {
+			if (x[1].length) {
+				isalInvocations.push([x[1].concat([x[0]]), ['SRP0'].concat(x[1].map(function (x) { return 'MDRP[0]' }))]);
+			}
+		});
+	};
 
 	// Interpolations
 	tt = tt.concat(

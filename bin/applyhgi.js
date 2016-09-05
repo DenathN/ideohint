@@ -143,9 +143,9 @@ function pass_weaveOTD(activeInstructions) {
 	var otdPath = argv._[1] ? argv._[1] : argv._[0];
 	var otd = JSON.parse(fs.readFileSync(otdPath, 'utf-8'));
 	if (otd.cvt_) {
-		otd.cvt_ = createCvt(otd.cvt_, strategy, cvtlib.getPadding(argv, parameterFile));
+		otd.cvt_ = cvtlib.createCvt(otd.cvt_, strategy, cvtlib.getPadding(argv, parameterFile));
 	} else {
-		otd.cvt_ = createCvt([], strategy, cvtlib.getPadding(argv, parameterFile));
+		otd.cvt_ = cvtlib.createCvt([], strategy, cvtlib.getPadding(argv, parameterFile));
 	}
 	if (otd.maxp && otd.maxp.maxStackElements < strategy.STACK_DEPTH + 10) {
 		otd.maxp.maxStackElements = strategy.STACK_DEPTH + 10;
