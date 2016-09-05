@@ -59,6 +59,9 @@ Contour.prototype.stat = function () {
 	this.ymin = Math.min.apply(Math, yoris);
 	this.orient();
 }
+function setHidden(obj, prop, v) {
+	Object.defineProperty(obj, prop, { value: v, enumerable: false, configurable: true })
+}
 Contour.prototype.orient = function () {
 	// Findout PYmin
 	var jm = 0, ym = this.points[0].yori
@@ -72,10 +75,10 @@ Contour.prototype.orient = function () {
 	// Adjacency
 	var pt = this.points[0];
 	for (var j = 0; j < this.points.length - 1; j++) if (this.points[j].on) {
-		this.points[j].prev = pt;
+		setHidden(this.points[j], 'prev', pt);
 		pt = this.points[j];
 	}
-	this.points[0].prev = pt;
+	setHidden(this.points[0], 'prev', pt);
 }
 var inPoly = function (point, vs) {
 	// ray-casting algorithm based on

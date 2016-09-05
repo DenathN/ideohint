@@ -2,6 +2,7 @@
 
 var util = require('util');
 var roundings = require('./roundings');
+var util = require('util');
 
 function proportion(p, q) { return p / (p + q) }
 function clamp(x) { return Math.min(1, Math.max(0, x)) }
@@ -651,6 +652,7 @@ function hint(glyph, ppem, strategy) {
 	})();
 	allocateWidth(stems);
 	touchStemPoints(stems);
+
 	return instructions;
 }
 

@@ -1,6 +1,9 @@
 "use strict"
 
-var DefaultStrategy = function() {
+var toml = require('toml');
+var fs = require('fs');
+
+var DefaultStrategy = function () {
 	var g = [[0, 1, 1], [23, 2, 2], [36, 3, 2]]
 	return {
 		UPM: 1000,
@@ -62,19 +65,25 @@ var DefaultStrategy = function() {
 	}
 };
 exports.defaultStrategy = DefaultStrategy();
-exports.from = function(argv) {
+exports.from = function (argv, parameterFile) {
 	var strategy = DefaultStrategy();
-	for (var prop in strategy) {
-		if (argv[prop]) {
-			strategy[prop] = isFinite(argv[prop] - 0) ? argv[prop] : strategy[prop]
+	if (parameterFile && parameterFile.hinting) {
+		for (var k in parameterFile.hinting) {
+			strategy[k] = parameterFile.hinting[k];
 		}
-	};
-	if (argv.gears) {
-		try {
-			strategy.PPEM_STEM_WIDTH_GEARS = JSON.parse(argv.gears)
-			strategy.gears = argv.gears
-		} catch (e) {
-		}
-	};
+	} else {
+		for (var prop in strategy) {
+			if (argv[prop]) {
+				strategy[prop] = isFinite(argv[prop] - 0) ? argv[prop] : strategy[prop];
+			}
+		};
+		if (argv.gears) {
+			try {
+				strategy.PPEM_STEM_WIDTH_GEARS = JSON.parse(argv.gears);
+				strategy.gears = argv.gears;
+			} catch (e) {
+			}
+		};
+	}
 	return strategy;
 }

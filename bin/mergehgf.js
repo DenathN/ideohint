@@ -15,15 +15,15 @@ argv._.forEach(function(file){
 	for(var j = 0; j < d.length; j++) if(d[j].trim()){
 		var data = JSON.parse(d[j].trim());
 		nRead += 1;
-		if(!buf[data[0]]) {
-			buf[data[0]] = data[1];
+		if(!buf[data[1]]) {
+			buf[data[1]] = data[2];
 			nTotal += 1;
 		}
 	}
 });
 var j = 0;
 for(var k in buf) {
-	outStream.write(JSON.stringify([k, buf[k], j]) + '\n');
+	outStream.write(JSON.stringify([buf[k].id, k, buf[k], j]) + '\n');
 	j += 1;
 }
 outStream.write('\n');

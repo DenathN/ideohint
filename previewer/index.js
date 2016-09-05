@@ -1,4 +1,4 @@
-var parseSFD = require('../sfdParser').parseSFD;
+var parseOTD = require('../otdParser').parseOTD;
 var findStems = require('../findstem').findStems;
 var extractFeature = require('../extractfeature').extractFeature;
 var hint = require('../hinter').hint;
@@ -182,7 +182,7 @@ function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 function render() {
 	glyphs = input.map(function (passage, j) {
 		if (passage) {
-			var glyph = parseSFD(passage.slice(9, -12))
+			var glyph = parseOTD(passage);
 			return {
 				glyph: glyph,
 				features: extractFeature(findStems(glyph, strategy), strategy)
@@ -235,9 +235,13 @@ function createAdjusters() {
 	var container = document.getElementById('adjusters');
 	function update() {
 		setTimeout(render, 100);
-		var buf = [];
-		for (var k in strategy) if ((typeof strategy[k] === 'number' || typeof strategy[k] === 'string') && strategy[k] !== defaultStrategy[k]) buf.push("--" + k + "=" + strategy[k]);
-		resultPanel.innerHTML = buf.join(' ');
+		var buf = ['[hinting]'];
+		for (var k in strategy) {
+			if (strategy[k] !== defaultStrategy[k] && k !== 'gears') {
+				buf.push(k + " = " + JSON.stringify(strategy[k]));
+			}
+		}
+		resultPanel.innerHTML = buf.join('<br>');
 		return false;
 	}
 	// Numeric parameters
@@ -307,7 +311,7 @@ function createAdjusters() {
 		container.appendChild(ol);
 	})();
 	// Result panel
-	var resultPanel = document.createElement("div");
+	var resultPanel = document.createElement("pre");
 	container.appendChild(resultPanel);
 
 	setTimeout(update, 0);
