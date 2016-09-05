@@ -1,6 +1,8 @@
-# ideohint
+# ideohint ![npm](https://img.shields.io/npm/v/ideohint.svg)
 
 Optimized hinter for ideographs, built on Node.js and [otfcc](https://github.com/caryll/otfcc).
+
+**NOTE: sfdhanautohint is now deprecated.**
 
 ## Overview
 
