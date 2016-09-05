@@ -20917,11 +20917,6 @@ exports.getPadding = function (argv, parameterFile) {
 		return 0;
 	}
 }
-exports.from = function (argv, strategy) {
-	var cvt = createCvt([], strategy, argv.CVT_PADDING);
-	if (argv.use_cvt) cvt = JSON.parse(fs.readFileSync(argv.usd_cvt, 'utf-8')).cvt;
-	return cvt;
-}
 exports.createCvt = createCvt;
 },{"./roundings":192,"fs":1}],173:[function(require,module,exports){
 "use strict"
@@ -22324,6 +22319,7 @@ function hint(glyph, ppem, strategy) {
 
 		var n = stems.length;
 		var y0 = stems.map(function (s, j) { return xclamp(avaliables[j].low, Math.round(stems[j].ytouch / uppx), avaliables[j].high) });
+		var totalStages = 0//Math.max(EVOLUTION_STAGES, Math.ceil(stems.length * EVOLUTION_STAGES * (multiplier || 1) * (stems.length / ppem)));
 
 		var population = [new Individual(y0)];
 		// Generate initial population
@@ -22350,8 +22346,9 @@ function hint(glyph, ppem, strategy) {
 			population.push(new Individual(ry));
 		}
 
+		// Hall of fame
 		var elites = [new Individual(y0)];
-		var totalStages = Math.max(EVOLUTION_STAGES, Math.ceil(stems.length * EVOLUTION_STAGES * (multiplier || 1) * (stems.length / ppem)));
+
 		// Build a swapchain
 		var p = population, q = new Array(population.length);
 		for (var s = 0; s < totalStages; s++) {
@@ -22887,6 +22884,10 @@ function toposort(nodes, edges) {
   function visit(node, i, predecessors) {
     if(predecessors.indexOf(node) >= 0) {
       throw new Error('Cyclic dependency: '+JSON.stringify(node))
+    }
+
+    if (!~nodes.indexOf(node)) {
+      throw new Error('Found unknown node. Make sure to provided all involved nodes. Unknown node: '+JSON.stringify(node))
     }
 
     if (visited[i]) return;

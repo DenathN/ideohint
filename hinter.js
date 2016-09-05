@@ -375,6 +375,7 @@ function hint(glyph, ppem, strategy) {
 
 		var n = stems.length;
 		var y0 = stems.map(function (s, j) { return xclamp(avaliables[j].low, Math.round(stems[j].ytouch / uppx), avaliables[j].high) });
+		var totalStages = Math.max(EVOLUTION_STAGES, Math.ceil(stems.length * EVOLUTION_STAGES * (multiplier || 1) * (stems.length / ppem)));
 
 		var population = [new Individual(y0)];
 		// Generate initial population
@@ -401,8 +402,9 @@ function hint(glyph, ppem, strategy) {
 			population.push(new Individual(ry));
 		}
 
+		// Hall of fame
 		var elites = [new Individual(y0)];
-		var totalStages = Math.max(EVOLUTION_STAGES, Math.ceil(stems.length * EVOLUTION_STAGES * (multiplier || 1) * (stems.length / ppem)));
+
 		// Build a swapchain
 		var p = population, q = new Array(population.length);
 		for (var s = 0; s < totalStages; s++) {

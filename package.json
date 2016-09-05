@@ -1,27 +1,22 @@
 {
-  "name": "sfdhanautohint",
-  "description": "An optimized gridfit generator for Han characters.",
-  "version": "0.3.1",
-  "main": "./instructor.js",
-  "dependencies": {
-    "JSONStream": "*",
-    "combined-stream": "",
-    "dev-null": "",
-    "event-stream": "",
-    "glob": "",
-    "node-static": "",
-    "strip-bom": "",
-    "toml": "^2.3.0",
-    "toposort": "*",
-    "yargs": ""
-  },
-  "bin": {
-    "sah-otd2hgl": "./bin/otd2hgl",
-    "sah-extract-features": "./bin/extract-features",
-    "sah-hgfhint": "./bin/hgfhint",
-    "sah-applyhgi": "./bin/applyhgi",
-    "sah-mergehgi": "./bin/mergehgi",
-    "sah-mergehgf": "./bin/mergehgf",
-    "sah-paramadj": "./bin/paramadj"
-  }
+	"name": "ideohint",
+	"description": "Optimized gridfit generator for ideographs.",
+	"version": "0.4.0",
+	"main": "./instructor.js",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/caryll/ideohint"
+	},
+	"license": "MIT",
+	"dependencies": {
+		"dev-null": "^0.1.1",
+		"node-static": "^0.7.8",
+		"strip-bom": "^3.0.0",
+		"toml": "^2.3.0",
+		"toposort": "^1.0.0",
+		"yargs": "^5.0.0"
+	},
+	"bin": {
+		"ideohint": "./bin/ideohint"
+	}
 }

@@ -1,57 +1,56 @@
-# sfdhanautohint [![npm version](https://badge.fury.io/js/sfdhanautohint.svg)](https://badge.fury.io/js/sfdhanautohint)
+# ideohint
 
-An optimized hinting genreator for Han characters powered by Node.js.
+Optimized hinter for ideographs, built on Node.js and [otfcc](https://github.com/caryll/otfcc).
 
-## Components
+## Overview
 
-There are five major components in `sfdhanautohint`:
-
-- `sah-extract-features`, The feature extracter. Produces `.hgf` feature files.
-
-- `sah-hgfhint`, the major part, generates gridfit instructions optimized for ideographs. Produces `.hgi` instruction files.
-- `sah-applyhgi`, which applies `.hgi` files into `sfd` input.
-- `fontforge-scripts/prepare.pe`, the Fontforge script used to prepare a proper `.sfd` file used by `hanhint`.
-- `fontforge-scripts/finish.pe`, the Fontforge script which generates gridfit for non-ideographs.
-
-## Hinting Strategy
-
-Chinese, Japanese, and Korean characters often contain many strokes which are difficult to render distinctly at small sizes. Simply aligning horizontal and vertical strokes to the pixel grid (e.g., by rounding each stroke to the nearest grid point) is not sufficient to produce a clear image and can often lead to disastrous results (upper row). The *sfdhanautohint* generates optimized grid fitting instructions which performs character simplification when needed, to ensure that each character remains clear and legible, even at small sizes (lower row).
+Ideographs used in Chinese, Japanese, and Korean often contain many strokes which are difficult to render distinctly at small sizes. Simply aligning horizontal and vertical strokes to the pixel grid (e.g., by rounding each stroke to the nearest grid point) is not sufficient to produce a clear image and can often lead to disastrous results (upper row). The *sfdhanautohint* generates optimized grid fitting instructions which performs character simplification when needed, to ensure that each character remains clear and legible, even at small sizes (lower row).
 
 ![sfdhanautohint side-by-side comparison](https://raw.githubusercontent.com/be5invis/sfdhanautohint/master/example-img/example.png)
 
 The core hinting strategy is to minimize a number called "readbility potential" which measures the readibility loss of readibility caused by gridfitting, including stem collisions and stem merges. The minimization is achieved via a genetic algorithm.
 
+## Installation
+
+```bash
+npm install ideohint -g
+```
+
 ## Usage
 
-There are four major commands: `sah-otd2hgl`, `sah-extract-features`, `sah-hgfhint`, `sah-applyhgi`. To prepare your input file, use [`otfccdump`](https://github.com/caryll/otfcc) to dump the TTF you want to hint.
+`ideohint` takes OpenType dumps generated from [`otfccdump`](https://github.com/caryll/otfcc) as its input.
+
+There are four major sub-commands: `otd2hgl`, `extract`, `hint`, and `apply`. To prepare your input file, use [`otfccdump`](https://github.com/caryll/otfcc) to dump the TTF you want to hint.
 
 ``` bash
 # Prepare OTD:
 otfccdump input.ttf -o input.otd
-# Do the hint
-sah-otd2hgl input.otd -o glyphlist.hgl [--onlyhan]
-sah-extract-features <glyphlist.otd> -o <features.hgf> [<strategy parameters>]
-sah-hgfhint <features.hgf> -o <instructions.hgi> [<strategy parameters>]
-sah-applyhgi <instructions.hgi> <input.otd> -o <output.otd> [<strategy parameters>]
+# Hint your font:
+ideohint otd2hgl input.otd -o glyphlist.hgl [--onlyhan]
+ideohint extract <glyphlist.hgl> -o <features.hgf> [<strategy parameters>]
+ideohint hint <features.hgf> -o <instructions.hgi> [<strategy parameters>]
+ideohint apply <instructions.hgi> <input.otd> -o <output.otd> [<strategy parameters>]
 # Building TTF:
 otfccbuild output.otd -o output.ttf
 ```
 
-### `sah-otd2hgl`
+### `otd2hgl`
 
-`sah-otd2hgl` converts OTFCC’s dump into an internal format called “hgl”. The command is:
+`otd2hgl` converts OTFCC’s dump into an internal format called “hgl”. The command is:
 
 ```bash
-sah-otd2hgl input.otd -o output.hgl [--onlyhan]
+ideohint otd2hgl input.otd -o output.hgl [--ideo-only]
 ```
 
-When parameter `--onlyhan` is present, only ideographs in the input font (identified via `cmap` table) will be preserved and hinted.
+When `--ideo-only` is present, only ideographs in the input font (identified via `cmap` table) will be preserved and hinted.
 
-### `sah-extract-features`, `sah-hgfhint` and `sah-applyhgi`
+### `extract`, `hint` and `apply`
+
+These three sub-commands do the main hinting part. `extract` will extract features from the glyph list, `hint` will generate TrueType instructions using the features, and `apply` will apply the instructions into yoru font. All thres sub-commands accept **strategy parameters** and **CVT padding**, which are important in the hinting process.
 
 #### Strategy Parameters
 
-The strategy parameters determines how `sfdhanautohint` generate the instructions. It is stored in a TOML file, and be specified using `--parameters param.toml` when calling the command. An example may be:
+The strategy parameters determines how `ideohint` generate the instructions. It is stored in a TOML file, and be specified using `--parameters param.toml` when calling the command. An example may be:
 
 ```toml
 [hinting]
@@ -105,39 +104,47 @@ The hinting parameters are stored in `hinting` section. They include:
 When building a composite font with both ideographs and letters, you may use other tools (like `ttfautohint`) to generate hints for non-ideographic characters. To avoid conflict of `cvt ` table, a number called **cvt padding** should be used. This value should be larger than the length of the `cvt ` table generated by the hinter for non-ideographs. To specify, you can either:
 
 - set the `padding` value in parameter file’s `cvt` section, or
-- pass a command-line parameter `--CVT_PADDING` when calling `sah-hgfhint` and `sah-applyhgi`.
+- pass a command-line parameter `--CVT_PADDING` when calling `ideohint hint` and `ideohint apply`.
+
+An example workflow of hinting a complete font may be (assuming you are using `ttfautohint`):
 
 ``` bash
-sah-applyhgi <instructions.hgi> <hans.sfd> -o <hans-hinted.sfd> {--<STRATEGY_PARAMETER_NAME>=<STRATEGY_PARAMETER_VALUE>}
-sah-applyhgi <instructions.hgi> <nonhan.sfd> -o <nonhan-patched.sfd> {--<STRATEGY_PARAMETER_NAME>=<STRATEGY_PARAMETER_VALUE>}
-<merge han-hinted.sfd into nonhan-patched.sfd to create a composite font>
+ttfautohint input.ttf step1.ttf
+otfccdump step1.ttf -o step2.otd
+ideohint otd2hgl step2.otd -o step3.hgl --ideo-only
+ideohint extract step3.hgl -o step4.hgf --parameters params.toml
+ideohint hint    step4.hgf -o step5.hgi --parameters params.toml
+ideohint apply   step5.hgi step2.otd -o output.otd --parameters params.toml
+otfccbuild output.otd -o output.ttf
 ```
 
-#### Parallism
+### Parallism
 
-`Since `hgfhint` takes a lot of time, so we have a few extra parameters to help you out:
+Since `extract` and `hint` may take a lot of time, we have a few extra parameters to help you out:
 
-* `-d` - blocks of work to divide into
-* `-m` - which block of work to process
+* `-d` - blocks of work to divide into.
+* `-m` - which block of work to process.
 
-When using them you should to this:
+You can use these parameters to slice the input into multiple parallel tasks, and produce multiple outputs. To merge the outputs, use `ideohint merge`, which works for both `hgf` and `hgi`.
+
+An example:
 
 ``` bash
-sah-hgfhint -d 10 -m 0 large.hgf -o part0.hgi <parameters>
-sah-hgfhint -d 10 -m 1 large.hgf -o part1.hgi <parameters>
+ideohint hint -d 10 -m 0 large.hgf -o part0.hgi <parameters>
+ideohint hint -d 10 -m 1 large.hgf -o part1.hgi <parameters>
 ......
-sah-hgfhint -d 10 -m 9 large.hgf -o part2.hgi <parameters>
-sah-mergehgi -o large.hgi part0.hgi part1.hgi ... part9.hgi
+ideohint hint -d 10 -m 9 large.hgf -o part2.hgi <parameters>
+ideohint merge -o large.hgi part0.hgi part1.hgi ... part9.hgi
 ```
 
 With the help with [GNU Parallel](https://gnu.org/s/parallel/) or `make`, it will provide a significant performance boost.
 
-## Interactive Parameter Adjustment
+### Interactive Parameter Adjustment
 
-For strategy parameters, you can adjust them using the `paramadj`:
+For strategy parameters, you can adjust them using the `visual` sub-command:
 
 ``` bash
-sah-paramadj hans.sfd -w "<test characters>" [<strategy parameters>]
+ideohint visual hans.sfd -w "<test characters>" [<strategy parameters>]
 ```
 
 It will provide an interactive parameter adjustment utility accessable from `localhost:9527`.
