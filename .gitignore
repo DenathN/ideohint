@@ -30,3 +30,4 @@ node_modules
 test/
 preview/
 .vscode/
+*.packed.js

@@ -1,1 +1,4 @@
-!previewer/*.js
+test/
+.vscode/
+node_modules
+*.packed.js
