@@ -235,7 +235,7 @@ function createAdjusters() {
 	var container = document.getElementById('adjusters');
 	function update() {
 		setTimeout(render, 100);
-		var buf = ['[parameters]'];
+		var buf = ['[hinting]'];
 		for (var k in strategy) {
 			if (strategy[k] !== defaultStrategy[k] && k !== 'gears') {
 				buf.push(k + " = " + JSON.stringify(strategy[k]));

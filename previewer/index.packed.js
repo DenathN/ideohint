@@ -20908,6 +20908,15 @@ function createCvt(src, strategy, padding) {
 	return cvt;
 };
 
+exports.getPadding = function (argv, parameterFile) {
+	if (parameterFile && parameterFile.cvt) {
+		return (parameterFile.cvt.padding - 0) || 0
+	} else if (argv.CVT_PADDING) {
+		return (argv.CVT_PADDING - 0) || 0
+	} else {
+		return 0;
+	}
+}
 exports.from = function (argv, strategy) {
 	var cvt = createCvt([], strategy, argv.CVT_PADDING);
 	if (argv.use_cvt) cvt = JSON.parse(fs.readFileSync(argv.usd_cvt, 'utf-8')).cvt;
@@ -21632,13 +21641,13 @@ function findStems(glyph, strategy) {
 	var stems = analyzeStems(radicals, strategy);
 
 	var overlaps = glyph.stemMinOverlaps = OverlapMatrix(stems, function (p, q) {
-		return stemOverlapRatio(p, q, Math.min, strategy)
+		return stemOverlapRatio(p, q, Math.min, strategy);
 	});
 	glyph.stemOverlaps = OverlapMatrix(stems, function (p, q) {
-		return stemOverlapRatio(p, q, Math.max, strategy)
+		return stemOverlapRatio(p, q, Math.max, strategy);
 	});
 	var overlapLengths = glyph.stemOverlapLengths = OverlapMatrix(stems, function (p, q) {
-		return stemOverlapLength(p, q, strategy)
+		return stemOverlapLength(p, q, strategy);
 	});
 	analyzeStemSpatialRelationships(stems, radicals, overlaps, strategy);
 	var pointBetweenStems = analyzePointBetweenStems(stems, radicals, strategy);
@@ -22664,7 +22673,7 @@ function ipInvokes(actions) {
 function shortMdrpInvokes(actions) {
 	var invokes = [];
 	actions = actions.sort(by_rp);
-	var cur_rp0 = 0;
+	var cur_rp0 = -1;
 	for (var k = 0; k < actions.length; k++) {
 		var rp0 = actions[k][0];
 		if (cur_rp0 !== rp0) {
@@ -22809,16 +22818,7 @@ function instruct(glyph, actions, strategy, cvt, padding, useMDRPnr) {
 		};
 	};
 
-	var isalInvocations = [];
-	// In-stem alignments
-	for (var j = 0; j < glyph.stems.length; j++) {
-		[[glyph.stems[j].posKey.id, glyph.stems[j].posAlign], [glyph.stems[j].advKey.id, glyph.stems[j].advAlign]].forEach(function (x) {
-			if (x[1].length) {
-				isalInvocations.push([x[1].concat([x[0]]), ['SRP0'].concat(x[1].map(function (x) { return 'MDRP[0]' }))]);
-			}
-		});
-	};
-
+	// Interpolations and short absorptions
 	var ip = [[], [], [], [], []];
 	var sa = [[], [], [], [], []];
 	for (var j = 0; j < glyph.interpolations.length; j++) {
@@ -22831,6 +22831,16 @@ function instruct(glyph, actions, strategy, cvt, padding, useMDRPnr) {
 	for (var j = ip.length - 1; j >= 0; j--) {
 		ipsacalls = ipsacalls.concat(ipInvokes(ip[j]), shortMdrpInvokes(sa[j]))
 	}
+
+	var isalInvocations = [];
+	// In-stem alignments
+	for (var j = 0; j < glyph.stems.length; j++) {
+		[[glyph.stems[j].posKey.id, glyph.stems[j].posAlign], [glyph.stems[j].advKey.id, glyph.stems[j].advAlign]].forEach(function (x) {
+			if (x[1].length) {
+				isalInvocations.push([x[1].concat([x[0]]), ['SRP0'].concat(x[1].map(function (x) { return 'MDRP[0]' }))]);
+			}
+		});
+	};
 
 	// Interpolations
 	tt = tt.concat(
@@ -23199,7 +23209,7 @@ function createAdjusters() {
 	var container = document.getElementById('adjusters');
 	function update() {
 		setTimeout(render, 100);
-		var buf = ['[parameters]'];
+		var buf = ['[hinting]'];
 		for (var k in strategy) {
 			if (strategy[k] !== defaultStrategy[k] && k !== 'gears') {
 				buf.push(k + " = " + JSON.stringify(strategy[k]));
