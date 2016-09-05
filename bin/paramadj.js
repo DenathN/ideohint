@@ -7,7 +7,8 @@ var yargs = require('yargs');
 var nodeStatic = require("node-static");
 var argv = yargs.argv;
 
-var strategy = require('../strategy').from(argv);
+var parameterFile = require('../paramfile').from(argv);
+var strategy = require('../strategy').from(argv, parameterFile);
 var defaultStrategy = require('../strategy').defaultStrategy;
 
 var instream = fs.createReadStream(argv._[0]);

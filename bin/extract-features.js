@@ -47,7 +47,8 @@ if (argv.help) {
 var instream = argv._[0] ? fs.createReadStream(argv._[0]) : process.stdin;
 var outstream = argv.o ? fs.createWriteStream(argv.o, { encoding: 'utf-8' }) : process.stdout;
 
-var strategy = require('../strategy').from(argv);
+var parameterFile = require('../paramfile').from(argv);
+var strategy = require('../strategy').from(argv, parameterFile);
 
 var formatMap = {
 	sfd: processSFD,

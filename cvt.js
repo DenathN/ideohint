@@ -34,6 +34,15 @@ function createCvt(src, strategy, padding) {
 	return cvt;
 };
 
+exports.getPadding = function (argv, parameterFile) {
+	if (parameterFile && parameterFile.cvt) {
+		return (parameterFile.cvt.padding - 0) || 0
+	} else if (argv.CVT_PADDING) {
+		return (argv.CVT_PADDING - 0) || 0
+	} else {
+		return 0;
+	}
+}
 exports.from = function (argv, strategy) {
 	var cvt = createCvt([], strategy, argv.CVT_PADDING);
 	if (argv.use_cvt) cvt = JSON.parse(fs.readFileSync(argv.usd_cvt, 'utf-8')).cvt;

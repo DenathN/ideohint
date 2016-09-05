@@ -23,23 +23,60 @@ The core hinting strategy is to minimize a number called "readbility potential" 
 
 ## Usage
 
-The main command `hanhint` takes a Truetype (quadratic), unhinted `.sfd` font file into hinted font.
+There are four major commands: `sah-otd2hgl`, `sah-extract-features`, `sah-hgfhint`, `sah-applyhgi`. To prepare your input file, use [`otfccdump`](https://github.com/caryll/otfcc) to dump the TTF you want to hint.
 
 ``` bash
-sah-extract-features <hans.sfd> -o <features.hgf> {--<STRATEGY_PARAMETER_NAME>=<STRATEGY_PARAMETER_VALUE>}
-sah-hgfhint <features.hgf> -o <instructions.hgi> {--<STRATEGY_PARAMETER_NAME>=<STRATEGY_PARAMETER_VALUE>}
-sah-applyhgi <instructions.hgi> <hans.sfd> -o <hans-hinted.sfd> {--<STRATEGY_PARAMETER_NAME>=<STRATEGY_PARAMETER_VALUE>}
+# Prepare OTD:
+otfccdump input.ttf -o input.otd
+# Do the hint
+sah-otd2hgl input.otd -o glyphlist.hgl [--onlyhan]
+sah-extract-features <glyphlist.otd> -o <features.hgf> [<strategy parameters>]
+sah-hgfhint <features.hgf> -o <instructions.hgi> [<strategy parameters>]
+sah-applyhgi <instructions.hgi> <input.otd> -o <output.otd> [<strategy parameters>]
+# Building TTF:
+otfccbuild output.otd -o output.ttf
 ```
 
-The input file `hans.sfd` should
+### `sah-otd2hgl`
 
-* Have TrueType point index information
-* Contain Han characters only
-* Do not have any TT instructions
+`sah-otd2hgl` converts OTFCC’s dump into an internal format called “hgl”. The command is:
 
-You can obtain such SFDs by directly saving an unhinted TTF into SFD. It is recommended to separate non-Han characters into a separate SFD file and merge them after the Han part is hinted.
+```bash
+sah-otd2hgl input.otd -o output.hgl [--onlyhan]
+```
 
-The strategy parameters determines how `sfdhanautohint` generate the instructions. The key parameters are:
+When parameter `--onlyhan` is present, only ideographs in the input font (identified via `cmap` table) will be preserved and hinted.
+
+### `sah-extract-features`, `sah-hgfhint` and `sah-applyhgi`
+
+#### Strategy Parameters
+
+The strategy parameters determines how `sfdhanautohint` generate the instructions. It is stored in a TOML file, and be specified using `--parameters param.toml` when calling the command. An example may be:
+
+```toml
+[hinting]
+MAX_STEM_WIDTH = 90
+MAX_SEGMERGE_DISTANCE = 90
+MOST_COMMON_STEM_WIDTH = 50
+ABSORPTION_LIMIT = 95
+STEM_SIDE_MIN_DIST_RISE = 120
+STEM_SIDE_MIN_DIST_DESCENT = 120
+BLUEZONE_BOTTOM_CENTER = -96
+BLUEZONE_TOP_CENTER = 805
+BLUEZONE_BOTTOM_LIMIT = -75
+BLUEZONE_TOP_LIMIT = 783
+BLUEZONE_BOTTOM_BAR = -73
+BLUEZONE_TOP_BAR = 790
+BLUEZONE_BOTTOM_DOTBAR = -78
+BLUEZONE_TOP_DOTBAR = 775
+SLOPE_FUZZ = 0.024
+PPEM_STEM_WIDTH_GEARS = [[0,1,1],[25,2,2]]
+
+[cvt]
+padding = 10
+```
+
+The hinting parameters are stored in `hinting` section. They include:
 
 * **Metric Parameters**
 
@@ -50,7 +87,7 @@ The strategy parameters determines how `sfdhanautohint` generate the instruction
   * **BLUEZONE_BOTTOM_BAR** : Common position of the lower edge of "bottom" hotizontal strokes without any stroke below or touching its lower edge. Like the position of the lowest horizontal stroke in “里”.
   * **BLUEZONE_TOP_DOTBAR** : Common position of the upper edge of "top" hotizontal strokes with stroke touching its upper edge. Like the position of the first horizontal stroke in “章”.
   * **BLUEZONE_BOTTOM_DOTBAR** : Common position of the lower edge of "bottom" hotizontal strokes with stroke touching its upper edge.
-  * **gears** : Stroke width allocation strategy. It is an array like `[[0,1,1],[20,2,1],[22,2,2]]`, each item is a triplet: ppem, common width (in pixels) and minimum width. The term `[20,2,1]` stands for “for sizes being 20,21px, most strokes are 2 pixels wide, though some thin strokes will be 1 pixel wide, even if the space below or undef is enough”.
+  * **PPEM_STEM_WIDTH_GEARS** : Stroke width allocation strategy. It is an array like `[[0,1,1],[20,2,1],[22,2,2]]`, each item is a triplet: ppem, common width (in pixels) and minimum width. The term `[20,2,1]` stands for “for sizes being 20,21px, most strokes are 2 pixels wide, though some thin strokes will be 1 pixel wide, even if the space below or undef is enough”.
 
 * **Stem Detection Parameters**
 
@@ -63,39 +100,44 @@ The strategy parameters determines how `sfdhanautohint` generate the instruction
   * **STEM_SIDE_MIN_DIST_RISE** : The maximum height of distanced decorative shapes placed aside a hotizontal stem's upper edge.
   * **STEM_SIDE_MIN_DIST_DESCENT** : The maximum depth of distanced decorative shapes placed aside a hotizontal stem's lower edge.
 
-* **Parameters for building composite font**
+#### CVT padding
 
-  * **CVT_PADDING** : While `hans.sfd` contains Han characters only, to build a composite font with Latin letters or Kanas, the hinted Han subfont should respect the original hintings contained by the non-Han part. This parameter indicates the length of the `cvt` table in the non-Han subfont, to avoid `cvt` conflict between Han and non-Han parts. To build a composite font you may follow this process:	
+When building a composite font with both ideographs and letters, you may use other tools (like `ttfautohint`) to generate hints for non-ideographic characters. To avoid conflict of `cvt ` table, a number called **cvt padding** should be used. This value should be larger than the length of the `cvt ` table generated by the hinter for non-ideographs. To specify, you can either:
 
-    ``` bash
-    sah-applyhgi <instructions.hgi> <hans.sfd> -o <hans-hinted.sfd> {--<STRATEGY_PARAMETER_NAME>=<STRATEGY_PARAMETER_VALUE>}
-    sah-applyhgi <instructions.hgi> <nonhan.sfd> -o <nonhan-patched.sfd> {--<STRATEGY_PARAMETER_NAME>=<STRATEGY_PARAMETER_VALUE>}
-    <merge han-hinted.sfd into nonhan-patched.sfd to create a composite font>
-    ```
-
-And there are some parameters for `hgfhint` only:
-
-* **`-d divisor` and `-m modulo`**: Since `hgfhint` takes a lot of time, so we have a few extra parameters to help you out:
-
-  * `-d` - blocks of work to divide into
-  * `-m` - which block of work to process
-
-  When using them you should to this:
-
-  ``` bash
-  sah-hgfhint -d 10 -m 0 large.hgf -o part0.hgi <parameters>
-  sah-hgfhint -d 10 -m 1 large.hgf -o part1.hgi <parameters>
-  ......
-  sah-hgfhint -d 10 -m 9 large.hgf -o part2.hgi <parameters>
-  sah-mergehgi -o large.hgi part0.hgi part1.hgi ... part9.hgi
-  ```
-
-  With the help with [GNU Parallel](https://gnu.org/s/parallel/) or `make`, it will provide a significant performance boost.
-
-You can adjust these parameters using the `paramadj`:
+- set the `padding` value in parameter file’s `cvt` section, or
+- pass a command-line parameter `--CVT_PADDING` when calling `sah-hgfhint` and `sah-applyhgi`.
 
 ``` bash
-sah-paramadj hans.sfd -w "<test characters>" {--<STRATEGY_PARAMETER_NAME>=<STRATEGY_PARAMETER_VALUE>}
+sah-applyhgi <instructions.hgi> <hans.sfd> -o <hans-hinted.sfd> {--<STRATEGY_PARAMETER_NAME>=<STRATEGY_PARAMETER_VALUE>}
+sah-applyhgi <instructions.hgi> <nonhan.sfd> -o <nonhan-patched.sfd> {--<STRATEGY_PARAMETER_NAME>=<STRATEGY_PARAMETER_VALUE>}
+<merge han-hinted.sfd into nonhan-patched.sfd to create a composite font>
+```
+
+#### Parallism
+
+`Since `hgfhint` takes a lot of time, so we have a few extra parameters to help you out:
+
+* `-d` - blocks of work to divide into
+* `-m` - which block of work to process
+
+When using them you should to this:
+
+``` bash
+sah-hgfhint -d 10 -m 0 large.hgf -o part0.hgi <parameters>
+sah-hgfhint -d 10 -m 1 large.hgf -o part1.hgi <parameters>
+......
+sah-hgfhint -d 10 -m 9 large.hgf -o part2.hgi <parameters>
+sah-mergehgi -o large.hgi part0.hgi part1.hgi ... part9.hgi
+```
+
+With the help with [GNU Parallel](https://gnu.org/s/parallel/) or `make`, it will provide a significant performance boost.
+
+## Interactive Parameter Adjustment
+
+For strategy parameters, you can adjust them using the `paramadj`:
+
+``` bash
+sah-paramadj hans.sfd -w "<test characters>" [<strategy parameters>]
 ```
 
 It will provide an interactive parameter adjustment utility accessable from `localhost:9527`.

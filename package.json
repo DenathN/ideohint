@@ -16,6 +16,7 @@
     "yargs": ""
   },
   "bin": {
+    "sah-otd2hgl": "./bin/otd2hgl",
     "sah-extract-features": "./bin/extract-features",
     "sah-hgfhint": "./bin/hgfhint",
     "sah-applyhgi": "./bin/applyhgi",

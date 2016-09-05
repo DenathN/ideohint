@@ -42,8 +42,13 @@ if(argv.help) {
 var inStream = argv._[0] ? fs.createReadStream(argv._[0]): process.stdin;
 var outStream = argv.o ? fs.createWriteStream(argv.o, { encoding: 'utf-8' }): process.stdout;
 var rl = readline.createInterface(inStream, devnull());
-var strategy = require('../strategy').from(argv);
-var cvt = require('../cvt').from(argv, strategy);
+
+
+var parameterFile = require('../paramfile').from(argv);
+var strategy = require('../strategy').from(argv, parameterFile);
+var cvtlib = require('../cvt');
+var cvtPadding = cvtlib.getPadding(argv, parameterFile);
+var cvt = cvtlib.createCvt([], strategy, cvtlib.getPadding(argv, parameterFile))
 
 var divide = argv.d || 1;
 var modulo = argv.m || 0;
@@ -90,7 +95,7 @@ function finish(){
 			}
 			stemActions[ppem] = actions;
 		}
-		ans.push([data[0], data[1], instruct(glyph, stemActions, strategy, cvt, argv.CVT_PADDING || 0, nMDRPnr > nMDRPr)]);
+		ans.push([data[0], data[1], instruct(glyph, stemActions, strategy, cvt, cvtPadding, nMDRPnr > nMDRPr)]);
 	};
 	process.stderr.write('HGFHINT: Hinting [' +  progressbar(1, PROGRESS_LENGTH) + '](#' + pad(j, ' ', 5) + '/' + pad(pendings.length, ' ', 5) + ')' + ' of ' + (argv._[0] || '(stdin)') + ' ' + pad(modulo, '0', 3) + "d" + pad(divide, '0', 3) + '\n');
 	outStream.write(JSON.stringify(ans));

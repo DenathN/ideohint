@@ -44,9 +44,11 @@ if (argv.help) { yargs.showHelp(), process.exit(0) }
 
 var hgiStream = argv._[1] ? fs.createReadStream(argv._[0]) : process.stdin;
 var outStream = argv.o ? fs.createWriteStream(argv.o, { encoding: 'utf-8' }) : process.stdout;
-var strategy = require('../strategy').from(argv);
-var cvt = require('../cvt').from(argv, strategy);
-var createCvt = require('../cvt').createCvt;
+
+var parameterFile = require('../paramfile').from(argv);
+var strategy = require('../strategy').from(argv, parameterFile);
+var cvtlib = require('../cvt');
+var cvt = cvtlib.createCvt([], strategy, cvtlib.getPadding(argv, parameterFile))
 
 var buf = '';
 hgiStream.on('data', function (d) { buf += d });
@@ -92,7 +94,8 @@ function pass_weaveSFD(activeInstructions) {
 			sourceCvt += line + "\n";
 			if (/^EndShort/.test(line)) {
 				readingCvt = false;
-				cvt = createCvt(sourceCvt.trim().split('\n').slice(1, -1).map(function (x) { return x.trim() - 0 }), strategy, argv.CVT_PADDING);
+				var oldCvt = sourceCvt.trim().split('\n').slice(1, -1).map(function (x) { return x.trim() - 0 });
+				cvt = cvtlib.createCvt(oldCvt, strategy, cvtlib.getPadding(argv, parameterFile));
 				if (argv.dump_cvt) {
 					fs.writeFileSync(argv.dump_cvt, JSON.stringify({ cvt: cvt }), 'utf-8')
 				}
@@ -140,9 +143,9 @@ function pass_weaveOTD(activeInstructions) {
 	var otdPath = argv._[1] ? argv._[1] : argv._[0];
 	var otd = JSON.parse(fs.readFileSync(otdPath, 'utf-8'));
 	if (otd.cvt_) {
-		otd.cvt_ = createCvt(otd.cvt_, strategy, argv.CVT_PADDING);
+		otd.cvt_ = createCvt(otd.cvt_, strategy, cvtlib.getPadding(argv, parameterFile));
 	} else {
-		otd.cvt_ = createCvt([], strategy, argv.CVT_PADDING);
+		otd.cvt_ = createCvt([], strategy, cvtlib.getPadding(argv, parameterFile));
 	}
 	if (otd.maxp && otd.maxp.maxStackElements < strategy.STACK_DEPTH + 10) {
 		otd.maxp.maxStackElements = strategy.STACK_DEPTH + 10;

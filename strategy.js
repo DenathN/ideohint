@@ -65,23 +65,22 @@ var DefaultStrategy = function () {
 	}
 };
 exports.defaultStrategy = DefaultStrategy();
-exports.from = function (argv) {
+exports.from = function (argv, parameterFile) {
 	var strategy = DefaultStrategy();
-	if (argv.parameters) {
-		var fileStrategy = toml.parse(fs.readFileSync(argv.parameters)).parameters;
-		for (var k in fileStrategy) {
-			strategy[k] = fileStrategy[k]
+	if (parameterFile && parameterFile.hinting) {
+		for (var k in parameterFile.hinting) {
+			strategy[k] = parameterFile.hinting[k];
 		}
 	} else {
 		for (var prop in strategy) {
 			if (argv[prop]) {
-				strategy[prop] = isFinite(argv[prop] - 0) ? argv[prop] : strategy[prop]
+				strategy[prop] = isFinite(argv[prop] - 0) ? argv[prop] : strategy[prop];
 			}
 		};
 		if (argv.gears) {
 			try {
-				strategy.PPEM_STEM_WIDTH_GEARS = JSON.parse(argv.gears)
-				strategy.gears = argv.gears
+				strategy.PPEM_STEM_WIDTH_GEARS = JSON.parse(argv.gears);
+				strategy.gears = argv.gears;
 			} catch (e) {
 			}
 		};
