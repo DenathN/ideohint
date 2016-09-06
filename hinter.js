@@ -29,7 +29,7 @@ function hint(glyph, ppem, strategy) {
 	var STEM_CENTER_MIN_DESCENT = strategy.STEM_CENTER_MIN_DESCENT || STEM_SIDE_MIN_DESCENT;
 
 	var POPULATION_LIMIT = strategy.POPULATION_LIMIT || 200;
-	var CHILDREN_LIMIT = strategy.CHILDREN_LIMIT || 100;
+	var POPULATION_LIMIT_SMALL = strategy.POPULATION_LIMIT_SMALL || 100;
 	var EVOLUTION_STAGES = strategy.EVOLUTION_STAGES || 15;
 	var MUTANT_PROBABLITY = strategy.MUTANT_PROBABLITY || 0.4;
 	var ELITE_COUNT = strategy.ELITE_COUNT || 10;
@@ -79,10 +79,6 @@ function hint(glyph, ppem, strategy) {
 	var DONT_ADJUST_STEM_WIDTH = strategy.DONT_ADJUST_STEM_WIDTH || false;
 
 
-	var shouldAddGlyphHeight = strategy.shouldAddGlyphHeight || function (stem, ppem, pixelTop, pixelBottom) {
-		return stem.yori - stem.ytouch >= 0.25 * uppx
-	}
-
 	function byyori(a, b) {
 		return a.yori - b.yori
 	}
@@ -100,7 +96,22 @@ function hint(glyph, ppem, strategy) {
 	var glyfTop = pixelTop;
 
 	function calculateWidth(w) {
-		return Math.round(Math.max(WIDTH_GEAR_MIN, Math.min(WIDTH_GEAR_PROPER, w / MOST_COMMON_STEM_WIDTH * WIDTH_GEAR_PROPER))) * uppx
+		var pixels = w / uppx;
+		if (WIDTH_GEAR_PROPER < 3) {
+			pixels = w / MOST_COMMON_STEM_WIDTH * WIDTH_GEAR_PROPER;
+		}
+		var pixels0 = pixels;
+		if (pixels > WIDTH_GEAR_PROPER) pixels = WIDTH_GEAR_PROPER;
+		if (pixels < WIDTH_GEAR_MIN) {
+			if (WIDTH_GEAR_MIN < 3) {
+				pixels = WIDTH_GEAR_MIN;
+			} else if (pixels < WIDTH_GEAR_MIN - 0.75) {
+				pixels = WIDTH_GEAR_MIN - 1;
+			} else {
+				pixels = WIDTH_GEAR_MIN;
+			}
+		}
+		return Math.round(pixels) * uppx
 	}
 
 	function atRadicalTop(stem) {
@@ -189,8 +200,8 @@ function hint(glyph, ppem, strategy) {
 
 			// The bottom limit of a stem
 			var lowlimit = atGlyphBottom(stems[j])
-				? pixelBottom + WIDTH_GEAR_MIN * uppx
-				: pixelBottom + WIDTH_GEAR_MIN * uppx + uppx;
+				? pixelBottom + Math.min(w, WIDTH_GEAR_MIN * uppx)
+				: pixelBottom + Math.min(w, WIDTH_GEAR_MIN * uppx) + uppx;
 
 			// Add additional space below strokes with a fold under it.
 			if (stems[j].hasGlyphFoldBelow && !stems[j].hasGlyphStemBelow) {
@@ -206,7 +217,10 @@ function hint(glyph, ppem, strategy) {
 					atGlyphTop(stems[j]) ? 0 : uppx,
 					atGlyphTop(stems[j])
 						? round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_BAR) + roundDown(BLUEZONE_TOP_BAR - y0)
-						: round(BLUEZONE_TOP_CENTER - y0),
+						: Math.max(
+							round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_DOTBAR),
+							roundDown(BLUEZONE_TOP_BAR - y0)
+						),
 					WIDTH_GEAR_MIN * uppx);
 
 			var center0 = cy(y0, w0, w, atGlyphTop(stems[j]) || atGlyphBottom(stems[j]));
@@ -368,17 +382,21 @@ function hint(glyph, ppem, strategy) {
 			var candidate = crossover(original, m1, m2);
 			background[c] = candidate.fitness > original.fitness ? candidate : original;
 		};
-		return population;
+		return background;
 	};
-	function uncollide(stems, multiplier) {
+	function uncollide(stems, terminalStrictness, scale) {
 		if (!stems.length) return;
 
 		var n = stems.length;
-		var y0 = stems.map(function (s, j) { return xclamp(avaliables[j].low, Math.round(stems[j].ytouch / uppx), avaliables[j].high) });
-		var totalStages = Math.max(EVOLUTION_STAGES, Math.ceil(stems.length * EVOLUTION_STAGES * (multiplier || 1) * (stems.length / ppem)));
+		var y0 = [];
+		for (var j = 0; j < stems.length; j++) {
+			y0[j] = xclamp(avaliables[j].low, Math.round(stems[j].ytouch / uppx), avaliables[j].high)
+		}
+		var totalStages = Math.max(EVOLUTION_STAGES, Math.ceil(stems.length * EVOLUTION_STAGES * (stems.length / ppem)));
 
 		var population = [new Individual(y0)];
 		// Generate initial population
+		// Extereme
 		for (var j = 0; j < n; j++) {
 			for (var k = avaliables[j].low; k <= avaliables[j].high; k++) if (k !== y0[j]) {
 				var y1 = y0.slice(0);
@@ -386,14 +404,15 @@ function hint(glyph, ppem, strategy) {
 				population.push(new Individual(y1));
 			};
 		};
+		// Y-mutant
 		population.push(new Individual(y0.map(function (y, j) {
 			return xclamp(avaliables[j].low, y - 1, avaliables[j].high)
 		})));
 		population.push(new Individual(y0.map(function (y, j) {
 			return xclamp(avaliables[j].low, y + 1, avaliables[j].high)
 		})));
-
-		for (var c = population.length; c < POPULATION_LIMIT; c++) {
+		// Random
+		for (var c = population.length; c < scale; c++) {
 			// fill population with random individuals
 			var ry = new Array(n);
 			for (var j = 0; j < n; j++) {
@@ -403,25 +422,31 @@ function hint(glyph, ppem, strategy) {
 		}
 
 		// Hall of fame
-		var elites = [new Individual(y0)];
-
-		// Build a swapchain
-		var p = population, q = new Array(population.length);
-		for (var s = 0; s < totalStages; s++) {
-			population = evolve(p, q, !(s % 2));
-			var elite = population[0];
-			for (var j = 0; j < population.length; j++) if (population[j].fitness > elite.fitness) {
-				elite = population[j];
-			}
-			elites.push(elite);
-			if (elite.collidePotential <= 0) break;
-		};
-
-		population = elites.concat(population);
 		var best = population[0];
 		for (var j = 1; j < population.length; j++) if (population[j].fitness > best.fitness) {
 			best = population[j];
 		}
+		// "no-improvement" generations
+		var steadyStages = 0;
+		// Build a swapchain
+		var p = population, q = new Array(population.length);
+
+		// Start evolution
+		for (var s = 0; s < totalStages; s++) {
+			population = evolve(p, q, !(s % 2));
+			var elite = population[0];
+			for (var j = 1; j < population.length; j++) if (population[j].fitness > elite.fitness) {
+				elite = population[j];
+			}
+			if (elite.fitness <= best.fitness) {
+				steadyStages += 1
+			} else {
+				steadyStages = 0;
+				best = elite;
+			}
+			if (steadyStages > terminalStrictness) break;
+		};
+
 		// Assign
 		for (var j = 0; j < stems.length; j++) {
 			stems[j].ytouch = best.gene[j] * uppx;
@@ -633,6 +658,7 @@ function hint(glyph, ppem, strategy) {
 		stems[j].ytouch = stems[j].yori;
 		stems[j].touchwidth = uppx;
 	};
+
 	(function () {
 		var y0 = [];
 		for (var j = 0; j < stems.length; j++) {
@@ -640,18 +666,20 @@ function hint(glyph, ppem, strategy) {
 		}
 		var og = new Individual(y0);
 		if (og.collidePotential <= 0) {
-			for (var j = 0; j < stems.length; j++) {
-				stems[j].ytouch = og.gene[j] * uppx;
-				stems[j].touchwidth = uppx;
-			}
+			earlyAdjust(stems);
+			uncollide(stems, 3, POPULATION_LIMIT_SMALL);
+			rebalance(stems);
+			uncollide(stems, 3, POPULATION_LIMIT_SMALL);
+			rebalance(stems);
 		} else {
 			earlyAdjust(stems);
-			uncollide(stems, 1);
+			uncollide(stems, strategy.EVOLUTION_STAGES, POPULATION_LIMIT);
 			rebalance(stems);
-			uncollide(stems, 0.5);
+			uncollide(stems, 5, POPULATION_LIMIT);
 			rebalance(stems);
 		};
 	})();
+
 	allocateWidth(stems);
 	touchStemPoints(stems);
 
