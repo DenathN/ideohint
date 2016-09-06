@@ -6,6 +6,10 @@ var stream = require('stream');
 var devnull = require('dev-null');
 var util = require('util');
 var stripBom = require('strip-bom');
+var JSONStream = require('JSONStream');
+var es = require('event-stream');
+var oboe = require('oboe');
+
 var hashContours = require('../otdParser').hashContours;
 
 var crypto = require('crypto');
@@ -28,7 +32,6 @@ exports.builder = function (yargs) {
 exports.handler = function (argv) {
 
 	var hgiStream = argv._[2] ? fs.createReadStream(argv._[1]) : process.stdin;
-	var outStream = argv.o ? fs.createWriteStream(argv.o, { encoding: 'utf-8' }) : process.stdout;
 
 	var parameterFile = require('../paramfile').from(argv);
 	var strategy = require('../strategy').from(argv, parameterFile);
@@ -55,6 +58,7 @@ exports.handler = function (argv) {
 
 	function pass_weaveSFD(activeInstructions) {
 		var sfdStream = argv._[2] ? fs.createReadStream(argv._[2]) : fs.createReadStream(argv._[1]);
+		var outStream = argv.o ? fs.createWriteStream(argv.o, { encoding: 'utf-8' }) : process.stdout;
 		var rl = readline.createInterface(sfdStream, devnull());
 
 		process.stderr.write('WEAVE: Start weaving ' + (argv.o || '(stdout)') + '\n')
@@ -127,25 +131,40 @@ exports.handler = function (argv) {
 
 	function pass_weaveOTD(activeInstructions) {
 		var otdPath = argv._[2] ? argv._[2] : argv._[1];
-		var otd = JSON.parse(fs.readFileSync(otdPath, 'utf-8'));
-		if (otd.cvt_) {
-			otd.cvt_ = cvtlib.createCvt(otd.cvt_, strategy, cvtlib.getPadding(argv, parameterFile));
-		} else {
-			otd.cvt_ = cvtlib.createCvt([], strategy, cvtlib.getPadding(argv, parameterFile));
-		}
-		if (otd.maxp && otd.maxp.maxStackElements < strategy.STACK_DEPTH + 10) {
-			otd.maxp.maxStackElements = strategy.STACK_DEPTH + 10;
-		}
-		for (var k in otd.glyf) {
-			var glyph = otd.glyf[k];
-			if (!glyph.contours || !glyph.contours.length) continue;
-			var hash = hashContours(glyph.contours);
-			if (!argv.just_modify_cvt && activeInstructions[hash]) {
-				glyph.instructions = activeInstructions[hash].split('\n');
-			}
-		}
-		outStream.write(JSON.stringify(otd));
-		outStream.end();
+		var instream = fs.createReadStream(otdPath, 'utf-8');
+		var foundCVT = false;
+		oboe(instream)
+			.on('node', 'cvt_', function (cvt) {
+				foundCVT = true;
+				return cvtlib.createCvt(cvt, strategy, cvtlib.getPadding(argv, parameterFile));
+			})
+			.on('node', 'maxp', function (maxp) {
+				if (maxp.maxStackElements < strategy.STACK_DEPTH + 20) {
+					maxp.maxStackElements = strategy.STACK_DEPTH + 20
+				}
+				return maxp;
+			})
+			.on('node', 'glyf.*', function (glyph, path) {
+				if (!glyph.contours || !glyph.contours.length) return glyph;
+				var hash = hashContours(glyph.contours);
+				if (!argv.just_modify_cvt && activeInstructions[hash]) {
+					glyph.instructions = activeInstructions[hash].split('\n');
+				}
+				return glyph;
+			})
+			.on('done', function (otd) {
+				if (!foundCVT) {
+					otd.cvt_ = cvtlib.createCvt([], strategy, cvtlib.getPadding(argv, parameterFile));
+				}
+				var outStream = argv.o ? fs.createWriteStream(argv.o, { encoding: 'utf-8' }) : process.stdout;
+				es.readable(function (count, next) {
+					for (var k in otd) {
+						this.emit('data', [k, otd[k]]);
+					}
+					this.emit('end');
+					next()
+				}).pipe(JSONStream.stringifyObject()).pipe(outStream);
+			});
 	}
 
 }

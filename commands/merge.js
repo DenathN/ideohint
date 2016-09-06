@@ -22,17 +22,11 @@ exports.handler = function (argv) {
 			var data = JSON.parse(d[j].trim());
 			nRead += 1;
 			if (!buf[data[1]]) {
-				buf[data[1]] = data[2];
+				buf[data[1]] = true;
+				outStream.write(d[j] + '\n');
 				nTotal += 1;
 			}
 		}
 	});
-	var j = 0;
-	for (var k in buf) {
-		outStream.write(JSON.stringify([buf[k].id, k, buf[k], j]) + '\n');
-		j += 1;
-	}
-	outStream.write('\n');
 	process.stderr.write(nRead + " records found; " + nTotal + " records after merging.\n");
-
 }
