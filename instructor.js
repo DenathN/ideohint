@@ -235,7 +235,7 @@ function instruct(glyph, actions, strategy, cvt, padding) {
 	if (glyph.stems.length) {
 		for (var k = 0; k < glyph.stems.length; k++) {
 			largeMdrpInvokes.push([[glyph.stems[k].posKey], ['SRP0']],
-				[[glyph.stems[k].advKey], ['MDRP[100]']]
+				[[glyph.stems[k].advKey], ['MDRP[0]']]
 			)
 		}
 	}
