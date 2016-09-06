@@ -9,6 +9,9 @@ var stripBom = require('strip-bom');
 var JSONStream = require('JSONStream');
 var es = require('event-stream');
 var oboe = require('oboe');
+var instruct = require('../instructor').instruct;
+
+var cvtlib = require('../cvt');
 
 var hashContours = require('../otdParser').hashContours;
 
@@ -31,20 +34,22 @@ exports.builder = function (yargs) {
 }
 exports.handler = function (argv) {
 
-	var hgiStream = argv._[2] ? fs.createReadStream(argv._[1]) : process.stdin;
-
+	var hgiStream = argv._[2] ? fs.createReadStream(argv._[1], 'utf-8') : process.stdin;
+	var rl = readline.createInterface(hgiStream, devnull());
 	var parameterFile = require('../paramfile').from(argv);
 	var strategy = require('../strategy').from(argv, parameterFile);
-	var cvtlib = require('../cvt');
-	var cvt = cvtlib.createCvt([], strategy, cvtlib.getPadding(argv, parameterFile))
 
-	var buf = '';
-	hgiStream.on('data', function (d) { buf += d });
-	hgiStream.on('end', function () {
-		var a = buf.trim().split('\n').map(function (l) { return JSON.parse(l.trim()); })
-		var activeInstructions = {};
-		for (var j = 0; j < a.length; j++) activeInstructions[a[j][1]] = a[j][2];
+	var cvtPadding = cvtlib.getPadding(argv, parameterFile);
+	var linkCvt = cvtlib.createCvt([], strategy, cvtPadding);
 
+	var activeInstructions = {};
+
+	rl.on('line', function (line) {
+		if (!line) return;
+		var data = JSON.parse(line.trim());
+		activeInstructions[data[1]] = instruct(data[2].si, data[2].sd, strategy, linkCvt, cvtPadding);
+	});
+	rl.on('close', function () {
 		var format = argv.format || 'hgl';
 		var formatMap = {
 			sfd: pass_weaveSFD,
@@ -54,12 +59,15 @@ exports.handler = function (argv) {
 		formatMap[format](activeInstructions);
 	});
 
-	if (argv.subpattern) { var pattern = new RegExp(argv.subpattern, argv.subflag || ''); var replacement = argv.subreplacement }
 
 	function pass_weaveSFD(activeInstructions) {
 		var sfdStream = argv._[2] ? fs.createReadStream(argv._[2]) : fs.createReadStream(argv._[1]);
 		var outStream = argv.o ? fs.createWriteStream(argv.o, { encoding: 'utf-8' }) : process.stdout;
 		var rl = readline.createInterface(sfdStream, devnull());
+		var cvt = linkCvt;
+
+		if (argv.subpattern) { var pattern = new RegExp(argv.subpattern, argv.subflag || ''); var replacement = argv.subreplacement }
+
 
 		process.stderr.write('WEAVE: Start weaving ' + (argv.o || '(stdout)') + '\n')
 		process.stderr.write('WEAVE: ' + (Object.keys(activeInstructions).length) + ' Active hinting records : ' + Object.keys(activeInstructions).slice(0, 3) + '...' + '\n')
@@ -130,13 +138,15 @@ exports.handler = function (argv) {
 	}
 
 	function pass_weaveOTD(activeInstructions) {
+		process.stderr.write("Weaving OTD.\n");
 		var otdPath = argv._[2] ? argv._[2] : argv._[1];
 		var instream = fs.createReadStream(otdPath, 'utf-8');
 		var foundCVT = false;
+
 		oboe(instream)
 			.on('node', 'cvt_', function (cvt) {
 				foundCVT = true;
-				return cvtlib.createCvt(cvt, strategy, cvtlib.getPadding(argv, parameterFile));
+				return cvtlib.createCvt(cvt, strategy, cvtPadding);
 			})
 			.on('node', 'maxp', function (maxp) {
 				if (maxp.maxStackElements < strategy.STACK_DEPTH + 20) {
@@ -148,13 +158,13 @@ exports.handler = function (argv) {
 				if (!glyph.contours || !glyph.contours.length) return glyph;
 				var hash = hashContours(glyph.contours);
 				if (!argv.just_modify_cvt && activeInstructions[hash]) {
-					glyph.instructions = activeInstructions[hash].split('\n');
+					glyph.instructions = activeInstructions[hash];
 				}
 				return glyph;
 			})
 			.on('done', function (otd) {
 				if (!foundCVT) {
-					otd.cvt_ = cvtlib.createCvt([], strategy, cvtlib.getPadding(argv, parameterFile));
+					otd.cvt_ = cvtlib.createCvt([], strategy, cvtPadding);
 				}
 				var outStream = argv.o ? fs.createWriteStream(argv.o, { encoding: 'utf-8' }) : process.stdout;
 				es.readable(function (count, next) {

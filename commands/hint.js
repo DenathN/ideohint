@@ -86,11 +86,25 @@ exports.handler = function (argv) {
 				stemActions[ppem] = actions;
 			}
 			currentProgress = showProgressBar(currentProgress, j, pendings.length);
-			var recordLine = [data[0], data[1], instruct(glyph, stemActions, strategy, cvt, cvtPadding, nMDRPnr > nMDRPr)];
+			var exportGlyph = {
+				bottomBluePoints: glyph.bottomBluePoints,
+				topBluePoints: glyph.topBluePoints,
+				interpolations: glyph.interpolations,
+				shortAbsorptions: glyph.shortAbsorptions,
+				stems: glyph.stems.map(function (s) {
+					return {
+						posKey: s.posKey.id,
+						advKey: s.advKey.id,
+						posAlign: s.posAlign,
+						advAlign: s.advAlign
+					}
+				})
+			};
+			var recordLine = [data[0], data[1], { si: exportGlyph, sd: stemActions }];
 			outStream.write(JSON.stringify(recordLine) + '\n');
 		};
 		currentProgress = showProgressBar(currentProgress, j, pendings.length);
-		outStream.end();
+		if (process.stdout !== outStream) outStream.end();
 	}
 
 	var j = 0;
