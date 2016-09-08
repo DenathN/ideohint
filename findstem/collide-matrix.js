@@ -76,7 +76,7 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlaps, 
 			var coeffC = 1;
 			if (stems[j].belongRadical === stems[k].belongRadical) coeffC = strategy.COEFF_C_SAME_RADICAL;
 			if (pbs[j][k]) coeffC *= strategy.COEFF_C_FEATURE_LOSS / 2;
-			C[j][k] = strategy.COEFF_C_MULTIPLIER * ovr * coeffC * promixityCoeff * slopesCoeff;
+			C[j][k] = strategy.COEFF_C_MULTIPLIER * ovr * coeffC * slopesCoeff;
 
 			S[j][k] = strategy.COEFF_S;
 			if (pbs[j][k] > 1) { F[j][k] = 1; }

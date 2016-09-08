@@ -226,8 +226,7 @@ window.testInstruct = function(m){
 
 var strategyControlGroups = [
 	['UPM', 'BLUEZONE_WIDTH', 'BLUEZONE_TOP_CENTER', 'BLUEZONE_TOP_LIMIT', 'BLUEZONE_TOP_BAR', 'BLUEZONE_TOP_DOTBAR', 'BLUEZONE_BOTTOM_CENTER', 'BLUEZONE_BOTTOM_LIMIT', 'BLUEZONE_BOTTOM_BAR', 'BLUEZONE_BOTTOM_DOTBAR'],
-	['MIN_STEM_WIDTH', 'MAX_STEM_WIDTH', 'MOST_COMMON_STEM_WIDTH', 'MAX_SEGMERGE_DISTANCE', 'ABSORPTION_LIMIT', 'STEM_SIDE_MIN_RISE', 'STEM_SIDE_MIN_DESCENT', 'STEM_CENTER_MIN_RISE', 'STEM_CENTER_MIN_DESCENT', 'STEM_SIDE_MIN_DIST_RISE', 'STEM_SIDE_MIN_DIST_DESCENT', 'SLOPE_FUZZ', 'Y_FUZZ'],
-	['POPULATION_LIMIT', 'POPULATION_LIMIT_SMALL', 'EVOLUTION_STAGES', 'MUTANT_PROBABLITY', 'ELITE_COUNT'],
+	['MIN_STEM_WIDTH', 'MAX_STEM_WIDTH', 'CANONICAL_STEM_WIDTH', 'CANONICAL_STEM_WIDTH_SMALL', 'CANONICAL_STEM_WIDTH_DENSE', 'MAX_SEGMERGE_DISTANCE', 'ABSORPTION_LIMIT', 'STEM_SIDE_MIN_RISE', 'STEM_SIDE_MIN_DESCENT', 'STEM_CENTER_MIN_RISE', 'STEM_CENTER_MIN_DESCENT', 'STEM_SIDE_MIN_DIST_RISE', 'STEM_SIDE_MIN_DIST_DESCENT', 'SLOPE_FUZZ', 'Y_FUZZ'],
 	['COEFF_DISTORT', 'ABLATION_IN_RADICAL', 'ABLATION_RADICAL_EDGE', 'ABLATION_GLYPH_EDGE', 'ABLATION_GLYPH_HARD_EDGE', 'COEFF_PORPORTION_DISTORTION', 'COEFF_A_MULTIPLIER', 'COEFF_A_SAME_RADICAL', 'COEFF_A_SHAPE_LOST', 'COEFF_A_FEATURE_LOSS', 'COEFF_A_RADICAL_MERGE', 'COEFF_C_MULTIPLIER', 'COEFF_C_SAME_RADICAL', 'COEFF_S', 'COLLISION_MIN_OVERLAP_RATIO']
 ]
 
@@ -288,28 +287,7 @@ function createAdjusters() {
 		}
 		container.appendChild(ol);
 	};
-	// --gears
-	(function () {
-		var ol = document.createElement('ol');
-		var d = document.createElement('li');
-		d.innerHTML += '<span>gears</span>';
-		d.className = "text"
-		var input = document.createElement('input');
-		input.value = JSON.stringify(strategy.PPEM_STEM_WIDTH_GEARS);
-		input.onchange = function () {
-			try {
-				var g = JSON.parse(input.value);
-				strategy.PPEM_STEM_WIDTH_GEARS = g;
-				strategy.gears = JSON.stringify(input.value);
-				update();
-			} catch (ex) {
 
-			}
-		};
-		d.appendChild(input);
-		ol.appendChild(d);
-		container.appendChild(ol);
-	})();
 	// Result panel
 	var resultPanel = document.createElement("pre");
 	container.appendChild(resultPanel);
