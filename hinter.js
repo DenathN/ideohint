@@ -535,10 +535,11 @@ function hint(glyph, ppem, strategy) {
 		for (var pass = 0; pass < REBALANCE_PASSES; pass++) {
 			for (var t = 0; t < triplets.length; t++) if (directOverlaps[triplets[t][0]][triplets[t][1]] && directOverlaps[triplets[t][1]][triplets[t][2]]) {
 				var j = triplets[t][0], k = triplets[t][1], m = triplets[t][2];
-				var d1 = stems[j].ytouch - uppx - stems[k].ytouch;
-				var d2 = stems[k].ytouch - uppx - stems[m].ytouch;
+				var d1 = stems[j].ytouch - avaliables[j].properWidth - stems[k].ytouch;
+				var d2 = stems[k].ytouch - avaliables[k].properWidth - stems[m].ytouch;
 				var o1 = stems[j].yori - stems[j].width - stems[k].yori;
 				var o2 = stems[k].yori - stems[k].width - stems[m].yori;
+				if(!(d1 > 0 && d2 > 0 && o1 > 0 && o2 > 0)) continue;
 				if (veryspare(j, k) && spare(k, m) && stems[k].ytouch < avaliables[k].high * uppx && d1 / d2 > 1.5 && o1 / o2 <= 1.5 && glyph.collisionMatrices.promixity[j][k] < glyph.collisionMatrices.promixity[k][m]) {
 					stems[k].ytouch += uppx;
 				} else if (spare(j, k) && veryspare(k, m) && stems[k].ytouch > avaliables[k].low * uppx && d2 / d1 > 1.5 && o2 / o1 <= 1.5 && glyph.collisionMatrices.promixity[j][k] > glyph.collisionMatrices.promixity[k][m]) {
