@@ -33,14 +33,14 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlaps, 
 	// A : Alignment operator
 	// C : Collision operator
 	// S : Swap operator
-	var A = [], C = [], S = [], F = [], n = stems.length;
+	var A = [], C = [], S = [], P = [], n = stems.length;
 	for (var j = 0; j < n; j++) {
 		A[j] = [];
 		C[j] = [];
 		S[j] = [];
-		F[j] = [];
+		P[j] = [];
 		for (var k = 0; k < n; k++) {
-			A[j][k] = C[j][k] = S[j][k] = F[j][k] = 0
+			A[j][k] = C[j][k] = S[j][k] = P[j][k] = 0
 		}
 	};
 	var slopes = stems.map(function (s) { return (slopeOf(s.high) + slopeOf(s.low)) / 2 });
@@ -79,7 +79,7 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlaps, 
 			C[j][k] = strategy.COEFF_C_MULTIPLIER * ovr * coeffC * slopesCoeff;
 
 			S[j][k] = strategy.COEFF_S;
-			if (pbs[j][k] > 1) { F[j][k] = 1; }
+			P[j][k] = promixity + (pbs[j][k] ? 1 : 0);
 		};
 	};
 	for (var j = 0; j < n; j++) {
@@ -113,7 +113,7 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlaps, 
 	return {
 		alignment: A,
 		collision: C,
-		far: F,
+		promixity: P,
 		swap: S
 	}
 };

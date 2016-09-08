@@ -328,7 +328,7 @@ function hint(glyph, ppem, strategy) {
 		};
 		return sym;
 	})();
-	function collidePotential(y, A, C, F, S, avaliables) {
+	function collidePotential(y, A, C, S, avaliables) {
 		var p = 0;
 		var n = y.length;
 		for (var j = 0; j < n; j++) {
@@ -372,7 +372,7 @@ function hint(glyph, ppem, strategy) {
 
 	function Individual(y, noabl) {
 		this.gene = y;
-		this.collidePotential = collidePotential(y, glyph.collisionMatrices.alignment, glyph.collisionMatrices.collision, glyph.collisionMatrices.far, glyph.collisionMatrices.swap, avaliables);
+		this.collidePotential = collidePotential(y, glyph.collisionMatrices.alignment, glyph.collisionMatrices.collision, glyph.collisionMatrices.swap, avaliables);
 		this.ablationPotential = noabl ? 0 : ablationPotential(y, glyph.collisionMatrices.collision, avaliables);
 		this.fitness = 1 / (1 + Math.max(0, this.collidePotential * 8 + this.ablationPotential / 16))
 	};
@@ -475,13 +475,16 @@ function hint(glyph, ppem, strategy) {
 
 	// Pass 3 : Rebalance
 	function colliding(p, q) {
-		return p.ytouch - q.ytouch > 0.75 * uppx && p.ytouch - q.ytouch < 1.25 * uppx;
+		return stems[p].ytouch - stems[q].ytouch > 0.75 * uppx && stems[p].ytouch - stems[q].ytouch < 1.25 * uppx;
 	}
 	function aligned(p, q) {
-		return p.ytouch - q.ytouch < 0.25 * uppx;
+		return stems[p].ytouch - stems[q].ytouch < 0.25 * uppx;
 	}
 	function spare(p, q) {
-		return p.ytouch - q.ytouch > 1.5 * uppx
+		return stems[p].ytouch - stems[q].ytouch > 1.5 * uppx
+	}
+	function veryspare(p, q) {
+		return stems[p].ytouch - stems[q].ytouch > 2.5 * uppx
 	}
 	function rebalance(stems) {
 		var m = stems.map(function (s, j) { return [s.xmax - s.xmin, j] }).sort(function (a, b) { return b[0] - a[0] });
@@ -504,16 +507,19 @@ function hint(glyph, ppem, strategy) {
 		for (var pass = 0; pass < REBALANCE_PASSES; pass++) {
 			for (var t = 0; t < triplets.length; t++) if (directOverlaps[triplets[t][0]][triplets[t][1]] && directOverlaps[triplets[t][1]][triplets[t][2]]) {
 				var j = triplets[t][0], k = triplets[t][1], m = triplets[t][2];
-				if (colliding(stems[j], stems[k]) && spare(stems[k], stems[m])) {
-					if (glyph.collisionMatrices.collision[j][k] > glyph.collisionMatrices.collision[k][m] && stems[k].ytouch > avaliables[k].low * uppx) {
+				if (colliding(j, k) && spare(k, m) && stems[k].ytouch > avaliables[k].low * uppx) {
+					var newcol = 0;
+					for(var s = 0; s < stems.length; s++) if(directOverlaps[k][s] && spare(k, s)) newcol += glyph.collisionMatrices.collision[k][s];
+					if (glyph.collisionMatrices.collision[j][k] > newcol) {
 						stems[k].ytouch -= uppx;
 					}
-				} else if (colliding(stems[k], stems[m]) && spare(stems[j], stems[k])) {
-					if (glyph.collisionMatrices.collision[j][k] < glyph.collisionMatrices.collision[k][m] && stems[k].ytouch < avaliables[k].high * uppx) {
+				} else if (colliding(k, m) && spare(j, k) && stems[k].ytouch < avaliables[k].high * uppx) {
+					var newcol = 0;
+					for(var s = 0; s < stems.length; s++) if(directOverlaps[s][k] && spare(s, k)) newcol += glyph.collisionMatrices.collision[s][k];
+					if (newcol < glyph.collisionMatrices.collision[k][m] ) {
 						stems[k].ytouch += uppx;
 					}
-				} else if (colliding(stems[j], stems[k]) && colliding(stems[k], stems[m])) {
-					console.log(ppem, j, k, m, glyph.collisionMatrices.alignment[j][k], glyph.collisionMatrices.alignment[k][m], stems[k].ytouch, avaliables[k].high * uppx);
+				} else if (colliding(j, k) && colliding(k, m)) {
 					if (glyph.collisionMatrices.alignment[j][k] <= glyph.collisionMatrices.alignment[k][m] && stems[k].ytouch < avaliables[k].high * uppx) {
 						stems[k].ytouch += uppx;
 					} else if (glyph.collisionMatrices.alignment[j][k] >= glyph.collisionMatrices.alignment[k][m] && stems[k].ytouch > avaliables[k].low * uppx) {
@@ -524,7 +530,21 @@ function hint(glyph, ppem, strategy) {
 						stems[k].ytouch -= uppx;
 					}
 				}
-			};
+			}
+		}
+		for (var pass = 0; pass < REBALANCE_PASSES; pass++) {
+			for (var t = 0; t < triplets.length; t++) if (directOverlaps[triplets[t][0]][triplets[t][1]] && directOverlaps[triplets[t][1]][triplets[t][2]]) {
+				var j = triplets[t][0], k = triplets[t][1], m = triplets[t][2];
+				var d1 = stems[j].ytouch - uppx - stems[k].ytouch;
+				var d2 = stems[k].ytouch - uppx - stems[m].ytouch;
+				var o1 = stems[j].yori - stems[j].width - stems[k].yori;
+				var o2 = stems[k].yori - stems[k].width - stems[m].yori;
+				if (veryspare(j, k) && spare(k, m) && stems[k].ytouch < avaliables[k].high * uppx && d1 / d2 > 1.5 && o1 / o2 <= 1.5 && glyph.collisionMatrices.promixity[j][k] < glyph.collisionMatrices.promixity[k][m]) {
+					stems[k].ytouch += uppx;
+				} else if (spare(j, k) && veryspare(k, m) && stems[k].ytouch > avaliables[k].low * uppx && d2 / d1 > 1.5 && o2 / o1 <= 1.5 && glyph.collisionMatrices.promixity[j][k] > glyph.collisionMatrices.promixity[k][m]) {
+					stems[k].ytouch -= uppx;
+				}
+			}
 		}
 	};
 	function edgetouch(s, t) {

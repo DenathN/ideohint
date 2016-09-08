@@ -61,7 +61,8 @@ function analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, str
 			if (!point.atleft && point.xori > xmin + (xmax - xmin) * 0.2 || point.atleft && point.xori < xmax - (xmax - xmin) * 0.2) {
 				stem.hasGlyphFoldBelow = true;
 				if (sameRadical) { stem.hasRadicalFoldBelow = true }
-			} else {
+			} else if (point.xori < xmax - stem.width * 1.5 && point.xori > xmin + stem.width * 1.5) {
+				console.log(point, stem);
 				stem.hasGlyphSideFoldBelow = true;
 				if (sameRadical) { stem.hasRadicalSideFoldBelow = true }
 			}
@@ -129,7 +130,7 @@ exports.analyzeStemSpatialRelationships = function (stems, radicals, overlaps, s
 		}
 	}
 };
-exports.analyzePointBetweenStems = function(stems, radicals, strategy) {
+exports.analyzePointBetweenStems = function (stems, radicals, strategy) {
 	var blueFuzz = strategy.BLUEZONE_WIDTH || 15;
 	var res = [];
 	for (var sj = 0; sj < stems.length; sj++) {

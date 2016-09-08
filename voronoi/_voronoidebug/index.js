@@ -9,7 +9,7 @@ var glyphs = document.getElementById('source').value.split('\n').map(function (p
 	}
 }).filter(function (x) { return !!x });
 var strategy = {
-	UPM: 1000,
+	UPM: 2048,
 	MIN_STEM_WIDTH: 20,
 	MAX_STEM_WIDTH: 100,
 	MOST_COMMON_STEM_WIDTH: 65,
@@ -133,7 +133,7 @@ function construct_voronoi(glyph) {
 					var x2 = (x1 + next.xori) / 2;
 					var y2 = (y1 + next.yori) / 2;
 				}
-				var SEGMENTS = 7;
+				var SEGMENTS = 4;
 				var gs = [contour.points[k - 1], contour.points[k], contour.points[k + 1]];
 				glyphSegments.push(gs);
 				for (var s = 0; s < SEGMENTS; s++) {
@@ -184,7 +184,7 @@ function construct_voronoi(glyph) {
 	for (var j = 0; j < vertexes.length; j++) {
 		var p = vertexes[j];
 		if (pointCache[p.x] && pointCache[p.x][p.y]) {
-			p.inside = p.border = true
+			p.border = true
 		} else if (containsPoint(glyph.contours, p.x, p.y)) {
 			p.inside = true;
 		}
@@ -287,10 +287,11 @@ var glyph = glyphs[INDEX];
 			}
 		}
 	}
-	for (var j = 0; j < extremeEdges.length; j++) {
-		var v0 = diagram.vertexes[extremeEdges[j].vertex0_index], v1 = diagram.vertexes[extremeEdges[j].vertex1_index];
+	for (var j = 0; j < edges.length; j++) {
+		var v0 = diagram.vertexes[edges[j].vertex0_index], v1 = diagram.vertexes[edges[j].vertex1_index];
+		if(!v0 || !v1 || !v0.inside || !v1.inside) continue;
 		hPreview.lineWidth = 1;
-		hPreview.strokeStyle = 'red';
+		hPreview.strokeStyle = 'rgba(0,0,0,0.25)';
 		hPreview.beginPath();
 		hPreview.moveTo(txp(v0.x), typ(v0.y));
 		hPreview.lineTo(txp(v1.x), typ(v1.y));
@@ -374,7 +375,7 @@ var glyph = glyphs[INDEX];
 		hPreview.lineTo(txp(s.v1.x), typ(s.v1.y))
 		hPreview.stroke();
 		hPreview.lineWidth = 1;
-		/*
+		
 		//if (s.a0.on) {
 		hPreview.beginPath();
 		hPreview.moveTo(txp(s.v0.x), typ(s.v0.y));
@@ -386,7 +387,7 @@ var glyph = glyphs[INDEX];
 		hPreview.moveTo(txp(s.v1.x), typ(s.v1.y));
 		hPreview.lineTo(txp(s.a1.xori), typ(s.a1.yori));
 		hPreview.stroke();
-		//}*/
+		//}
 	}
 
 	var stems = [];
