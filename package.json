@@ -26,6 +26,6 @@
     "browserify": "^13.1.0"
   },
   "scripts": {
-    "install": "browserify previewer/index.js -o previewer/index.packed.js"
+    "install": "browserify visual/index.js -o visual/index.packed.js"
   }
 }

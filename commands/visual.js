@@ -46,7 +46,7 @@ exports.handler = function (argv) {
 	rl.on('close', startServer);
 
 	function startServer() {
-		var fileServer = new nodeStatic.Server(require('path').resolve(__dirname, "../previewer"));
+		var fileServer = new nodeStatic.Server(require('path').resolve(__dirname, "../visual"));
 		var port = process.env.PORT || 9527;
 		// Start a web server which displays an user interface for parameter adjustment
 		require('http').createServer(function (request, response) {
