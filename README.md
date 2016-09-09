@@ -88,12 +88,15 @@ The hinting parameters are stored in `hinting` section. They include:
   * **BLUEZONE_BOTTOM_BAR** : Common position of the lower edge of "bottom" hotizontal strokes without any stroke below or touching its lower edge. Like the position of the lowest horizontal stroke in “里”.
   * **BLUEZONE_TOP_DOTBAR** : Common position of the upper edge of "top" hotizontal strokes with stroke touching its upper edge. Like the position of the first horizontal stroke in “章”.
   * **BLUEZONE_BOTTOM_DOTBAR** : Common position of the lower edge of "bottom" hotizontal strokes with stroke touching its upper edge.
-  * **PPEM_STEM_WIDTH_GEARS** : Stroke width allocation strategy. It is an array like `[[0,1,1],[20,2,1],[22,2,2]]`, each item is a triplet: ppem, common width (in pixels) and minimum width. The term `[20,2,1]` stands for “for sizes being 20,21px, most strokes are 2 pixels wide, though some thin strokes will be 1 pixel wide, even if the space below or undef is enough”.
 
 * **Stem Detection Parameters**
 
-  * **MIN_STEM_WIDTH** and **MAX_STEM_WIDTH** : Minimum and maximum of stem width
-  * **MOST_COMMON_STEM_WIDTH** : The common stem width
+  * **MIN_STEM_WIDTH** and **MAX_STEM_WIDTH** : Minimum and maximum of stem width. Stems thinner or thicker than this limit will be ignored.
+  * **ABSORPTION_LIMIT**: The limit when a horizontal extremum being linked to a point aligned to the top or bottom blue zone. Useful when preserving diagonal strokes’ width. Preferred value: slightly larger than **MAX_STEM_WIDTH**.
+  * **MAX_SEGMERGE_DISTANCE**: The limit when two horizontal segments being merged into a single storke edge used for stem identification. Preferred value: slightly smaller than **MAX_STEM_WIDTH**.
+  * **CANONICAL_STEM_WIDTH** : The “Canonical” stroke width among the entire font. Measured in a loose character like “里”. 
+  * **CANONICAL_STEM_WIDTH_SMALL**: The “Canonical” stroke width used under small sizes. Measured in a loose character like “里”. Preferred value: Equal to or small smaller than **CANONICAL_STEM_WIDTH**.
+  * **CANONICAL_STEM_WIDTH_DENSE**: The “Canonical” stroke width of dense characters like “襄”. Useful in bold weights. For lighter width, it should be identical to **CANONICAL_STEM_WIDTH**.
   * **STEM_SIDE_MIN_RISE** : The maximum height of decorative shapes placed aside a hotizontal stem's upper edge.
   * **STEM_SIDE_MIN_DESCENT** : The maximum depth of close decorative shapes placed aside a hotizontal stem's lower edge.
   * **STEM_CENTER_MIN_RISE** : The maximum height of close decorative shapes placed above a hotizontal stem's upper edge.
