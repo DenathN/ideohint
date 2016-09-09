@@ -95,18 +95,39 @@ function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 			})
 		});
 		// IPs
-		features.shortAbsorptions.sort(BY_PRIORITY_SHORT).forEach(function (group) {
-			var a = glyph.indexedPoints[group[0]]
-			var b = glyph.indexedPoints[group[1]]
-			b.touched = true;
-			b.ytouch = b.yori + a.ytouch - a.yori;
+		var g = [];
+		features.shortAbsorptions.forEach(function (s) {
+			var priority = s[2];
+			if (!g[priority]) g[priority] = {
+				interpolations: [],
+				absorptions: [],
+				pri: priority
+			}
+			g[priority].absorptions.push(s);
 		});
-		// IPs
-		features.interpolations.sort(BY_PRIORITY_IP).forEach(function (group) {
-			var a = glyph.indexedPoints[group[0]]
-			var b = glyph.indexedPoints[group[1]]
-			var c = glyph.indexedPoints[group[2]]
-			interpolateIP(a, b, c)
+		features.interpolations.forEach(function (s) {
+			var priority = s[3];
+			if (!g[priority]) g[priority] = {
+				interpolations: [],
+				absorptions: [],
+				pri: priority
+			}
+			g[priority].interpolations.push(s);
+		});
+		g.reverse().forEach(function (group) {
+			if (!group) return;
+			group.absorptions.forEach(function (group) {
+				var a = glyph.indexedPoints[group[0]]
+				var b = glyph.indexedPoints[group[1]]
+				b.touched = true;
+				b.ytouch = b.yori + a.ytouch - a.yori;
+			});
+			group.interpolations.forEach(function (group) {
+				var a = glyph.indexedPoints[group[0]]
+				var b = glyph.indexedPoints[group[1]]
+				var c = glyph.indexedPoints[group[2]]
+				interpolateIP(a, b, c)
+			});
 		});
 
 		// IUPy

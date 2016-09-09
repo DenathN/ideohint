@@ -1,6 +1,7 @@
 "use strict"
 
 function BY_YORI(p, q) { return p.yori - q.yori }
+function adjacent(z1, z2) { return z1.prev === z2 || z2.prev === z1; }
 function shortAbsorptionPointByKeys(shortAbsorptions, strategy, pt, keys, inSameRadical, priority, saphase) {
 	if (pt.touched || pt.donttouch || !pt.on || !strategy.DO_SHORT_ABSORPTION || !inSameRadical) return;
 	if (saphase) {
@@ -15,7 +16,7 @@ function shortAbsorptionPointByKeys(shortAbsorptions, strategy, pt, keys, inSame
 	} else {
 		for (var m = 0; m < keys.length; m++) {
 			var key = keys[m];
-			if (key.blued && key.yStrongExtrema && Math.hypot(pt.yori - key.yori, pt.xori - key.xori) <= strategy.ABSORPTION_LIMIT && pt.xStrongExtrema) {
+			if (key.blued && key.yStrongExtrema && (Math.hypot(pt.yori - key.yori, pt.xori - key.xori) <= strategy.ABSORPTION_LIMIT && pt.xStrongExtrema) || Math.abs(pt.yori - key.yori) <= strategy.BLUEZONE_WIDTH && pt.xExtrema && !adjacent(pt, key)) {
 				shortAbsorptions.push([key.id, pt.id, priority + (pt.yExtrema ? 1 : 0)]);
 				pt.touched = true;
 				return;
@@ -64,12 +65,15 @@ module.exports = function (glyph, strategy) {
 		if (contourExtrema.length > 1) {
 			var topbot = [contourExtrema[0], contourExtrema[contourExtrema.length - 1]];
 			var midex = contourExtrema.slice(1, -1).filter(function (p) { return p.xStrongExtrema || p.yStrongExtrema });
+			var midexl = contourExtrema.slice(1, -1).filter(function (p) { return p.xExtrema || p.yExtrema });
 			records.push({
 				topbot: topbot,
 				midex: midex,
+				midexl: midexl,
 				cka: contourAlignPoints,
 				ck: contourKeypoints,
 				ckx: contourKeypoints.concat(topbot).sort(BY_YORI),
+				ckxx: contourKeypoints.concat(topbot).concat(midex).sort(BY_YORI),
 				all: contourpoints
 			})
 		} else {
@@ -79,23 +83,29 @@ module.exports = function (glyph, strategy) {
 				cka: contourAlignPoints,
 				ck: contourKeypoints,
 				ckx: contourKeypoints,
+				ckxx: contourKeypoints,
 				all: contourpoints
 			})
 		}
 	};
 	for (var j = 0; j < contours.length; j++) {
 		if (records[j].ck.length > 1) {
-			shortAbsorptionByKeys(shortAbsorptions, strategy, records[j].topbot, records[j].cka, true, 3, false)
-			shortAbsorptionByKeys(shortAbsorptions, strategy, records[j].all, records[j].cka, true, 3, true)
-			interpolateByKeys(interpolations, strategy, records[j].topbot, records[j].ck, true, 3, true)
+			shortAbsorptionByKeys(shortAbsorptions, strategy, records[j].topbot, records[j].cka, true, 7, false)
+			shortAbsorptionByKeys(shortAbsorptions, strategy, records[j].midexl, records[j].topbot, true, 1, false)
+			shortAbsorptionByKeys(shortAbsorptions, strategy, records[j].all, records[j].cka, true, 7, true)
 		}
-		interpolateByKeys(interpolations, strategy, records[j].topbot, glyphKeypoints, false, 3)
+	}
+	for (var j = 0; j < contours.length; j++) {
+		if (records[j].ck.length > 1) {
+			interpolateByKeys(interpolations, strategy, records[j].topbot, records[j].ck, true, 5, true)
+		}
+		interpolateByKeys(interpolations, strategy, records[j].topbot, glyphKeypoints, false, 5)
 	};
 	for (var j = 0; j < contours.length; j++) {
 		if (records[j].ckx.length > 1) {
-			interpolateByKeys(interpolations, strategy, records[j].midex, records[j].ckx, true, 1, true)
+			interpolateByKeys(interpolations, strategy, records[j].midex, records[j].ckx, true, 3, true)
 		}
-		interpolateByKeys(interpolations, strategy, records[j].midex, glyphKeypoints, false, 1)
+		interpolateByKeys(interpolations, strategy, records[j].midex, glyphKeypoints, false, 3)
 	};
 
 	return {
