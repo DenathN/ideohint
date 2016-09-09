@@ -11,6 +11,8 @@ var analyzeBlanks = require('./triplet').analyzeBlanks;
 var analyzeFlex = require('./flex');
 var getStemKeyInfo = require('./stem-keyinfo');
 
+	function byyori(a, b) {		return a.yori - b.yori	}
+
 exports.extractFeature = function (glyph, strategy) {
 	analyzeStemKeyPoints(glyph, strategy);
 	var blueZonePoints = analyzeBlueZonePoints(glyph, strategy);
@@ -23,7 +25,7 @@ exports.extractFeature = function (glyph, strategy) {
 	var flexes = analyzeFlex(glyph, blanks);
 	return {
 		stats: glyph.stats,
-		stems: glyph.stems.map(getStemKeyInfo),
+		stems: glyph.stems.map(getStemKeyInfo).sort(byyori),
 		stemOverlaps: glyph.stemOverlaps,
 		directOverlaps: directOverlaps,
 		edgeTouches: edgeTouches,

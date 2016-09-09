@@ -62,7 +62,6 @@ function analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, str
 				stem.hasGlyphFoldBelow = true;
 				if (sameRadical) { stem.hasRadicalFoldBelow = true }
 			} else if (point.xori < xmax - stem.width * 1.5 && point.xori > xmin + stem.width * 1.5) {
-				console.log(point, stem);
 				stem.hasGlyphSideFoldBelow = true;
 				if (sameRadical) { stem.hasRadicalSideFoldBelow = true }
 			}

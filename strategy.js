@@ -60,6 +60,7 @@ var DefaultStrategy = function () {
 		DONT_ADJUST_STEM_WIDTH: false,
 		SLOPE_FUZZ: 0.04,
 		Y_FUZZ: 7,
+		WIDTH_ALLOCATION_PASSES: 5,
 		STACK_DEPTH: 200
 	}
 };
