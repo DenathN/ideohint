@@ -1,7 +1,7 @@
 {
   "name": "ideohint",
   "description": "Optimized gridfit generator for ideographs.",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "main": "./instructor.js",
   "repository": {
     "type": "git",
