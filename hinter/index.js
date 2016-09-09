@@ -278,7 +278,7 @@ function hint(glyph, ppem, strategy) {
 			for (var j = 0; j < avaliables.length; j++) {
 				sym[j] = [];
 				for (var k = 0; k < j; k++) {
-					sym[j][k] = Math.abs(avaliables[j].center - avaliables[k].center) < 4 / uppx
+					sym[j][k] = Math.abs(avaliables[j].center - avaliables[k].center) < 0.375 || Math.abs(avaliables[j].y0 - avaliables[k].y0) < 0.2 * uppx || Math.abs(avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0 + avaliables[k].w0) < 0.2 * uppx;
 				}
 			};
 			return sym;

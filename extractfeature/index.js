@@ -11,7 +11,7 @@ var analyzeBlanks = require('./triplet').analyzeBlanks;
 var analyzeFlex = require('./flex');
 var getStemKeyInfo = require('./stem-keyinfo');
 
-	function byyori(a, b) {		return a.yori - b.yori	}
+function byyori(a, b) { return a.yori - b.yori }
 
 exports.extractFeature = function (glyph, strategy) {
 	analyzeStemKeyPoints(glyph, strategy);
