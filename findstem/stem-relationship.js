@@ -140,7 +140,7 @@ exports.analyzePointBetweenStems = function (stems, radicals, strategy) {
 				var radical = radicals[rad];
 				for (var j = 0; j < radical.parts.length; j++) for (var k = 0; k < radical.parts[j].points.length - 1; k++) {
 					var point = radical.parts[j].points[k];
-					if (point.yori > stems[sk].yori + blueFuzz && point.yori < stems[sj].yori - stems[sj].width - blueFuzz
+					if ((point.xExtrema || point.yExtrema) && point.yori > stems[sk].yori + blueFuzz && point.yori < stems[sj].yori - stems[sj].width - blueFuzz
 						&& point.xori > stems[sk].xmin + blueFuzz && point.xori < stems[sk].xmax - blueFuzz
 						&& point.xori > stems[sj].xmin + blueFuzz && point.xori < stems[sj].xmax - blueFuzz) {
 						if (res[sj][sk] < 1) res[sj][sk] = 1;

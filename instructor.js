@@ -250,8 +250,8 @@ function instruct(glyph, actions, strategy, cvt, padding) {
 	};
 
 	// Interpolations and short absorptions
-	var ip = [[], [], [], [], []];
-	var sa = [[], [], [], [], []];
+	var ip = [[], [], [], [], [], [], [], [], [], []];
+	var sa = [[], [], [], [], [], [], [], [], [], []];
 	for (var j = 0; j < glyph.interpolations.length; j++) {
 		ip[glyph.interpolations[j][3]].push(glyph.interpolations[j])
 	}

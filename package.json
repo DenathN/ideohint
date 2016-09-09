@@ -1,7 +1,7 @@
 {
   "name": "ideohint",
   "description": "Optimized gridfit generator for ideographs.",
-  "version": "0.6.0",
+  "version": "0.6.2",
   "main": "./instructor.js",
   "repository": {
     "type": "git",
@@ -26,6 +26,6 @@
     "browserify": "^13.1.0"
   },
   "scripts": {
-    "install": "browserify visual/index.js -o visual/index.packed.js"
+    "install": "./node_modules/.bin/browserify visual/index.js -o visual/index.packed.js"
   }
 }

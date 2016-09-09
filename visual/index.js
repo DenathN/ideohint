@@ -6,8 +6,6 @@ var roundings = require('../roundings');
 var instruct = require('../instructor').instruct;
 var createCvt = require('../cvt').createCvt;
 
-
-
 var defaultStrategy;
 var strategy;
 var input;
@@ -97,18 +95,39 @@ function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 			})
 		});
 		// IPs
-		features.shortAbsorptions.sort(BY_PRIORITY_SHORT).forEach(function (group) {
-			var a = glyph.indexedPoints[group[0]]
-			var b = glyph.indexedPoints[group[1]]
-			b.touched = true;
-			b.ytouch = b.yori + a.ytouch - a.yori;
+		var g = [];
+		features.shortAbsorptions.forEach(function (s) {
+			var priority = s[2];
+			if (!g[priority]) g[priority] = {
+				interpolations: [],
+				absorptions: [],
+				pri: priority
+			}
+			g[priority].absorptions.push(s);
 		});
-		// IPs
-		features.interpolations.sort(BY_PRIORITY_IP).forEach(function (group) {
-			var a = glyph.indexedPoints[group[0]]
-			var b = glyph.indexedPoints[group[1]]
-			var c = glyph.indexedPoints[group[2]]
-			interpolateIP(a, b, c)
+		features.interpolations.forEach(function (s) {
+			var priority = s[3];
+			if (!g[priority]) g[priority] = {
+				interpolations: [],
+				absorptions: [],
+				pri: priority
+			}
+			g[priority].interpolations.push(s);
+		});
+		g.reverse().forEach(function (group) {
+			if (!group) return;
+			group.absorptions.forEach(function (group) {
+				var a = glyph.indexedPoints[group[0]]
+				var b = glyph.indexedPoints[group[1]]
+				b.touched = true;
+				b.ytouch = b.yori + a.ytouch - a.yori;
+			});
+			group.interpolations.forEach(function (group) {
+				var a = glyph.indexedPoints[group[0]]
+				var b = glyph.indexedPoints[group[1]]
+				var c = glyph.indexedPoints[group[2]]
+				interpolateIP(a, b, c)
+			});
 		});
 
 		// IUPy
@@ -148,12 +167,19 @@ function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 
 	// Downsampling
 	var ori = hTemp.getImageData(0, 0, eTemp.width, eTemp.height);
-	var aa = hdc.createImageData(ppem * glyphs.length * DPI, ppem * DPI)
+	var vpixels = eTemp.height / 3;
+	var aa = hdc.createImageData(ppem * glyphs.length * DPI, vpixels * DPI);
+	for (var j = 0; j < aa.width; j++) for (var k = 0; k < aa.height; k++) {
+		aa.data[(k * aa.height + j) * 4] = 0xFF;
+		aa.data[(k * aa.height + j) * 4 + 1] = 0xFF;
+		aa.data[(k * aa.height + j) * 4 + 2] = 0xFF;
+		aa.data[(k * aa.height + j) * 4 + 3] = 0xFF;
+	}
 	var w = 4 * eTemp.width;
 	var h = []; for (var j = 0; j < 3 * SUPERSAMPLING; j++) h[j] = 1;
 	var jSample = 0;
 	var a = 3 * SUPERSAMPLING;
-	for (var j = 0; j < ppem; j++) {
+	for (var j = 0; j < vpixels; j++) {
 		for (var k = 0; k < ppem * glyphs.length; k++) {
 			for (var component = 0; component < 3; component++) {
 				for (var ss = 0; ss < SUPERSAMPLING; ss++) {
@@ -176,7 +202,7 @@ function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 		}
 		w += 4 * 2 * 3 * SUPERSAMPLING * ppem * glyphs.length
 	};
-	hdc.putImageData(aa, basex, basey)
+	hdc.putImageData(aa, basex, basey);
 };
 
 function render() {
@@ -205,7 +231,7 @@ function render() {
 	}
 };
 
-window.testInstruct = function(m){
+window.testInstruct = function (m) {
 	var cvt = createCvt([], strategy, 0);
 	var glyph = glyphs[m].features;
 	var stemActions = [];
@@ -226,8 +252,8 @@ window.testInstruct = function(m){
 
 var strategyControlGroups = [
 	['UPM', 'BLUEZONE_WIDTH', 'BLUEZONE_TOP_CENTER', 'BLUEZONE_TOP_LIMIT', 'BLUEZONE_TOP_BAR', 'BLUEZONE_TOP_DOTBAR', 'BLUEZONE_BOTTOM_CENTER', 'BLUEZONE_BOTTOM_LIMIT', 'BLUEZONE_BOTTOM_BAR', 'BLUEZONE_BOTTOM_DOTBAR'],
-	['MIN_STEM_WIDTH', 'MAX_STEM_WIDTH', 'CANONICAL_STEM_WIDTH', 'CANONICAL_STEM_WIDTH_SMALL', 'CANONICAL_STEM_WIDTH_DENSE', 'MAX_SEGMERGE_DISTANCE', 'ABSORPTION_LIMIT', 'STEM_SIDE_MIN_RISE', 'STEM_SIDE_MIN_DESCENT', 'STEM_CENTER_MIN_RISE', 'STEM_CENTER_MIN_DESCENT', 'STEM_SIDE_MIN_DIST_RISE', 'STEM_SIDE_MIN_DIST_DESCENT', 'SLOPE_FUZZ', 'Y_FUZZ'],
-	['COEFF_DISTORT', 'ABLATION_IN_RADICAL', 'ABLATION_RADICAL_EDGE', 'ABLATION_GLYPH_EDGE', 'ABLATION_GLYPH_HARD_EDGE', 'COEFF_PORPORTION_DISTORTION', 'COEFF_A_MULTIPLIER', 'COEFF_A_SAME_RADICAL', 'COEFF_A_SHAPE_LOST', 'COEFF_A_FEATURE_LOSS', 'COEFF_A_RADICAL_MERGE', 'COEFF_C_MULTIPLIER', 'COEFF_C_SAME_RADICAL', 'COEFF_S', 'COLLISION_MIN_OVERLAP_RATIO']
+	['MIN_STEM_WIDTH', 'MAX_STEM_WIDTH', 'CANONICAL_STEM_WIDTH', 'CANONICAL_STEM_WIDTH_SMALL', 'CANONICAL_STEM_WIDTH_DENSE', 'MAX_SEGMERGE_DISTANCE', 'ABSORPTION_LIMIT', 'STEM_SIDE_MIN_RISE', 'STEM_SIDE_MIN_DESCENT', 'STEM_CENTER_MIN_RISE', 'STEM_CENTER_MIN_DESCENT', 'STEM_SIDE_MIN_DIST_RISE', 'STEM_SIDE_MIN_DIST_DESCENT', 'SLOPE_FUZZ', 'Y_FUZZ']//,
+	//['COEFF_DISTORT', 'ABLATION_IN_RADICAL', 'ABLATION_RADICAL_EDGE', 'ABLATION_GLYPH_EDGE', 'ABLATION_GLYPH_HARD_EDGE', 'COEFF_PORPORTION_DISTORTION', 'COEFF_A_MULTIPLIER', 'COEFF_A_SAME_RADICAL', 'COEFF_A_SHAPE_LOST', 'COEFF_A_FEATURE_LOSS', 'COEFF_A_RADICAL_MERGE', 'COEFF_C_MULTIPLIER', 'COEFF_C_SAME_RADICAL', 'COEFF_S', 'COLLISION_MIN_OVERLAP_RATIO']
 ]
 
 function createAdjusters() {
