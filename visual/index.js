@@ -6,8 +6,6 @@ var roundings = require('../roundings');
 var instruct = require('../instructor').instruct;
 var createCvt = require('../cvt').createCvt;
 
-
-
 var defaultStrategy;
 var strategy;
 var input;
@@ -148,12 +146,19 @@ function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 
 	// Downsampling
 	var ori = hTemp.getImageData(0, 0, eTemp.width, eTemp.height);
-	var aa = hdc.createImageData(ppem * glyphs.length * DPI, ppem * DPI)
+	var vpixels = eTemp.height / 3;
+	var aa = hdc.createImageData(ppem * glyphs.length * DPI, vpixels * DPI);
+	for (var j = 0; j < aa.width; j++) for (var k = 0; k < aa.height; k++) {
+		aa.data[(k * aa.height + j) * 4] = 0xFF;
+		aa.data[(k * aa.height + j) * 4 + 1] = 0xFF;
+		aa.data[(k * aa.height + j) * 4 + 2] = 0xFF;
+		aa.data[(k * aa.height + j) * 4 + 3] = 0xFF;
+	}
 	var w = 4 * eTemp.width;
 	var h = []; for (var j = 0; j < 3 * SUPERSAMPLING; j++) h[j] = 1;
 	var jSample = 0;
 	var a = 3 * SUPERSAMPLING;
-	for (var j = 0; j < ppem; j++) {
+	for (var j = 0; j < vpixels; j++) {
 		for (var k = 0; k < ppem * glyphs.length; k++) {
 			for (var component = 0; component < 3; component++) {
 				for (var ss = 0; ss < SUPERSAMPLING; ss++) {
@@ -176,7 +181,7 @@ function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 		}
 		w += 4 * 2 * 3 * SUPERSAMPLING * ppem * glyphs.length
 	};
-	hdc.putImageData(aa, basex, basey)
+	hdc.putImageData(aa, basex, basey);
 };
 
 function render() {
@@ -205,7 +210,7 @@ function render() {
 	}
 };
 
-window.testInstruct = function(m){
+window.testInstruct = function (m) {
 	var cvt = createCvt([], strategy, 0);
 	var glyph = glyphs[m].features;
 	var stemActions = [];
