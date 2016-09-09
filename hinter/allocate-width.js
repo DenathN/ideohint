@@ -11,7 +11,7 @@ function cover(s, t) {
 function spaceBelow(env, y, w, k, bottom) {
 	var space = y[k] - w[k] - bottom;
 	for (var j = k - 1; j >= 0; j--) {
-		if (env.directOverlaps[k][j] && Math.abs(y[k] - y[j]) - w[k] < space)
+		if (env.directOverlaps[k][j] && y[k] - y[j] - w[k] < space)
 			space = y[k] - y[j] - w[k]
 	}
 	return space;
@@ -19,7 +19,7 @@ function spaceBelow(env, y, w, k, bottom) {
 function spaceAbove(env, y, w, k, top) {
 	var space = top - y[k];
 	for (var j = k + 1; j < y.length; j++) {
-		if (env.directOverlaps[j][k] && Math.abs(y[j] - y[k]) - w[j] < space)
+		if (env.directOverlaps[j][k] && y[j] - y[k] - w[j] < space)
 			space = y[j] - y[k] - w[j]
 	}
 	return space;

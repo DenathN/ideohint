@@ -50,7 +50,7 @@ function balance(y, env) {
 		}
 	}
 	for (var pass = 0; pass < REBALANCE_PASSES; pass++) {
-		for (var t = 0; t < triplets.length; t++) if (directOverlaps[triplets[t][0]][triplets[t][1]] && directOverlaps[triplets[t][1]][triplets[t][2]]) {
+		for (var t = 0; t < triplets.length; t++)  {
 			var j = triplets[t][0], k = triplets[t][1], m = triplets[t][2];
 			if (colliding(y, j, k) && spare(y, k, m) && y[k] > avaliables[k].low) {
 				var newcol = 0;
@@ -78,7 +78,7 @@ function balance(y, env) {
 		}
 	}
 	for (var pass = 0; pass < REBALANCE_PASSES; pass++) {
-		for (var t = 0; t < triplets.length; t++) if (directOverlaps[triplets[t][0]][triplets[t][1]] && directOverlaps[triplets[t][1]][triplets[t][2]]) {
+		for (var t = 0; t < triplets.length; t++) {
 			var j = triplets[t][0], k = triplets[t][1], m = triplets[t][2];
 			var d1 = y[j] - avaliables[j].properWidth - y[k];
 			var d2 = y[k] - avaliables[k].properWidth - y[m];
