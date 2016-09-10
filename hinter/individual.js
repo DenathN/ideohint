@@ -8,8 +8,11 @@ function collidePotential(y, env) {
 		for (var k = 0; k < j; k++) {
 			if (y[j] === y[k]) { p += A[j][k] }
 			else if (y[j] === y[k] + 1 || y[j] + 1 === y[k]) { p += C[j][k] }
-
-			if (y[j] < y[k] || sym[j][k] && y[j] !== y[k]) p += S[j][k];
+			if (j !== k && sym[j][k]) {
+				if (y[j] !== y[k]) { p += S[j][k] }
+			} else {
+				if (y[j] < y[k]) { p += S[j][k]; }
+			}
 		};
 	};
 	return p;

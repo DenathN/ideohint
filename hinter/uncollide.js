@@ -6,7 +6,6 @@ function xclamp(low, x, high) { return x < low ? low : x > high ? high : x }
 
 function uncollide(yInit, env, terminalStrictness, scale) {
 	if (!yInit.length) return yInit;
-
 	var n = yInit.length;
 	var avaliables = env.avaliables;
 	var y0 = [];
