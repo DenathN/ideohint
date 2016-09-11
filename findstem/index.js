@@ -37,6 +37,7 @@ function findStems(glyph, strategy) {
 	});
 	analyzeStemSpatialRelationships(stems, radicals, overlaps, strategy);
 	var pointBetweenStems = analyzePointBetweenStems(stems, radicals, strategy);
+	glyph.radicals = radicals;
 	glyph.collisionMatrices = calculateCollisionMatrices(strategy, stems, overlaps, overlapLengths, pointBetweenStems);
 	glyph.stems = stems;
 	return glyph;

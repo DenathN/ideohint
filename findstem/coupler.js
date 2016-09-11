@@ -7,9 +7,10 @@ var by_start = function (p, q) { return p[0].xori - q[0].xori };
 function findHorizontalSegments(radicals, strategy) {
 	var segments = []
 	for (var r = 0; r < radicals.length; r++) {
-		radicals[r].mergedSegments = []
-		for (var j = 0; j < radicals[r].parts.length; j++) {
-			var contour = radicals[r].parts[j];
+		radicals[r].mergedSegments = [];
+		var radicalParts = [radicals[r].outline].concat(radicals[r].holes);
+		for (var j = 0; j < radicalParts.length; j++) {
+			var contour = radicalParts[j];
 			var lastPoint = contour.points[0]
 			var segment = [lastPoint];
 			segment.radical = r;

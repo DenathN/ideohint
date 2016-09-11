@@ -1,5 +1,17 @@
 "use strict"
 
+function Radical(outline) {
+	this.outline = outline;
+	this.holes = [];
+	this.subs = [];
+}
+Radical.prototype.includes = function (z) {
+	if (!this.outline.includesPoint(z)) return false;
+	for (var j = 0; j < this.holes.length; j++) {
+		if (this.holes[j].includesPoint(z)) return false;
+	}
+	return true;
+}
 function transitiveReduce(g) {
 	// Floyd-warshall transitive reduction
 	for (var x = 0; x < g.length; x++) for (var y = 0; y < g.length; y++) for (var z = 0; z < g.length; z++) {
@@ -22,11 +34,11 @@ function inclusionToRadicals(inclusions, contours, j, orient) {
 	} else {
 		// contours[j] is an outer contour
 		// find out its inner contours and radicals inside it
-		var radical = { parts: [contours[j]], outline: contours[j], subs: [] };
+		var radical = new Radical(contours[j]);
 		radicals = [radical];
 		for (var k = 0; k < contours.length; k++) if (inclusions[j][k]) {
 			if (contours[k].ccw !== orient) {
-				radical.parts.push(contours[k]);
+				radical.holes.push(contours[k]);
 				var inner = inclusionToRadicals(inclusions, contours, k, !orient);
 				radical.subs = inner;
 				radicals = radicals.concat(inner);
