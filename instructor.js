@@ -42,6 +42,7 @@ function invokesToInstrs(invocations, limit) {
 
 function by_rp(a, b) { return a[0] - b[0] || a[1] - b[1] }
 function ipInvokes(actions) {
+	if (!actions) return [];
 	var invokes = [];
 	actions = actions.sort(by_rp);
 	var cur_rp1 = -1;
@@ -62,6 +63,7 @@ function ipInvokes(actions) {
 	return invokes;
 }
 function shortMdrpInvokes(actions) {
+	if (!actions) return [];
 	var invokes = [];
 	actions = actions.sort(by_rp);
 	var cur_rp0 = -1;
@@ -250,16 +252,19 @@ function instruct(glyph, actions, strategy, cvt, padding) {
 	};
 
 	// Interpolations and short absorptions
-	var ip = [[], [], [], [], [], [], [], [], [], []];
-	var sa = [[], [], [], [], [], [], [], [], [], []];
+	var ip = [];
+	var sa = [];
 	for (var j = 0; j < glyph.interpolations.length; j++) {
+		if (!ip[glyph.interpolations[j][3]]) ip[glyph.interpolations[j][3]] = [];
 		ip[glyph.interpolations[j][3]].push(glyph.interpolations[j])
 	}
 	for (var j = 0; j < glyph.shortAbsorptions.length; j++) {
+		if (!sa[glyph.shortAbsorptions[j][2]]) sa[glyph.shortAbsorptions[j][2]] = [];
 		sa[glyph.shortAbsorptions[j][2]].push(glyph.shortAbsorptions[j])
 	}
 	var ipsacalls = [];
-	for (var j = ip.length - 1; j >= 0; j--) {
+	var maxpri = Math.max(ip.length - 1, sa.length - 1);
+	for (var j = maxpri; j >= 0; j--) {
 		ipsacalls = ipsacalls.concat(ipInvokes(ip[j]), shortMdrpInvokes(sa[j]))
 	}
 

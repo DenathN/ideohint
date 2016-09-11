@@ -100,6 +100,9 @@ var inPoly = function (point, vs) {
 
 	return inside;
 };
+Contour.prototype.includesPoint = function(z){
+	return inPoly(z, this.points);
+}
 Contour.prototype.includes = function (that) {
 	for (var j = 0; j < that.points.length - 1; j++) {
 		if (!inPoly(that.points[j], this.points)) return false
