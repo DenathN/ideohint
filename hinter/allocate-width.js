@@ -1,6 +1,7 @@
 "use strict"
 function mix(a, b, x) { return a + (b - a) * x }
-
+function spare(y, w, p, q) { return y[p] - y[q] > w[p]; }
+function veryspare(y, w, p, q) { return y[p] - y[q] > w[p] + 1; }
 function edgetouch(s, t) {
 	return (s.xmin < t.xmin && t.xmin < s.xmax && s.xmax < t.xmax && (s.xmax - t.xmin) / (s.xmax - s.xmin) <= 0.26)
 		|| (t.xmin < s.xmin && s.xmin < t.xmax && t.xmax < s.xmax && (t.xmax - s.xmin) / (s.xmax - s.xmin) <= 0.26)
@@ -81,7 +82,7 @@ function allocateWidth(y0, env) {
 	}
 
 	// Avoid thin strokes
-	for (var pass = 0; pass < 3; pass++) if (env.WIDTH_GEAR_PROPER >= 2 && env.WIDTH_GEAR_MIN >= 2) {
+	for (var pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) if (env.WIDTH_GEAR_PROPER >= 2 && env.WIDTH_GEAR_MIN >= 2) {
 		for (var psi = 0; psi < 2; psi++) for (var j = N - 1; j >= 0; j--) if (([false, true][psi] || !avaliables[j].hasGlyphStemAbove) && w[j] < [properWidths[j], 2][psi]) {
 			var able = true;
 			for (var k = 0; k < j; k++) if (directOverlaps[j][k] && y[j] - w[j] - y[k] <= 1 && w[k] < (cover(avaliables[j], avaliables[k]) ? 2 : [2, 3][psi])) able = false;
@@ -93,10 +94,10 @@ function allocateWidth(y0, env) {
 				}
 			}
 		}
-		for (var j = 0; j < N; j++) if (avaliables[j].hasGlyphStemAbove && w[j] <= 1) {
+		for (var j = 0; j < N; j++) if (avaliables[j].hasGlyphStemAbove && w[j] <= 1 || avaliables[j].atGlyphBottom && w[j] < properWidths[j] && y[j] <= pixelBottomPixels + properWidths[j]) {
 			var able = true;
 			for (var k = j + 1; k < N; k++) {
-				if (directOverlaps[k][j] && y[k] - y[j] <= w[k] + 1 && w[k] <= 2) able = false;
+				if (directOverlaps[k][j] && (y[k] - y[j] <= w[k] + 1 && w[k] <= 2 || (w[j] > 1 && (avaliables[k].xmin <= avaliables[j].xmin || avaliables[k].xmax > avaliables[j].xmax)))) able = false;
 			}
 			if (able) {
 				for (var k = j + 1; k < N; k++) if (directOverlaps[k][j] && y[k] - y[j] <= w[k] + 1) {
@@ -158,6 +159,30 @@ function allocateWidth(y0, env) {
 			}
 		}
 	};
+
+	// Triplet whitespace balancing
+	for (var pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) {
+		for (var t = 0; t < triplets.length; t++) {
+			var j = triplets[t][0], k = triplets[t][1], m = triplets[t][2];
+			var d1 = spaceBelow(env, y, w, j, pixelBottomPixels - 1);
+			var d2 = spaceBelow(env, y, w, k, pixelBottomPixels - 1);
+			var o1 = avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0;
+			var o2 = avaliables[k].y0 - avaliables[k].w0 - avaliables[m].y0;
+			if (!(d1 > 0 && d2 > 0 && o1 > 0 && o2 > 0)) continue;
+			if (d1 > 1 && y[k] < avaliables[k].high && d1 / d2 >= 2 && o1 / o2 <= 1.25 && env.P[j][k] <= env.P[k][m]) {
+				// A distorted triplet space, but we can adjust this stem up.
+				y[k] += 1;
+			} else if (d2 > 1 && d2 / d1 >= 2 && o2 / o1 <= 1.25 && env.P[j][k] >= env.P[k][m]) {
+				if (w[k] < properWidths[k]) {
+					// A distorted triplet space, but we increase the middle stem’s weight
+					w[k] += 1;
+				} else if (y[k] > avaliables[k].low) {
+					// A distorted triplet space, but we can adjust this stem down.
+					y[k] -= 1;
+				}
+			}
+		}
+	}
 
 	return { y: y, w: w }
 };
