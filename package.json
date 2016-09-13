@@ -1,7 +1,7 @@
 {
   "name": "ideohint",
   "description": "Optimized gridfit generator for ideographs.",
-  "version": "0.6.7",
+  "version": "0.6.8",
   "main": "./instructor.js",
   "repository": {
     "type": "git",
@@ -17,13 +17,11 @@
     "strip-bom": "^3.0.0",
     "toml": "^2.3.0",
     "toposort": "^1.0.0",
-    "yargs": "^5.0.0"
+    "yargs": "^5.0.0",
+    "browserify": "^13.1.0"
   },
   "bin": {
     "ideohint": "./bin/ideohint.js"
-  },
-  "devDependencies": {
-    "browserify": "^13.1.0"
   },
   "scripts": {
     "install": "./node_modules/.bin/browserify visual/index.js -o visual/index.packed.js"
