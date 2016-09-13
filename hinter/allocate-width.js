@@ -94,10 +94,10 @@ function allocateWidth(y0, env) {
 				}
 			}
 		}
-		for (var j = 0; j < N; j++) if (avaliables[j].hasGlyphStemAbove && w[j] <= 1) {
+		for (var j = 0; j < N; j++) if (avaliables[j].hasGlyphStemAbove && w[j] <= 1 || avaliables[j].atGlyphBottom && w[j] < properWidths[j] && y[j] <= pixelBottomPixels + properWidths[j]) {
 			var able = true;
 			for (var k = j + 1; k < N; k++) {
-				if (directOverlaps[k][j] && y[k] - y[j] <= w[k] + 1 && w[k] <= 2) able = false;
+				if (directOverlaps[k][j] && (y[k] - y[j] <= w[k] + 1 && w[k] <= 2 || (w[j] > 1 && (avaliables[k].xmin <= avaliables[j].xmin || avaliables[k].xmax > avaliables[j].xmax)))) able = false;
 			}
 			if (able) {
 				for (var k = j + 1; k < N; k++) if (directOverlaps[k][j] && y[k] - y[j] <= w[k] + 1) {
