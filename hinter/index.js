@@ -172,13 +172,17 @@ function hint(glyph, ppem, strategy) {
 		for (var j = 0; j < stems.length; j++) {
 			if (!stems[j].hasGlyphStemBelow) {
 				avaliables[j].high = Math.round(Math.max(
-					avaliables[j].center * uppx,
-					pixelBottom + avaliables[j].properWidth * uppx + (atGlyphBottom(stems[j]) ? 0 : uppx
-					)) / uppx);
+					avaliables[j].center,
+					pixelBottom / uppx + avaliables[j].properWidth + (atGlyphBottom(stems[j]) ? 0 : 1
+					)));
 			};
 			if (!stems[j].hasGlyphStemAbove) {
 				avaliables[j].low = Math.round(avaliables[j].center);
 			};
+			if(avaliables[j].properWidth < 3 && atGlyphBottom(stems[j]) && avaliables[j].high - avaliables[j].low <= 1 && avaliables[j].low <= pixelBottom / uppx + avaliables[j].properWidth + 0.1){
+				// Lock the bottommost stroke
+				avaliables[j].high = avaliables[j].low;
+			}
 		}
 		for (var j = 0; j < flexes.length; j++) {
 			flexMiddleStem(avaliables[flexes[j][0]], avaliables[flexes[j][1]], avaliables[flexes[j][2]]);
