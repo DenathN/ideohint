@@ -336,7 +336,7 @@ function hint(glyph, ppem, strategy) {
 		} else {
 			y0 = earlyAdjust(y0.length, env);
 			env.noAblation = true;
-			y0 = uncollide(y0, env, 5, POPULATION_LIMIT);
+			y0 = uncollide(y0, env, 6, POPULATION_LIMIT);
 			y0 = balance(y0, env);
 			env.noAblation = false;
 			y0 = uncollide(y0, env, 4, POPULATION_LIMIT);

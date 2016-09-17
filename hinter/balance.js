@@ -61,6 +61,7 @@ function balance(y, env) {
 			}
 		}
 	}
+
 	for (var pass = 0; pass < REBALANCE_PASSES; pass++) {
 		for (var t = 0; t < triplets.length; t++) {
 			var j = triplets[t][0], k = triplets[t][1], m = triplets[t][2];
@@ -89,21 +90,24 @@ function balance(y, env) {
 			}
 		}
 	}
+
 	for (var pass = 0; pass < REBALANCE_PASSES; pass++) {
 		for (var t = 0; t < triplets.length; t++) {
 			var j = triplets[t][0], k = triplets[t][1], m = triplets[t][2];
-			var d1 = spaceAbove1(env, y, k, pixelTopPixels + 3);
-			var d2 = spaceBelow1(env, y, k, pixelBottomPixels - 3);
+			var su = spaceAbove1(env, y, k, pixelTopPixels + 3);
+			var sb = spaceBelow1(env, y, k, pixelBottomPixels - 3);
+			var d1 = y[j] - avaliables[j].properWidth - y[k];
+			var d2 = y[k] - avaliables[k].properWidth - y[m];
 			var o1 = avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0;
 			var o2 = avaliables[k].y0 - avaliables[k].w0 - avaliables[m].y0;
-			//	if(env.ppem === 24) console.log([j, k, m], [d1, d2], [o1, o2]);
-			if (y[k] < avaliables[k].high && o1 / o2 < 2 && env.P[j][k] <= env.P[k][m] && d1 > 1 && (d2 < 1 || d1 >= d2 * 2)) {
+			if (y[k] < avaliables[k].high && o1 / o2 < 2 && env.P[j][k] <= env.P[k][m] && su > 1 && (sb < 1 || d1 >= d2 * 2)) {
 				y[k] += 1;
-			} else if (y[k] > avaliables[k].low && o2 / o1 < 2 && env.P[j][k] >= env.P[k][m] && d2 > 1 && (d1 < 1 || d2 >= d1 * 2)) {
+			} else if (y[k] > avaliables[k].low && o2 / o1 < 2 && env.P[j][k] >= env.P[k][m] && sb > 1 && (su < 1 || d2 >= d1 * 2)) {
 				y[k] -= 1;
 			}
 		}
 	}
+
 	for (var j = 0; j < N; j++) {
 		for (var k = 0; k < j; k++) {
 			if (env.symmetry[j][k] && y[j] !== y[k]) {
