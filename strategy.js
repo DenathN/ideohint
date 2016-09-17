@@ -7,8 +7,6 @@ var DefaultStrategy = function () {
 	var g = [[0, 1, 1], [23, 2, 2], [36, 3, 2]]
 	return {
 		UPM: 1000,
-		MIN_STEM_WIDTH: 20,
-		MAX_STEM_WIDTH: 100,
 		CANONICAL_STEM_WIDTH: 65,
 		CANONICAL_STEM_WIDTH_SMALL: 65,
 		CANONICAL_STEM_WIDTH_DENSE: 65,

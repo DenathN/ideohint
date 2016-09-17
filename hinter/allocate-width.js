@@ -85,7 +85,13 @@ function allocateWidth(y0, env) {
 	for (var pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) if (env.WIDTH_GEAR_PROPER >= 2 && env.WIDTH_GEAR_MIN >= 2) {
 		for (var psi = 0; psi < 2; psi++) for (var j = N - 1; j >= 0; j--) if (([false, true][psi] || !avaliables[j].hasGlyphStemAbove) && w[j] < [properWidths[j], 2][psi]) {
 			var able = true;
-			for (var k = 0; k < j; k++) if (directOverlaps[j][k] && y[j] - w[j] - y[k] <= 1 && w[k] < (cover(avaliables[j], avaliables[k]) ? 2 : [2, 3][psi])) able = false;
+			for (var k = 0; k < j; k++) {
+				if (directOverlaps[j][k] && (
+					y[j] - w[j] - y[k] < 2 && w[k] < (cover(avaliables[j], avaliables[k]) ? 2 : [2, 3][psi]))
+					|| w[k] <= 2 && avaliables[k].atGlyphBottom) {
+					able = false;
+				}
+			}
 			if (able) {
 				w[j] += 1;
 				for (var k = 0; k < j; k++) if (directOverlaps[j][k] && y[j] - w[j] - y[k] <= 0) {

@@ -28,6 +28,46 @@ function segmentJoinable(pivot, segment, radical) {
 	return false;
 }
 
+function segmentTetragonalInRadical(s1, s2, radical) {
+	var insegs = 0;
+	if (segmentInRadical(s1[0], s2[0], radical)) insegs++;
+	if (segmentInRadical(s1[0], s2[1], radical)) insegs++;
+	if (segmentInRadical(s1[1], s2[0], radical)) insegs++;
+	if (segmentInRadical(s1[1], s2[1], radical)) insegs++;
+	var m1 = {
+		xori: (s1[0].xori + s1[1].xori) / 2,
+		yori: (s1[0].yori + s1[1].yori) / 2
+	}
+	var m2 = {
+		xori: (s2[0].xori + s2[1].xori) / 2,
+		yori: (s2[0].yori + s2[1].yori) / 2
+	}
+	if (segmentInRadical(m1, m2, radical)) insegs++;
+	return (insegs >= 3);
+}
+
+function segmentPairable(u, v, radical) {
+	for (var s = 0; s < u.length; s++) {
+		for (var r = 0; r < v.length; r++) {
+			if (!segmentTetragonalInRadical(u[s], v[r], radical)) return false;
+		}
+	}
+	return true;
+}
+function minmaxOfSeg(u) {
+	var min = 0xFFFF, max = -0xFFFF;
+	for (var s = 0; s < u.length; s++)for (var k = 0; k < u[s].length; k++) {
+		if (u[s][k].xori < min) min = u[s][k].xori
+		if (u[s][k].xori > max) max = u[s][k].xori
+	}
+	return { min: min, max: max }
+}
+function isVertical(u, v) {
+	var d1 = minmaxOfSeg(u);
+	var d2 = minmaxOfSeg(v);
+	return Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min) < Math.abs(u[0][0].yori - v[0][0].yori);
+}
+
 // Stemfinding
 function findHorizontalSegments(radicals, strategy) {
 	var segments = []
@@ -94,8 +134,8 @@ function pairSegmentsForRadical(radical, r, strategy) {
 			var segOverlap = overlapInfo(segs[j], segs[k], strategy);
 			if (segOverlap.len / segOverlap.la >= strategy.COLLISION_MIN_OVERLAP_RATIO || segOverlap.len / segOverlap.lb >= strategy.COLLISION_MIN_OVERLAP_RATIO) {
 				if (ori === (segs[k][0][0].xori < segs[k][0][segs[k][0].length - 1].xori)
-					&& segs[j][0][0].yori - segs[k][0][0].yori <= strategy.MAX_STEM_WIDTH
-					&& segs[j][0][0].yori - segs[k][0][0].yori >= strategy.MIN_STEM_WIDTH) {
+					&& !isVertical(segs[j], segs[k])
+					&& segmentPairable(segs[j], segs[k], radical)) {
 					// A stem is found
 					stem.low = segs[k];
 					stem.yori = stem.high[0][0].yori;
