@@ -172,13 +172,17 @@ function hint(glyph, ppem, strategy) {
 		for (var j = 0; j < stems.length; j++) {
 			if (!stems[j].hasGlyphStemBelow) {
 				avaliables[j].high = Math.round(Math.max(
-					avaliables[j].center * uppx,
-					pixelBottom + avaliables[j].properWidth * uppx + (atGlyphBottom(stems[j]) ? 0 : uppx
-					)) / uppx);
+					avaliables[j].center,
+					pixelBottom / uppx + avaliables[j].properWidth + (atGlyphBottom(stems[j]) ? 0 : 1
+					)));
 			};
 			if (!stems[j].hasGlyphStemAbove) {
 				avaliables[j].low = Math.round(avaliables[j].center);
 			};
+			if (ppem > PPEM_INCREASE_GLYPH_LIMIT && avaliables[j].properWidth < 3 && atGlyphBottom(stems[j]) && avaliables[j].high - avaliables[j].low <= 1 && avaliables[j].low <= pixelBottom / uppx + avaliables[j].properWidth + 0.1) {
+				// Lock the bottommost stroke
+				avaliables[j].high = avaliables[j].low;
+			}
 		}
 		for (var j = 0; j < flexes.length; j++) {
 			flexMiddleStem(avaliables[flexes[j][0]], avaliables[flexes[j][1]], avaliables[flexes[j][2]]);
@@ -278,7 +282,12 @@ function hint(glyph, ppem, strategy) {
 			for (var j = 0; j < avaliables.length; j++) {
 				sym[j] = [];
 				for (var k = 0; k < j; k++) {
-					sym[j][k] = Math.abs(avaliables[j].center - avaliables[k].center) < 0.375 || Math.abs(avaliables[j].y0 - avaliables[k].y0) < 0.2 * uppx || Math.abs(avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0 + avaliables[k].w0) < 0.2 * uppx;
+					sym[j][k] = !directOverlaps[j][k]
+						&& Math.abs(avaliables[j].y0 - avaliables[k].y0) < 0.3 * uppx
+						&& Math.abs(avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0 + avaliables[k].w0) < 0.3 * uppx
+						&& Math.abs(avaliables[j].length - avaliables[k].length) < 0.3 * uppx
+						&& (avaliables[j].atGlyphTop === avaliables[k].atGlyphTop)
+						&& (avaliables[j].atGlyphBottom === avaliables[k].atGlyphBottom);
 				}
 			};
 			return sym;

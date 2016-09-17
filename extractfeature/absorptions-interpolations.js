@@ -46,8 +46,8 @@ function linkRadicalSolePointsToOneStem(shortAbsorptions, strategy, radical, rad
 		var segmentInRadical = true;
 		for (var s = 1; s < SEGMENTS; s++) {
 			var testz = {
-				xori: zkey.xori + (z.xori - zkey.xori) * (1 / SEGMENTS),
-				yori: zkey.yori + (z.yori - zkey.yori) * (1 / SEGMENTS)
+				xori: zkey.xori + (z.xori - zkey.xori) * (s / SEGMENTS),
+				yori: zkey.yori + (z.yori - zkey.yori) * (s / SEGMENTS)
 			}
 			if (!radical.includes(testz)) {
 				segmentInRadical = false;

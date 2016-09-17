@@ -77,9 +77,9 @@ function balance(y, env) {
 			var o1 = avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0;
 			var o2 = avaliables[k].y0 - avaliables[k].w0 - avaliables[m].y0;
 			if (!(d1 > 0 && d2 > 0 && o1 > 0 && o2 > 0)) continue;
-			if (veryspare(y, j, k) && spare(y, k, m) && y[k] < avaliables[k].high && d1 / d2 > 1.5 && o1 / o2 <= 1.5 && env.P[j][k] <= env.P[k][m]) {
+			if (veryspare(y, j, k) && spare(y, k, m) && y[k] < avaliables[k].high && d1 / d2 >= 2 && o1 / o2 < 2 && env.P[j][k] <= env.P[k][m]) {
 				y[k] += 1;
-			} else if (spare(y, j, k) && veryspare(y, k, m) && y[k] > avaliables[k].low && d2 / d1 > 1.5 && o2 / o1 <= 1.5 && env.P[j][k] >= env.P[k][m]) {
+			} else if (spare(y, j, k) && veryspare(y, k, m) && y[k] > avaliables[k].low && d2 / d1 >= 2 && o2 / o1 < 2 && env.P[j][k] >= env.P[k][m]) {
 				y[k] -= 1;
 			}
 		}
