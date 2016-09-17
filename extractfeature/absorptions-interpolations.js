@@ -33,7 +33,7 @@ function interpolateByKeys(interpolations, strategy, pts, keys, inSameRadical, p
 		}
 	}
 }
-function linkRadicalSolePointsToOneStem(shortAbsorptions, strategy, radical, radicalPoints, stem,priority) {
+function linkRadicalSolePointsToOneStem(shortAbsorptions, strategy, radical, radicalPoints, stem, priority) {
 	var highpts = [].concat.apply([], stem.high);
 	var lowpts = [].concat.apply([], stem.low);
 	var pts = highpts.concat(lowpts)
@@ -54,14 +54,14 @@ function linkRadicalSolePointsToOneStem(shortAbsorptions, strategy, radical, rad
 				break;
 			}
 		}
-		if(segmentInRadical &&  Math.abs(zkey.yori + (z.xori - zkey.xori) * (zkey.slope || 0) - z.yori) <= strategy.BLUEZONE_WIDTH){
+		if (segmentInRadical && Math.abs(zkey.yori + (z.xori - zkey.xori) * (zkey.slope || 0) - z.yori) <= strategy.BLUEZONE_WIDTH) {
 			var key = isHigh ? stem.highkey : stem.lowkey;
 			shortAbsorptions.push([key.id, z.id, priority + (z.yExtrema ? 1 : 0)]);
 			z.touched = true;
 		}
 	}
 }
-function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalStems,priority) {
+function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalStems, priority) {
 	var radicalParts = [radical.outline].concat(radical.holes);
 	var radicalPoints = [].concat.apply([], radicalParts.map(function (c) { return c.points.slice(0, -1) }));
 	for (var s = 0; s < radicalStems.length; s++) {
@@ -97,8 +97,12 @@ module.exports = function (glyph, strategy) {
 
 		if (contourExtrema.length > 1) {
 			var topbot = [contourExtrema[0], contourExtrema[contourExtrema.length - 1]];
-			var midex = contourExtrema.slice(1, -1).filter(function (p) { return p.xStrongExtrema || p.yStrongExtrema });
-			var midexl = contourExtrema.slice(1, -1).filter(function (p) { return p.xExtrema || p.yExtrema });
+			var midex = contourExtrema.slice(1, -1).filter(function (p) {
+				return p.xStrongExtrema || p.yExtrema
+			});
+			var midexl = contourExtrema.slice(1, -1).filter(function (p) {
+				return p.xExtrema || p.yExtrema
+			});
 			records.push({
 				topbot: topbot,
 				midex: midex,
