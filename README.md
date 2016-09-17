@@ -57,7 +57,6 @@ The strategy parameters determines how `ideohint` generate the instructions. It 
 ```toml
 [hinting]
 MAX_STEM_WIDTH = 90
-MAX_SEGMERGE_DISTANCE = 90
 MOST_COMMON_STEM_WIDTH = 50
 ABSORPTION_LIMIT = 95
 STEM_SIDE_MIN_DIST_RISE = 120
@@ -93,7 +92,6 @@ The hinting parameters are stored in `hinting` section. They include:
 
   * **MIN_STEM_WIDTH** and **MAX_STEM_WIDTH** : Minimum and maximum of stem width. Stems thinner or thicker than this limit will be ignored.
   * **ABSORPTION_LIMIT**: The limit when a horizontal extremum being linked to a point aligned to the top or bottom blue zone. Useful when preserving diagonal strokes’ width. Preferred value: slightly larger than **MAX_STEM_WIDTH**.
-  * **MAX_SEGMERGE_DISTANCE**: The limit when two horizontal segments being merged into a single storke edge used for stem identification. Preferred value: slightly smaller than **MAX_STEM_WIDTH**.
   * **CANONICAL_STEM_WIDTH** : The “Canonical” stroke width among the entire font. Measured in a loose character like “里”. 
   * **CANONICAL_STEM_WIDTH_SMALL**: The “Canonical” stroke width used under small sizes. Measured in a loose character like “里”. Preferred value: Equal to or small smaller than **CANONICAL_STEM_WIDTH**.
   * **CANONICAL_STEM_WIDTH_DENSE**: The “Canonical” stroke width of dense characters like “襄”. Useful in bold weights. For lighter width, it should be identical to **CANONICAL_STEM_WIDTH**.

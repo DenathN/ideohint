@@ -3,6 +3,31 @@
 var overlapInfo = require('./overlap').overlapInfo;
 var by_start = function (p, q) { return p[0].xori - q[0].xori };
 
+function segmentInRadical(z, zkey, radical) {
+	var SEGMENTS = 64;
+	for (var s = 1; s < SEGMENTS; s++) {
+		var testz = {
+			xori: zkey.xori + (z.xori - zkey.xori) * (s / SEGMENTS),
+			yori: zkey.yori + (z.yori - zkey.yori) * (s / SEGMENTS)
+		}
+		if (!radical.includes(testz)) {
+			return false
+		}
+	}
+	return true;
+}
+
+function segmentJoinable(pivot, segment, radical) {
+	for (var s = 0; s < pivot.length; s++)for (var k = 0; k < pivot[s].length; k++) {
+		for (var j = 0; j < segment.length; j++) {
+			if (segmentInRadical(segment[j], pivot[s][k], radical)) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 // Stemfinding
 function findHorizontalSegments(radicals, strategy) {
 	var segments = []
@@ -35,6 +60,7 @@ function findHorizontalSegments(radicals, strategy) {
 
 	segments = segments.sort(function (p, q) { return p[0].xori - q[0].xori })
 
+	// Join segments
 	for (var j = 0; j < segments.length; j++) if (segments[j]) {
 		var pivot = [segments[j]];
 		var pivotRadical = segments[j].radical;
@@ -46,9 +72,7 @@ function findHorizontalSegments(radicals, strategy) {
 				: Math.abs(segments[k][1].xori - pivot[pivot.length - 1][0].xori);
 			if (Math.abs(segments[k][0].yori - pivot[0][0].yori) <= strategy.Y_FUZZ
 				&& orientation === (segments[k][1].xori > segments[k][0].xori)
-				&& (pendingSegmentLength < strategy.MAX_STEM_WIDTH
-					|| distanceBetween <= pendingSegmentLength && distanceBetween <= strategy.MAX_SEGMERGE_DISTANCE)) {
-				var r = pivot.radical;
+				&& segmentJoinable(pivot, segments[k], radicals[pivotRadical])) {
 				pivot.push(segments[k])
 				segments[k] = null;
 			}
