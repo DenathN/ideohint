@@ -222,9 +222,9 @@ function hint(glyph, ppem, strategy) {
 
 			// Add additional space below strokes with a fold under it.
 			if (stems[j].hasGlyphFoldBelow && !stems[j].hasGlyphStemBelow) {
-				lowlimit = Math.max(pixelBottom + Math.max(WIDTH_GEAR_MIN + 2, WIDTH_GEAR_MIN > 2 ? WIDTH_GEAR_MIN * 2 : WIDTH_GEAR_MIN * 2 + 1) * uppx, lowlimit);
+				lowlimit = Math.max(pixelBottom + Math.max(coordinateWidth + 2, coordinateWidth > 2 ? coordinateWidth * 2 : coordinateWidth * 2 + 1) * uppx, lowlimit);
 			} else if (stems[j].hasGlyphSideFoldBelow && !stems[j].hasGlyphStemBelow) {
-				lowlimit = Math.max(pixelBottom + Math.max(WIDTH_GEAR_MIN + 2, WIDTH_GEAR_MIN * 2) * uppx, lowlimit);
+				lowlimit = Math.max(pixelBottom + Math.max(coordinateWidth + 2, coordinateWidth * 2) * uppx, lowlimit);
 			}
 
 			// The top limit of a stem ('s upper edge)
@@ -240,9 +240,12 @@ function hint(glyph, ppem, strategy) {
 						),
 					WIDTH_GEAR_MIN * uppx);
 
+			var looseRoundingLow = ppem > PPEM_INCREASE_GLYPH_LIMIT && !(stems[j].hasGlyphFoldBelow && !stems[j].hasGlyphStemBelow || stems[j].hasGlyphSideFoldBelow && !stems[j].hasGlyphStemBelow);
+			var looseRoundingHigh = ppem > PPEM_INCREASE_GLYPH_LIMIT;
+
 			var center0 = cy(y0, w0, w, atGlyphTop(stems[j]) || atGlyphBottom(stems[j]));
-			var low = xclamp(lowlimit, round(center0) - uppx, highlimit);
-			var high = xclamp(lowlimit, round(center0) + uppx, highlimit);
+			var low = xclamp(lowlimit, looseRoundingLow ? round(center0 - 2 * uppx) : round(center0) - uppx, highlimit);
+			var high = xclamp(lowlimit, looseRoundingHigh ? round(center0 + 2 * uppx) : round(center0) + uppx, highlimit);
 			var center = xclamp(low, center0, high);
 
 			var ablationCoeff = atGlyphTop(stems[j]) || atGlyphBottom(stems[j]) ? ABLATION_GLYPH_HARD_EDGE

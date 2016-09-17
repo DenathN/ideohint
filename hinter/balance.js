@@ -16,12 +16,32 @@ function canBeAdjustedDown(y, k, env, distance) {
 	}
 	return true;
 }
+function spaceBelow1(env, y, k, bottom) {
+	var space = y[k] - env.avaliables[k].properWidth - bottom;
+	for (var j = k - 1; j >= 0; j--) {
+		if (env.directOverlaps[k][j] && y[k] - y[j] - env.avaliables[k].properWidth < space)
+			space = y[k] - y[j] - env.avaliables[k].properWidth
+	}
+	return space;
+}
+function spaceAbove1(env, y, k, top) {
+	var space = top - y[k];
+	for (var j = k + 1; j < y.length; j++) {
+		if (env.directOverlaps[j][k] && y[j] - y[k] - env.avaliables[j].properWidth < space)
+			space = y[j] - y[k] - env.avaliables[j].properWidth
+	}
+	return space;
+}
+
 function colliding(y, p, q) { return y[p] - y[q] < 2 && y[p] - y[q] >= 1; }
 function aligned(y, p, q) { return y[p] - y[q] < 1; }
 function spare(y, p, q) { return y[p] - y[q] > 1; }
 function veryspare(y, p, q) { return y[p] - y[q] > 2; }
 function balance(y, env) {
 	var REBALANCE_PASSES = env.strategy.REBALANCE_PASSES;
+	var pixelTopPixels = Math.round(env.pixelTop / env.uppx);
+	var pixelBottomPixels = Math.round(env.pixelBottom / env.uppx);
+
 	var N = y.length;
 	var avaliables = env.avaliables, triplets = env.triplets, directOverlaps = env.directOverlaps;
 	var m = avaliables.map(function (s, j) { return [s.length, j] }).sort(function (a, b) { return b[0] - a[0] });
@@ -72,19 +92,18 @@ function balance(y, env) {
 	for (var pass = 0; pass < REBALANCE_PASSES; pass++) {
 		for (var t = 0; t < triplets.length; t++) {
 			var j = triplets[t][0], k = triplets[t][1], m = triplets[t][2];
-			var d1 = y[j] - avaliables[j].properWidth - y[k];
-			var d2 = y[k] - avaliables[k].properWidth - y[m];
+			var d1 = spaceAbove1(env, y, k, pixelTopPixels + 3);
+			var d2 = spaceBelow1(env, y, k, pixelBottomPixels - 3);
 			var o1 = avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0;
 			var o2 = avaliables[k].y0 - avaliables[k].w0 - avaliables[m].y0;
-			if (!(d1 > 0 && d2 > 0 && o1 > 0 && o2 > 0)) continue;
-			if (veryspare(y, j, k) && spare(y, k, m) && y[k] < avaliables[k].high && d1 / d2 >= 2 && o1 / o2 < 2 && env.P[j][k] <= env.P[k][m]) {
+			//	if(env.ppem === 24) console.log([j, k, m], [d1, d2], [o1, o2]);
+			if (y[k] < avaliables[k].high && o1 / o2 < 2 && env.P[j][k] <= env.P[k][m] && d1 > 1 && (d2 < 1 || d1 >= d2 * 2)) {
 				y[k] += 1;
-			} else if (spare(y, j, k) && veryspare(y, k, m) && y[k] > avaliables[k].low && d2 / d1 >= 2 && o2 / o1 < 2 && env.P[j][k] >= env.P[k][m]) {
+			} else if (y[k] > avaliables[k].low && o2 / o1 < 2 && env.P[j][k] >= env.P[k][m] && d2 > 1 && (d1 < 1 || d2 >= d1 * 2)) {
 				y[k] -= 1;
 			}
 		}
 	}
-
 	for (var j = 0; j < N; j++) {
 		for (var k = 0; k < j; k++) {
 			if (env.symmetry[j][k] && y[j] !== y[k]) {

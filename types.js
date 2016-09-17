@@ -15,41 +15,31 @@ function Contour() {
 	this.points = []
 	this.ccw = false
 }
+
+function checkExtrema(prev, z, next) {
+	if (
+		z.yori > prev.yori && z.yori >= next.yori || z.yori < prev.yori && z.yori <= next.yori) {
+		z.yExtrema = true;
+		z.yStrongExtrema = z.yori > prev.yori + 1 && z.yori > next.yori + 1
+			|| z.yori < prev.yori - 1 && z.yori < next.yori - 1;
+	}
+	if (
+		z.xori > prev.xori && z.xori >= next.xori || z.xori < prev.xori && z.xori <= next.xori) {
+		z.xExtrema = true;
+		z.xStrongExtrema = z.xori > prev.xori + 1 && z.xori > next.xori + 1
+			|| z.xori < prev.xori - 1 && z.xori < next.xori - 1;
+		if (z.xStrongExtrema) {
+			z.atleft = z.xori < prev.xori - 1 && z.xori < next.xori - 1;
+		}
+	}
+}
+
 Contour.prototype.stat = function () {
 	var points = this.points;
-	if (
-		points[0].yori > points[points.length - 2].yori && points[0].yori >= points[1].yori
-		|| points[0].yori < points[points.length - 2].yori && points[0].yori <= points[1].yori) {
-		points[0].yExtrema = true;
-		points[0].yStrongExtrema = points[0].yori > points[points.length - 2].yori + 1 && points[0].yori > points[1].yori - 1
-			|| points[0].yori < points[points.length - 2].yori + 1 && points[0].yori < points[1].yori - 1;
-	}
-	if (
-		points[0].xori > points[points.length - 2].xori && points[0].xori >= points[1].xori
-		|| points[0].xori < points[points.length - 2].xori && points[0].xori <= points[1].xori) {
-		points[0].xExtrema = true;
-		points[0].xStrongExtrema = points[0].xori > points[points.length - 2].xori + 1 && points[0].xori > points[1].xori - 1
-			|| points[0].xori < points[points.length - 2].xori + 1 && points[0].xori < points[1].xori - 1;
-		if (points[0].xStrongExtrema) {
-			points[0].atleft = points[0].xori < points[points.length - 2].xori + 1 && points[0].xori < points[1].xori - 1;
-		}
-	}
+	checkExtrema(points[points.length - 2], points[0], points[1]);
+	checkExtrema(points[points.length - 2], points[points.length - 1], points[1]);
 	for (var j = 1; j < points.length - 1; j++) {
-		if (points[j].yori > points[j - 1].yori && points[j].yori >= points[j + 1].yori
-			|| points[j].yori < points[j - 1].yori && points[j].yori <= points[j + 1].yori) {
-			points[j].yExtrema = true;
-			points[j].yStrongExtrema = points[j].yori > points[j - 1].yori + 1 && points[j].yori >= points[j + 1].yori - 1
-				|| points[j].yori < points[j - 1].yori + 1 && points[j].yori <= points[j + 1].yori - 1;
-		}
-		if (points[j].xori > points[j - 1].xori && points[j].xori >= points[j + 1].xori
-			|| points[j].xori < points[j - 1].xori && points[j].xori <= points[j + 1].xori) {
-			points[j].xExtrema = true;
-			points[j].xStrongExtrema = points[j].xori > points[j - 1].xori + 1 && points[j].xori >= points[j + 1].xori - 1
-				|| points[j].xori < points[j - 1].xori + 1 && points[j].xori <= points[j + 1].xori - 1;
-			if (points[j].xStrongExtrema) {
-				points[j].atleft = points[j].xori < points[j - 1].xori + 1 && points[j].xori <= points[j + 1].xori - 1;
-			}
-		}
+		checkExtrema(points[j - 1], points[j], points[j + 1]);
 	};
 	var xoris = this.points.map(function (p) { return p.xori });
 	var yoris = this.points.map(function (p) { return p.yori });
@@ -100,7 +90,7 @@ var inPoly = function (point, vs) {
 
 	return inside;
 };
-Contour.prototype.includesPoint = function(z){
+Contour.prototype.includesPoint = function (z) {
 	return inPoly(z, this.points);
 }
 Contour.prototype.includes = function (that) {

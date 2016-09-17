@@ -142,7 +142,11 @@ function allocateWidth(y0, env) {
 			}
 
 			// rollback when no space
-			if (spaceAbove(env, y, w, k, pixelTopPixels + 1) < 1 || spaceAbove(env, y, w, m, pixelTopPixels + 1) < 1 || spaceBelow(env, y, w, k, pixelBottomPixels - 1) < 1) {
+			if (spaceAbove(env, y, w, k, pixelTopPixels + 1) < 1
+				|| spaceAbove(env, y, w, m, pixelTopPixels + 1) < 1
+				|| spaceBelow(env, y, w, k, pixelBottomPixels - 1) < 1
+				|| y[k] < avaliables[k].low || y[k] > avaliables[k].high
+				|| y[m] < avaliables[m].low || y[m] > avaliables[m].high) {
 				y = y1; w = w1;
 			}
 		}
@@ -164,15 +168,14 @@ function allocateWidth(y0, env) {
 	for (var pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) {
 		for (var t = 0; t < triplets.length; t++) {
 			var j = triplets[t][0], k = triplets[t][1], m = triplets[t][2];
-			var d1 = spaceBelow(env, y, w, j, pixelBottomPixels - 1);
-			var d2 = spaceBelow(env, y, w, k, pixelBottomPixels - 1);
+			var d1 = spaceAbove(env, y, w, k, pixelTopPixels + 2);
+			var d2 = spaceBelow(env, y, w, k, pixelBottomPixels - 2);
 			var o1 = avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0;
 			var o2 = avaliables[k].y0 - avaliables[k].w0 - avaliables[m].y0;
-			if (!(d1 > 0 && d2 > 0 && o1 > 0 && o2 > 0)) continue;
-			if (d1 > 1 && y[k] < avaliables[k].high && d1 / d2 >= 2 && o1 / o2 <= 1.25 && env.P[j][k] <= env.P[k][m]) {
+			if (d1 > 1 && (d2 < 1 || d1 >= d2 * 2) && y[k] < avaliables[k].high && o1 / o2 <= 1.25 && env.P[j][k] <= env.P[k][m]) {
 				// A distorted triplet space, but we can adjust this stem up.
 				y[k] += 1;
-			} else if (d2 > 1 && d2 / d1 >= 2 && o2 / o1 <= 1.25 && env.P[j][k] >= env.P[k][m]) {
+			} else if (d2 > 1 && (d1 < 1 || d2 >= d1 * 2) && o2 / o1 <= 1.25 && env.P[j][k] >= env.P[k][m]) {
 				if (w[k] < properWidths[k]) {
 					// A distorted triplet space, but we increase the middle stem’s weight
 					w[k] += 1;

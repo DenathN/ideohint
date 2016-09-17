@@ -26,6 +26,14 @@ function IUPy(contours) {
 		while (k < contour.points.length && !contour.points[k].touched) k++;
 		if (contour.points[k]) {
 			// Found a touched point in contour
+			// Copy coordinates for first/last point
+			if(contour.points[0].touched && !contour.points[contour.points.length - 1].touched){
+				contour.points[contour.points.length - 1].touched = true;
+				contour.points[contour.points.length - 1].ytouch = contour.points[0].ytouch;
+			}else if(!contour.points[0].touched && contour.points[contour.points.length - 1].touched){
+				contour.points[0].touched = true;
+				contour.points[0].ytouch = contour.points[contour.points.length - 1].ytouch;
+			}
 			var kleft = k, k0 = k;
 			var untoucheds = []
 			for (var k = 0; k <= contour.points.length; k++) {

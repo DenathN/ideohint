@@ -7,7 +7,7 @@ function shortAbsorptionPointByKeys(shortAbsorptions, strategy, pt, keys, inSame
 
 	for (var m = 0; m < keys.length; m++) {
 		var key = keys[m];
-		if (key.blued && key.yStrongExtrema && (Math.hypot(pt.yori - key.yori, pt.xori - key.xori) <= strategy.ABSORPTION_LIMIT && pt.xStrongExtrema) || Math.abs(pt.yori - key.yori) <= strategy.BLUEZONE_WIDTH && pt.xExtrema && !adjacent(pt, key)) {
+		if (key.blued && key.yStrongExtrema && (Math.hypot(pt.yori - key.yori, pt.xori - key.xori) <= strategy.ABSORPTION_LIMIT && pt.xStrongExtrema)) {
 			shortAbsorptions.push([key.id, pt.id, priority + (pt.yExtrema ? 1 : 0)]);
 			pt.touched = true;
 			return;
