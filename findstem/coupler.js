@@ -83,29 +83,6 @@ function findHorizontalSegments(radicals, strategy) {
 	}
 }
 
-function connectHangingSegments(segs, stem, strategy) {
-	for (var m = 0; m < segs.length; m++) if (segs[m] && segs[m][0]) {
-		var seg = segs[m];
-		var stemOverlap = overlapInfo(stem.low, stem.high, strategy);
-		if ((stem.low[0][1].xori >= stem.low[0][0].xori) === (seg[0][1].xori >= seg[0][0].xori)
-			&& Math.abs(seg[0][0].yori - stem.low[0][0].yori) <= strategy.Y_FUZZ) {
-			var amendedOverlap = overlapInfo(stem.low.concat(seg).sort(by_start), stem.high, strategy);
-			if (amendedOverlap.len / amendedOverlap.lb > stemOverlap.len / stemOverlap.lb) {
-				stem.low = stem.low.concat(seg).sort(by_start);
-				segs[m] = null;
-			}
-		} else if (
-			(stem.high[0][1].xori >= stem.high[0][0].xori) === (seg[0][1].xori >= seg[0][0].xori)
-			&& Math.abs(seg[0][0].yori - stem.high[0][0].yori) <= strategy.Y_FUZZ) {
-			var amendedOverlap = overlapInfo(stem.low, stem.high.concat(seg).sort(by_start), strategy);
-			if (amendedOverlap.len / amendedOverlap.la > stemOverlap.len / stemOverlap.la) {
-				stem.high = stem.high.concat(seg).sort(by_start);
-				segs[m] = null;
-			}
-		}
-	}
-}
-
 function pairSegmentsForRadical(radical, r, strategy) {
 	var radicalStems = [];
 	var segs = radical.mergedSegments.sort(function (a, b) { return a[0][0].yori - b[0][0].yori });
@@ -126,7 +103,6 @@ function pairSegmentsForRadical(radical, r, strategy) {
 					stem.belongRadical = r;
 					segs[j] = segs[k] = null;
 					radicalStems.push(stem);
-					connectHangingSegments(segs, stem, strategy);
 				}
 				break;
 			}
