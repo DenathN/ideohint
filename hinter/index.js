@@ -246,8 +246,11 @@ function hint(glyph, ppem, strategy) {
 			var center0 = cy(y0, w0, w, atGlyphTop(stems[j]) || atGlyphBottom(stems[j]));
 			var low = xclamp(lowlimit, round(center0) - uppx, highlimit);
 			var high = xclamp(lowlimit, round(center0) + uppx, highlimit);
-			var lowW = xclamp(lowlimit, looseRoundingLow ? round(center0 - 2 * uppx) : round(center0) - uppx, highlimit);
-			var highW = xclamp(lowlimit, looseRoundingHigh ? round(center0 + 2 * uppx) : round(center0) + uppx, highlimit);
+
+			var lowlimitW = (tws[j] > 2 ? lowlimit - uppx : lowlimit);
+
+			var lowW = xclamp(lowlimitW, looseRoundingLow ? round(center0 - 2 * uppx) : round(center0) - uppx, highlimit);
+			var highW = xclamp(lowlimitW, looseRoundingHigh ? round(center0 + 2 * uppx) : round(center0) + uppx, highlimit);
 			var center = xclamp(low, center0, high);
 
 			var ablationCoeff = atGlyphTop(stems[j]) || atGlyphBottom(stems[j]) ? ABLATION_GLYPH_HARD_EDGE
@@ -302,6 +305,7 @@ function hint(glyph, ppem, strategy) {
 		directOverlaps: directOverlaps,
 		strictOverlaps: glyph.strictOverlaps,
 		triplets: triplets,
+		strictTriplets: glyph.strictTriplets,
 		avaliables: avaliables,
 		strategy: strategy,
 		ppem: ppem,
