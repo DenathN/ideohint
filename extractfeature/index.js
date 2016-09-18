@@ -17,7 +17,8 @@ exports.extractFeature = function (glyph, strategy) {
 	analyzeStemKeyPoints(glyph, strategy);
 	var blueZonePoints = analyzeBlueZonePoints(glyph, strategy);
 	var iss = analyzeInterpolations(glyph, strategy);
-	var directOverlaps = analyzeDirectOverlaps(glyph, strategy);
+	var directOverlaps = analyzeDirectOverlaps(glyph, strategy, true);
+	var strictOverlaps = analyzeDirectOverlaps(glyph, strategy, false);
 	var edgeTouches = analyzeEdgeTouches(glyph.stems, glyph.stemOverlaps);
 	var overlaps = transitionClosure(directOverlaps);
 	var blanks = analyzeBlanks(glyph.stems, directOverlaps);
@@ -28,6 +29,7 @@ exports.extractFeature = function (glyph, strategy) {
 		stems: glyph.stems.map(getStemKeyInfo).sort(byyori),
 		stemOverlaps: glyph.stemOverlaps,
 		directOverlaps: directOverlaps,
+		strictOverlaps: strictOverlaps,
 		edgeTouches: edgeTouches,
 		overlaps: overlaps,
 		triplets: triplets,

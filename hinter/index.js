@@ -300,6 +300,7 @@ function hint(glyph, ppem, strategy) {
 			return sym;
 		})(),
 		directOverlaps: directOverlaps,
+		strictOverlaps: glyph.strictOverlaps,
 		triplets: triplets,
 		avaliables: avaliables,
 		strategy: strategy,

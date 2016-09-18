@@ -12,7 +12,7 @@ function cover(s, t) {
 function spaceBelow(env, y, w, k, bottom) {
 	var space = y[k] - w[k] - bottom;
 	for (var j = k - 1; j >= 0; j--) {
-		if (env.directOverlaps[k][j] && y[k] - y[j] - w[k] < space)
+		if (env.strictOverlaps[k][j] && y[k] - y[j] - w[k] < space)
 			space = y[k] - y[j] - w[k]
 	}
 	return space;
@@ -20,7 +20,7 @@ function spaceBelow(env, y, w, k, bottom) {
 function spaceAbove(env, y, w, k, top) {
 	var space = top - y[k];
 	for (var j = k + 1; j < y.length; j++) {
-		if (env.directOverlaps[j][k] && y[j] - y[k] - w[j] < space)
+		if (env.strictOverlaps[j][k] && y[j] - y[k] - w[j] < space)
 			space = y[j] - y[k] - w[j]
 	}
 	return space;
@@ -28,7 +28,7 @@ function spaceAbove(env, y, w, k, top) {
 function allocateWidth(y0, env) {
 	var N = y0.length;
 	var allocated = new Array(N), y = new Array(N), w = new Array(N), properWidths = new Array(N);
-	var avaliables = env.avaliables, directOverlaps = env.directOverlaps, triplets = env.triplets;
+	var avaliables = env.avaliables, strictOverlaps = env.strictOverlaps, triplets = env.triplets;
 	for (var j = 0; j < y0.length; j++) {
 		properWidths[j] = Math.round(avaliables[j].properWidth);
 		y[j] = Math.round(y0[j]);
@@ -92,13 +92,20 @@ function allocateWidth(y0, env) {
 				if (!(applyToLowerOnly || !avaliables[j].hasGlyphStemAbove) || !(w[j] < thinStrokeLimit)) continue;
 
 				var able = true;
-				for (var k = 0; k < j; k++) if (directOverlaps[j][k] && y[j] - w[j] - y[k] <= 1 
-					&& (y[k] <= avaliables[k].lowW || y[k] <= pixelBottomPixels + w[k] || w[k] < (cover(avaliables[j], avaliables[k]) ? 2 : minShrinkStrokeLength))) {
+				// We search for strokes below,
+				for (var k = 0; k < j; k++) if (strictOverlaps[j][k] && y[j] - w[j] - y[k] <= 1 
+				// with one pixel space, and see do the lower-adjustment, unless...
+					&& ( // there is no stem below satisifies:
+						y[k] <= avaliables[k].lowW // It is already low enough, or
+						|| y[k] <= pixelBottomPixels + w[k] // There is no space, or
+						|| w[k] < 2 // It is already thin enough, or 
+						|| cover(avaliables[k], avaliables[j]) && w[k] < minShrinkStrokeLength) // It is a dominator, and it has only one or two pixels
+				) {
 					able = false;
 				}
 
 				if (able) {
-					for (var k = 0; k < j; k++) if (directOverlaps[j][k] && y[j] - w[j] - y[k] <= 1) {
+					for (var k = 0; k < j; k++) if (strictOverlaps[j][k] && y[j] - w[j] - y[k] <= 1) {
 						y[k] -= 1;
 						w[k] -= 1;
 					}
@@ -109,10 +116,10 @@ function allocateWidth(y0, env) {
 		for (var j = 0; j < N; j++) if (avaliables[j].hasGlyphStemAbove && w[j] <= 1 || avaliables[j].atGlyphBottom && w[j] < properWidths[j] && y[j] <= pixelBottomPixels + properWidths[j]) {
 			var able = true;
 			for (var k = j + 1; k < N; k++) {
-				if (directOverlaps[k][j] && (y[k] - y[j] <= w[k] + 1 && w[k] <= 2 || (w[j] > 1 && (avaliables[k].xmin <= avaliables[j].xmin || avaliables[k].xmax > avaliables[j].xmax)))) able = false;
+				if (strictOverlaps[k][j] && (y[k] - y[j] <= w[k] + 1 && w[k] <= 2 || (w[j] > 1 && (avaliables[k].xmin <= avaliables[j].xmin || avaliables[k].xmax > avaliables[j].xmax)))) able = false;
 			}
 			if (able) {
-				for (var k = j + 1; k < N; k++) if (directOverlaps[k][j] && y[k] - y[j] <= w[k] + 1) {
+				for (var k = j + 1; k < N; k++) if (strictOverlaps[k][j] && y[k] - y[j] <= w[k] + 1) {
 					w[k] -= 1
 				}
 				y[j] += 1;
@@ -170,7 +177,7 @@ function allocateWidth(y0, env) {
 		for (var j = 0; j < N; j++) {
 			if (w[j] <= 1 && y[j] > pixelBottomPixels + 2) {
 				var able = true;
-				for (var k = 0; k < j; k++) if (directOverlaps[j][k] && !edgetouch(avaliables[j], avaliables[k])) {
+				for (var k = 0; k < j; k++) if (strictOverlaps[j][k] && !edgetouch(avaliables[j], avaliables[k])) {
 					able = false;
 				}
 				if (able) {

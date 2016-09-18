@@ -6,13 +6,13 @@ function edgetouch(s, t) {
 		|| (t.xmin < s.xmin && s.xmin < t.xmax && t.xmax < s.xmax && (t.xmax - s.xmin) / (s.xmax - s.xmin) <= 0.2)
 };
 
-exports.analyzeDirectOverlaps = function (glyph, strategy) {
+exports.analyzeDirectOverlaps = function (glyph, strategy, loose) {
 	var d = [];
 	for (var j = 0; j < glyph.stemOverlaps.length; j++) {
 		d[j] = [];
 		for (var k = 0; k < j; k++) {
 			d[j][k] = glyph.stemOverlaps[j][k] > strategy.COLLISION_MIN_OVERLAP_RATIO && !edgetouch(glyph.stems[j], glyph.stems[k])
-			if (glyph.collisionMatrices.collision[j][k] <= 0) d[j][k] = false;
+			if (loose && glyph.collisionMatrices.collision[j][k] <= 0) d[j][k] = false;
 		}
 	};
 	for (var x = 0; x < d.length; x++) for (var y = 0; y < d.length; y++) for (var z = 0; z < d.length; z++) {
