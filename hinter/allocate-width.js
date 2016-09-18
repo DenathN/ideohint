@@ -28,7 +28,7 @@ function spaceAbove(env, y, w, k, top) {
 function allocateWidth(y0, env) {
 	var N = y0.length;
 	var allocated = new Array(N), y = new Array(N), w = new Array(N), properWidths = new Array(N);
-	var avaliables = env.avaliables, strictOverlaps = env.strictOverlaps, triplets = env.triplets;
+	var avaliables = env.avaliables, strictOverlaps = env.strictOverlaps, strictTriplets = env.strictTriplets;
 	for (var j = 0; j < y0.length; j++) {
 		properWidths[j] = Math.round(avaliables[j].properWidth);
 		y[j] = Math.round(y0[j]);
@@ -88,13 +88,11 @@ function allocateWidth(y0, env) {
 			var minShrinkStrokeLength = [2, 3, 3][psi];
 
 			for (var j = N - 1; j >= 0; j--) {
-				var thinStrokeLimit = [properWidths[j], 2, properWidths[j]][psi];
-				if (!(applyToLowerOnly || !avaliables[j].hasGlyphStemAbove) || !(w[j] < thinStrokeLimit)) continue;
-
+				if (!(applyToLowerOnly || !avaliables[j].hasGlyphStemAbove) || w[j] >= 2) continue;
 				var able = true;
 				// We search for strokes below,
-				for (var k = 0; k < j; k++) if (strictOverlaps[j][k] && y[j] - w[j] - y[k] <= 1 
-				// with one pixel space, and see do the lower-adjustment, unless...
+				for (var k = 0; k < j; k++) if (strictOverlaps[j][k] && y[j] - w[j] - y[k] <= 1
+					// with one pixel space, and see do the lower-adjustment, unless...
 					&& ( // there is no stem below satisifies:
 						y[k] <= avaliables[k].lowW // It is already low enough, or
 						|| y[k] <= pixelBottomPixels + w[k] // There is no space, or
@@ -113,23 +111,10 @@ function allocateWidth(y0, env) {
 				}
 			}
 		}
-		for (var j = 0; j < N; j++) if (avaliables[j].hasGlyphStemAbove && w[j] <= 1 || avaliables[j].atGlyphBottom && w[j] < properWidths[j] && y[j] <= pixelBottomPixels + properWidths[j]) {
-			var able = true;
-			for (var k = j + 1; k < N; k++) {
-				if (strictOverlaps[k][j] && (y[k] - y[j] <= w[k] + 1 && w[k] <= 2 || (w[j] > 1 && (avaliables[k].xmin <= avaliables[j].xmin || avaliables[k].xmax > avaliables[j].xmax)))) able = false;
-			}
-			if (able) {
-				for (var k = j + 1; k < N; k++) if (strictOverlaps[k][j] && y[k] - y[j] <= w[k] + 1) {
-					w[k] -= 1
-				}
-				y[j] += 1;
-				w[j] += 1;
-			}
-		};
 
 		// Triplet balancing
-		for (var t = 0; t < triplets.length; t++) {
-			var j = triplets[t][0], k = triplets[t][1], m = triplets[t][2];
+		for (var t = 0; t < strictTriplets.length; t++) {
+			var j = strictTriplets[t][0], k = strictTriplets[t][1], m = strictTriplets[t][2];
 			var y1 = y.slice(0), w1 = w.slice(0);
 			// [3] 2 [3] 1 [2] -> [3] 1 [3] 1 [3]
 			if (properWidths[j] > 2 && w[m] <= properWidths[j] - 1 && y[j] - w[j] - y[k] >= 2 && y[k] - w[k] - y[m] === 1) {
@@ -147,12 +132,36 @@ function allocateWidth(y0, env) {
 			else if (properWidths[m] > 2 && w[j] <= properWidths[j] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] >= 2) {
 				w[j] += 1, y[k] -= 1;
 			}
+			// [3] 1 [1] 1 [3] -> [2] 1 [2] 1 [3] or [3] 1 [2] 1 [2]
+			else if (properWidths[j] > 2 && w[j] === properWidths[j] && w[m] === properWidths[m] && w[k] <= properWidths[j] - 2) {
+				if (env.P[j][k] > env.P[k][m]) {
+					w[j] -= 1, y[k] += 1, w[k] += 1;
+				} else {
+					w[k] += 1, y[m] -= 1, w[m] -= 1;
+				}
+			}
 			// [3] 1 [2] 1 [1] -> [2] 1 [2] 1 [2]
-			else if (properWidths[j] > 2 && w[j] == properWidths[j] && w[k] <= properWidths[j] - 1 && w[m] <= properWidths[j] - 2) {
+			else if (properWidths[j] > 2 && w[j] === properWidths[j] && w[k] <= properWidths[j] - 1 && w[m] <= properWidths[j] - 2) {
 				w[j] -= 1, y[k] += 1, y[m] += 1, w[m] += 1;
 			}
+			// [1] 1 [3] 1 [2] -> [2] 1 [2] 1 [2]
+			else if (properWidths[k] > 2 && w[k] === properWidths[k] && w[m] <= properWidths[j] - 1 && w[j] <= properWidths[j] - 2) {
+				w[j] += 1, y[k] -= 1, w[k] -= 1;
+			}
+			// [2] 1 [1] 1 [3] -> [2] 1 [2] 1 [2]
+			else if (properWidths[m] > 2 && w[m] === properWidths[m] && w[j] <= properWidths[j] - 1 && w[k] <= properWidths[j] - 2) {
+				w[k] += 1, w[m] -= 1, y[m] -= 1;
+			}
+			// [2] 1 [3] 1 [1] -> [2] 1 [2] 1 [2]
+			else if (properWidths[k] > 2 && w[k] === properWidths[k] && w[j] <= properWidths[j] - 1 && w[m] <= properWidths[m] - 2) {
+				w[k] -= 1, w[m] += 1, y[m] += 1;
+			}
+			// [3] 1 [1] 1 [2] -> [2] 1 [2] 1 [2]
+			else if (properWidths[j] > 2 && w[j] === properWidths[j] && w[m] <= properWidths[m] - 1 && w[k] <= properWidths[j] - 2) {
+				w[j] -= 1, y[k] += 1, w[k] += 1;
+			}
 			// [1] 1 [2] 1 [3] -> [2] 1 [2] 1 [2]
-			else if (properWidths[m] > 2 && w[m] == properWidths[m] && w[k] <= properWidths[j] - 1 && w[j] <= properWidths[j] - 2) {
+			else if (properWidths[m] > 2 && w[m] === properWidths[m] && w[k] <= properWidths[j] - 1 && w[j] <= properWidths[j] - 2) {
 				w[j] += 1, w[m] -= 1, y[k] -= 1, y[m] -= 1;
 			}
 			// [1] 1 [2] 2 [2] -> [2] 1 [2] 1 [2]
@@ -185,12 +194,14 @@ function allocateWidth(y0, env) {
 				}
 			}
 		}
+
+		for (var j = 0; j < N; j++) { w[j] = Math.min(w[j], y[j] - pixelBottomPixels) }
 	};
 
 	// Triplet whitespace balancing
 	for (var pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) {
-		for (var t = 0; t < triplets.length; t++) {
-			var j = triplets[t][0], k = triplets[t][1], m = triplets[t][2];
+		for (var t = 0; t < strictTriplets.length; t++) {
+			var j = strictTriplets[t][0], k = strictTriplets[t][1], m = strictTriplets[t][2];
 			var su = spaceAbove(env, y, w, k, pixelTopPixels + 2);
 			var sb = spaceBelow(env, y, w, k, pixelBottomPixels - 2);
 			var d1 = y[j] - w[j] - y[k];

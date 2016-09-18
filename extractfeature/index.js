@@ -22,7 +22,9 @@ exports.extractFeature = function (glyph, strategy) {
 	var edgeTouches = analyzeEdgeTouches(glyph.stems, glyph.stemOverlaps);
 	var overlaps = transitionClosure(directOverlaps);
 	var blanks = analyzeBlanks(glyph.stems, directOverlaps);
+	var strictBlanks = analyzeBlanks(glyph.stems, strictOverlaps);
 	var triplets = analyzeTriplets(glyph.stems, directOverlaps, blanks);
+	var strictTriplets = analyzeTriplets(glyph.stems, strictOverlaps, strictBlanks);
 	var flexes = analyzeFlex(glyph, blanks);
 	return {
 		stats: glyph.stats,
@@ -33,6 +35,7 @@ exports.extractFeature = function (glyph, strategy) {
 		edgeTouches: edgeTouches,
 		overlaps: overlaps,
 		triplets: triplets,
+		strictTriplets: strictTriplets,
 		flexes: flexes,
 		collisionMatrices: glyph.collisionMatrices,
 		topBluePoints: blueZonePoints.top,
