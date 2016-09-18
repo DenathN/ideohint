@@ -12,6 +12,19 @@ Radical.prototype.includes = function (z) {
 	}
 	return true;
 }
+Radical.prototype.includesSegment = function(z1, z2){
+	var SEGMENTS = 64;
+	for (var s = 1; s < SEGMENTS; s++) {
+		var testz = {
+			xori: z2.xori + (z1.xori - z2.xori) * (s / SEGMENTS),
+			yori: z2.yori + (z1.yori - z2.yori) * (s / SEGMENTS)
+		}
+		if (!this.includes(testz)) {
+			return false
+		}
+	}
+	return true;
+}
 function transitiveReduce(g) {
 	// Floyd-warshall transitive reduction
 	for (var x = 0; x < g.length; x++) for (var y = 0; y < g.length; y++) for (var z = 0; z < g.length; z++) {

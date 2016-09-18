@@ -88,7 +88,7 @@ function allocateWidth(y0, env) {
 			var minShrinkStrokeLength = [2, 3, 3][psi];
 
 			for (var j = N - 1; j >= 0; j--) {
-				if (!(applyToLowerOnly || !avaliables[j].hasGlyphStemAbove) || w[j] >= 2) continue;
+				if (!(applyToLowerOnly || !avaliables[j].hasGlyphStemAbove) || w[j] >= (!avaliables[j].hasGlyphStemAbove ? properWidths[j] : 2)) continue;
 				var able = true;
 				// We search for strokes below,
 				for (var k = 0; k < j; k++) if (strictOverlaps[j][k] && y[j] - w[j] - y[k] <= 1
