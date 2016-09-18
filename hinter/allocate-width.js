@@ -7,12 +7,12 @@ function edgetouch(s, t) {
 		|| (t.xmin < s.xmin && s.xmin < t.xmax && t.xmax < s.xmax && (t.xmax - s.xmin) / (s.xmax - s.xmin) <= 0.26)
 };
 function cover(s, t) {
-	return (t.xmin > mix(s.xmin, s.xmax, 0.1) && t.xmax < mix(s.xmin, s.xmax, 0.9))
+	return (t.xmin > mix(s.xmin, s.xmax, 0.05) && t.xmax < mix(s.xmin, s.xmax, 0.95))
 }
 function spaceBelow(env, y, w, k, bottom) {
 	var space = y[k] - w[k] - bottom;
 	for (var j = k - 1; j >= 0; j--) {
-		if (env.directOverlaps[k][j] && y[k] - y[j] - w[k] < space)
+		if (env.strictOverlaps[k][j] && y[k] - y[j] - w[k] < space)
 			space = y[k] - y[j] - w[k]
 	}
 	return space;
@@ -20,7 +20,7 @@ function spaceBelow(env, y, w, k, bottom) {
 function spaceAbove(env, y, w, k, top) {
 	var space = top - y[k];
 	for (var j = k + 1; j < y.length; j++) {
-		if (env.directOverlaps[j][k] && y[j] - y[k] - w[j] < space)
+		if (env.strictOverlaps[j][k] && y[j] - y[k] - w[j] < space)
 			space = y[j] - y[k] - w[j]
 	}
 	return space;
@@ -28,7 +28,7 @@ function spaceAbove(env, y, w, k, top) {
 function allocateWidth(y0, env) {
 	var N = y0.length;
 	var allocated = new Array(N), y = new Array(N), w = new Array(N), properWidths = new Array(N);
-	var avaliables = env.avaliables, directOverlaps = env.directOverlaps, triplets = env.triplets;
+	var avaliables = env.avaliables, strictOverlaps = env.strictOverlaps, triplets = env.triplets;
 	for (var j = 0; j < y0.length; j++) {
 		properWidths[j] = Math.round(avaliables[j].properWidth);
 		y[j] = Math.round(y0[j]);
@@ -57,7 +57,7 @@ function allocateWidth(y0, env) {
 		var wr = properWidths[j];
 		var wx = Math.min(wr, w[j] + sb);
 		if (wx <= 1) return;
-		if (sa > 1.75 && y[j] < avaliables[j].high) {
+		if (sa > 1.75 && y[j] < avaliables[j].highW) {
 			if (sb + w[j] >= wr && y[j] - wr >= pixelBottomPixels || avaliables[j].atGlyphBottom && y[j] - wr + 1 >= pixelBottomPixels) {
 				y[j] += 1;
 				w[j] = wr;
@@ -83,37 +83,43 @@ function allocateWidth(y0, env) {
 
 	// Avoid thin strokes
 	for (var pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) if (env.WIDTH_GEAR_PROPER >= 2 && env.WIDTH_GEAR_MIN >= 2) {
-		for (var psi = 0; psi < 2; psi++) {
-			var thinStrokeLimit = [properWidths[j], 2][psi];
-			var applyToLowerOnly = [false, true][psi];
-			var minShrinkStrokeLength = [2, 3][psi];
+		for (var psi = 0; psi < 3; psi++) {
+			var applyToLowerOnly = [false, true, true][psi];
+			var minShrinkStrokeLength = [2, 3, 3][psi];
 
 			for (var j = N - 1; j >= 0; j--) {
-				if (!applyToLowerOnly && avaliables[j].hasGlyphStemAbove || !(w[j] < thinStrokeLimit)) continue;
+				var thinStrokeLimit = [properWidths[j], 2, properWidths[j]][psi];
+				if (!(applyToLowerOnly || !avaliables[j].hasGlyphStemAbove) || !(w[j] < thinStrokeLimit)) continue;
 
 				var able = true;
-				for (var k = 0; k < j; k++) if (directOverlaps[j][k] && (
-					y[k] <= avaliables[k].low || y[j] - w[j] - y[k] <= 1
-					&& w[k] < (cover(avaliables[j], avaliables[k]) ? 2 : minShrinkStrokeLength))) {
+				// We search for strokes below,
+				for (var k = 0; k < j; k++) if (strictOverlaps[j][k] && y[j] - w[j] - y[k] <= 1 
+				// with one pixel space, and see do the lower-adjustment, unless...
+					&& ( // there is no stem below satisifies:
+						y[k] <= avaliables[k].lowW // It is already low enough, or
+						|| y[k] <= pixelBottomPixels + w[k] // There is no space, or
+						|| w[k] < 2 // It is already thin enough, or 
+						|| cover(avaliables[k], avaliables[j]) && w[k] < minShrinkStrokeLength) // It is a dominator, and it has only one or two pixels
+				) {
 					able = false;
 				}
 
 				if (able) {
-					w[j] += 1;
-					for (var k = 0; k < j; k++) if (directOverlaps[j][k] && y[j] - w[j] - y[k] <= 0) {
+					for (var k = 0; k < j; k++) if (strictOverlaps[j][k] && y[j] - w[j] - y[k] <= 1) {
 						y[k] -= 1;
 						w[k] -= 1;
 					}
+					w[j] += 1;
 				}
 			}
 		}
 		for (var j = 0; j < N; j++) if (avaliables[j].hasGlyphStemAbove && w[j] <= 1 || avaliables[j].atGlyphBottom && w[j] < properWidths[j] && y[j] <= pixelBottomPixels + properWidths[j]) {
 			var able = true;
 			for (var k = j + 1; k < N; k++) {
-				if (directOverlaps[k][j] && (y[k] - y[j] <= w[k] + 1 && w[k] <= 2 || (w[j] > 1 && (avaliables[k].xmin <= avaliables[j].xmin || avaliables[k].xmax > avaliables[j].xmax)))) able = false;
+				if (strictOverlaps[k][j] && (y[k] - y[j] <= w[k] + 1 && w[k] <= 2 || (w[j] > 1 && (avaliables[k].xmin <= avaliables[j].xmin || avaliables[k].xmax > avaliables[j].xmax)))) able = false;
 			}
 			if (able) {
-				for (var k = j + 1; k < N; k++) if (directOverlaps[k][j] && y[k] - y[j] <= w[k] + 1) {
+				for (var k = j + 1; k < N; k++) if (strictOverlaps[k][j] && y[k] - y[j] <= w[k] + 1) {
 					w[k] -= 1
 				}
 				y[j] += 1;
@@ -153,13 +159,17 @@ function allocateWidth(y0, env) {
 			else if (w[j] <= properWidths[j] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] === 2) {
 				w[j] += 1, y[k] -= 1;
 			}
+			// [2] 2 [2] 1 [1] -> [2] 1 [2] 1 [2]
+			else if (w[m] <= properWidths[j] - 1 && y[j] - w[j] - y[k] > 1 && y[k] - w[k] - y[m] === 1) {
+				y[k] += 1, y[m] += 1, w[m] += 1;
+			}
 
 			// rollback when no space
 			if (spaceAbove(env, y, w, k, pixelTopPixels + 1) < 1
 				|| spaceAbove(env, y, w, m, pixelTopPixels + 1) < 1
 				|| spaceBelow(env, y, w, k, pixelBottomPixels - 1) < 1
-				|| y[k] < avaliables[k].low || y[k] > avaliables[k].high
-				|| y[m] < avaliables[m].low || y[m] > avaliables[m].high) {
+				|| y[k] < avaliables[k].lowW || y[k] > avaliables[k].highW
+				|| y[m] < avaliables[m].lowW || y[m] > avaliables[m].highW) {
 				y = y1; w = w1;
 			}
 		}
@@ -167,7 +177,7 @@ function allocateWidth(y0, env) {
 		for (var j = 0; j < N; j++) {
 			if (w[j] <= 1 && y[j] > pixelBottomPixels + 2) {
 				var able = true;
-				for (var k = 0; k < j; k++) if (directOverlaps[j][k] && !edgetouch(avaliables[j], avaliables[k])) {
+				for (var k = 0; k < j; k++) if (strictOverlaps[j][k] && !edgetouch(avaliables[j], avaliables[k])) {
 					able = false;
 				}
 				if (able) {
@@ -187,14 +197,14 @@ function allocateWidth(y0, env) {
 			var d2 = y[k] - w[k] - y[m];
 			var o1 = avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0;
 			var o2 = avaliables[k].y0 - avaliables[k].w0 - avaliables[m].y0;
-			if (su > 1 && (sb < 1 || d1 >= d2 * 2) && y[k] < avaliables[k].high && o1 / o2 <= 1.25 && env.P[j][k] <= env.P[k][m]) {
+			if (su > 1 && (sb < 1 || d1 >= d2 * 2) && y[k] < avaliables[k].highW && o1 / o2 <= 1.25 && env.P[j][k] <= env.P[k][m]) {
 				// A distorted triplet space, but we can adjust this stem up.
 				y[k] += 1;
 			} else if (sb > 1 && (su < 1 || d2 >= d1 * 2) && o2 / o1 <= 1.25 && env.P[j][k] >= env.P[k][m]) {
 				if (w[k] < properWidths[k]) {
 					// A distorted triplet space, but we increase the middle stem’s weight
 					w[k] += 1;
-				} else if (y[k] > avaliables[k].low) {
+				} else if (y[k] > avaliables[k].lowW) {
 					// A distorted triplet space, but we can adjust this stem down.
 					y[k] -= 1;
 				}
