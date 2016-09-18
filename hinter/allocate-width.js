@@ -7,7 +7,7 @@ function edgetouch(s, t) {
 		|| (t.xmin < s.xmin && s.xmin < t.xmax && t.xmax < s.xmax && (t.xmax - s.xmin) / (s.xmax - s.xmin) <= 0.26)
 };
 function cover(s, t) {
-	return (t.xmin > mix(s.xmin, s.xmax, 0.1) && t.xmax < mix(s.xmin, s.xmax, 0.9))
+	return (t.xmin > mix(s.xmin, s.xmax, 0.05) && t.xmax < mix(s.xmin, s.xmax, 0.95))
 }
 function spaceBelow(env, y, w, k, bottom) {
 	var space = y[k] - w[k] - bottom;
@@ -85,16 +85,15 @@ function allocateWidth(y0, env) {
 	for (var pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) if (env.WIDTH_GEAR_PROPER >= 2 && env.WIDTH_GEAR_MIN >= 2) {
 		for (var psi = 0; psi < 3; psi++) {
 			var applyToLowerOnly = [false, true, true][psi];
-			var minShrinkStrokeLength = [2, 3, 2][psi];
+			var minShrinkStrokeLength = [2, 3, 3][psi];
 
 			for (var j = N - 1; j >= 0; j--) {
 				var thinStrokeLimit = [properWidths[j], 2, properWidths[j]][psi];
 				if (!(applyToLowerOnly || !avaliables[j].hasGlyphStemAbove) || !(w[j] < thinStrokeLimit)) continue;
 
 				var able = true;
-				for (var k = 0; k < j; k++) if (directOverlaps[j][k] && 
-					y[j] - w[j] - y[k] <= 1 && (y[k] <= avaliables[k].lowW ||
-					 w[k] < (cover(avaliables[j], avaliables[k]) ? 2 : minShrinkStrokeLength))) {
+				for (var k = 0; k < j; k++) if (directOverlaps[j][k] && y[j] - w[j] - y[k] <= 1 
+					&& (y[k] <= avaliables[k].lowW || y[k] <= pixelBottomPixels + w[k] || w[k] < (cover(avaliables[j], avaliables[k]) ? 2 : minShrinkStrokeLength))) {
 					able = false;
 				}
 
@@ -152,6 +151,10 @@ function allocateWidth(y0, env) {
 			// [1] 1 [2] 2 [2] -> [2] 1 [2] 1 [2]
 			else if (w[j] <= properWidths[j] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] === 2) {
 				w[j] += 1, y[k] -= 1;
+			}
+			// [2] 2 [2] 1 [1] -> [2] 1 [2] 1 [2]
+			else if (w[m] <= properWidths[j] - 1 && y[j] - w[j] - y[k] > 1 && y[k] - w[k] - y[m] === 1) {
+				y[k] += 1, y[m] += 1, w[m] += 1;
 			}
 
 			// rollback when no space
