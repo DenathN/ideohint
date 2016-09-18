@@ -27,10 +27,10 @@ function IUPy(contours) {
 		if (contour.points[k]) {
 			// Found a touched point in contour
 			// Copy coordinates for first/last point
-			if(contour.points[0].touched && !contour.points[contour.points.length - 1].touched){
+			if (contour.points[0].touched && !contour.points[contour.points.length - 1].touched) {
 				contour.points[contour.points.length - 1].touched = true;
 				contour.points[contour.points.length - 1].ytouch = contour.points[0].ytouch;
-			}else if(!contour.points[0].touched && contour.points[contour.points.length - 1].touched){
+			} else if (!contour.points[0].touched && contour.points[contour.points.length - 1].touched) {
 				contour.points[0].touched = true;
 				contour.points[0].ytouch = contour.points[contour.points.length - 1].ytouch;
 			}
@@ -84,10 +84,12 @@ function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 			glyph.indexedPoints[pid].ytouch = rtg(strategy.BLUEZONE_BOTTOM_CENTER)
 		})
 		// Stems
-		actions.forEach(function (action) {
-			glyph.indexedPoints[action.pos[1]].ytouch = action.pos[3];
-			glyph.indexedPoints[action.adv[2]].ytouch = action.pos[3] + (action.orient ? (-1) : 1) * (action.adv[4] || Math.round(action.adv[3])) * (strategy.UPM / ppem);
-			glyph.indexedPoints[action.pos[1]].touched = glyph.indexedPoints[action.adv[2]].touched = true
+		actions.forEach(function (action, j) {
+			var h = glyph.indexedPoints[glyph.stems[j].highkey.id];
+			var l = glyph.indexedPoints[glyph.stems[j].lowkey.id];
+			h.ytouch = (action[0]) * (strategy.UPM / ppem);
+			l.ytouch = (action[0] - action[1]) * (strategy.UPM / ppem);
+			h.touched = l.touched = true;
 		});
 		// Alignments
 		glyph.stems.forEach(function (stem) {

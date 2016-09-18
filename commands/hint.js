@@ -93,6 +93,9 @@ exports.handler = function (argv) {
 				shortAbsorptions: glyph.shortAbsorptions,
 				stems: glyph.stems.map(function (s) {
 					return {
+						y0: s.yori,
+						w0: s.width,
+						posKeyAtTop: s.posKeyAtTop,
 						posKey: s.posKey.id,
 						advKey: s.advKey.id,
 						posAlign: s.posAlign,

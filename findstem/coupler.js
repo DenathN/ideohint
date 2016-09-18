@@ -65,7 +65,7 @@ function minmaxOfSeg(u) {
 function isVertical(u, v) {
 	var d1 = minmaxOfSeg(u);
 	var d2 = minmaxOfSeg(v);
-	return Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min) < Math.abs(u[0][0].yori - v[0][0].yori) * 0.8;
+	return Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min) < Math.abs(u[0][0].yori - v[0][0].yori) * 0.9;
 }
 
 // Stemfinding

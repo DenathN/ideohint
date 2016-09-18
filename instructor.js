@@ -155,67 +155,71 @@ function instruct(glyph, actions, strategy, cvt, padding) {
 	invocations.push([[1, strategy.PPEM_MIN], ['SDB', 'SDS']]);
 	var deltaCalls = [];
 	var mirps = [];
-	if (glyph.stems.length) {
-		for (var ppem = 0; ppem < actions.length; ppem++) {
-			if (actions[ppem]) {
-				var instrs = actions[ppem];
-				var deltas = [];
-				var args = [];
-				var movements = [];
-				for (var k = 0; k < instrs.length; k++) {
-					var d = decideDelta(2, instrs[k].pos[2], instrs[k].pos[3], upm, ppem);
-					if (d >= 0) deltas.push({ id: instrs[k].pos[1], delta: d });
+	if (glyph.stems.length) for (var ppem = 0; ppem < actions.length; ppem++) {
+		var uppx = upm / ppem;
+		if (actions[ppem]) {
+			// The instes' length sould be exactly glyph.stems.length.
+			var instrs = actions[ppem];
+			var deltas = [];
+			var args = [];
+			var movements = [];
+			for (var k = 0; k < instrs.length; k++) {
+				var y = instrs[k][0], w = instrs[k][1];
+				var stem = glyph.stems[k];
+				var y0 = stem.y0, w0 = stem.w0, orient = stem.posKeyAtTop;
+				if (orient) {
+					var ypos = y * uppx;
+					var ypos0 = y0;
+				} else {
+					var ypos = (y - w) * uppx;
+					var ypos0 = y0 - w0;
+				}
 
-					if (instrs[k].adv.length > 4) {
-						var touchedStemWidthPixels = (instrs[k].adv[4] || 0);
-						var originalStemWidthPixels = (instrs[k].adv[3] || 0);
-						var originalAdvKeyPosition = instrs[k].pos[2] + (instrs[k].orient ? (-1) : 1) * instrs[k].adv[3] * (upm / ppem);
-						var targetAdvKeyPosition = instrs[k].pos[3] + (instrs[k].orient ? (-1) : 1) * instrs[k].adv[4] * (upm / ppem);
-						var d = decideDelta(2, originalAdvKeyPosition, targetAdvKeyPosition, upm, ppem);
+				var d = decideDelta(2, ypos0, ypos, upm, ppem);
+				if (d >= 0) deltas.push({ id: stem.posKey, delta: d });
 
-						if (d >= 0) {
-							deltas.push({ id: instrs[k].adv[2], delta: d });
-						} else if (d === -1) {
-							// IGNORE
-						} else if (Math.round(originalStemWidthPixels) === touchedStemWidthPixels && Math.abs(originalStemWidthPixels - touchedStemWidthPixels) < 0.48) {
-							args.push(instrs[k].adv[2], instrs[k].pos[1]);
-							movements.push('MDRP[rnd,grey]', 'SRP0');
-						} else {
-							var cvtwidth = (instrs[k].orient ? (-1) : 1) * Math.round(upm / ppem * touchedStemWidthPixels);
-							var cvtj = cvt.indexOf(cvtwidth, padding);
-							if (cvtj >= 0) {
-								args.push(instrs[k].adv[2], cvtj, instrs[k].pos[1]);
-								movements.push('MIRP[0]', 'SRP0');
-							} else {
-								var msirpwidth = (instrs[k].orient ? (-1) : 1) * ((instrs[k].adv[3] | 0) * 64);
-								args.push(instrs[k].adv[2], msirpwidth, instrs[k].pos[1]);
-								movements.push('MSIRP[0]', 'SRP0');
-							}
-						};
+				var originalAdvKeyPosition = ypos0 + (orient ? (-1) : 1) * w0;
+				var targetAdvKeyPosition = ypos + (orient ? (-1) : 1) * w * (upm / ppem);
+				var d = decideDelta(2, originalAdvKeyPosition, targetAdvKeyPosition, upm, ppem);
+
+				if (d >= 0) {
+					deltas.push({ id: stem.advKey, delta: d });
+				} else if (d === -1) {
+					// IGNORE
+				} else if (Math.round(w0 / uppx) === w && Math.abs(w0 / uppx - w) < 0.48) {
+					args.push(stem.advKey, stem.posKey);
+					movements.push('MDRP[rnd,grey]', 'SRP0');
+				} else {
+					var cvtwidth = (orient ? (-1) : 1) * Math.round(upm / ppem * w);
+					var cvtj = cvt.indexOf(cvtwidth, padding);
+					if (cvtj >= 0) {
+						args.push(stem.advKey, cvtj, stem.posKey);
+						movements.push('MIRP[0]', 'SRP0');
 					} else {
-						args.push(instrs[k].adv[2], instrs[k].pos[1]);
-						movements.push('MDRP[0]', 'SRP0');
+						var msirpwidth = (orient ? (-1) : 1) * (w * 64);
+						args.push(stem.advKey, msirpwidth, stem.posKey);
+						movements.push('MSIRP[0]', 'SRP0');
 					}
 				};
-				if (deltas.length) {
-					var deltapArgs = [];
-					for (var j = 0; j < deltas.length; j++) {
-						deltapArgs.push(deltas[j].delta, deltas[j].id)
-					};
-					deltaCalls.push([deltapArgs, ['DELTAP' + (1 + Math.floor((ppem - strategy.PPEM_MIN) / 16))], ppem]);
+			};
+			if (deltas.length) {
+				var deltapArgs = [];
+				for (var j = 0; j < deltas.length; j++) {
+					deltapArgs.push(deltas[j].delta, deltas[j].id)
 				};
-				var ppemSpecificMRPs = [];
-				if (args.length) {
-					pushargs(ppemSpecificMRPs, args)
-					ppemSpecificMRPs = ppemSpecificMRPs.concat(movements.reverse());
-				};
-				if (ppemSpecificMRPs.length) {
-					mirps.push('MPPEM', 'PUSHB_1', ppem, 'EQ', 'IF');
-					mirps = mirps.concat(ppemSpecificMRPs);
-					mirps.push('EIF');
-				}
+				deltaCalls.push([deltapArgs, ['DELTAP' + (1 + Math.floor((ppem - strategy.PPEM_MIN) / 16))], ppem]);
+			};
+			var ppemSpecificMRPs = [];
+			if (args.length) {
+				pushargs(ppemSpecificMRPs, args)
+				ppemSpecificMRPs = ppemSpecificMRPs.concat(movements.reverse());
+			};
+			if (ppemSpecificMRPs.length) {
+				mirps.push('MPPEM', 'PUSHB_1', ppem, 'EQ', 'IF');
+				mirps = mirps.concat(ppemSpecificMRPs);
+				mirps.push('EIF');
 			}
-		};
+		}
 	};
 	if (deltaCalls.length) {
 		var currentDeltaCall = [deltaCalls[0][0].slice(0), deltaCalls[0][1].slice(0)];
