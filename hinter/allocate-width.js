@@ -57,7 +57,7 @@ function allocateWidth(y0, env) {
 		var wr = properWidths[j];
 		var wx = Math.min(wr, w[j] + sb);
 		if (wx <= 1) return;
-		if (sa > 1.75 && y[j] < avaliables[j].high) {
+		if (sa > 1.75 && y[j] < avaliables[j].highW) {
 			if (sb + w[j] >= wr && y[j] - wr >= pixelBottomPixels || avaliables[j].atGlyphBottom && y[j] - wr + 1 >= pixelBottomPixels) {
 				y[j] += 1;
 				w[j] = wr;
@@ -83,27 +83,27 @@ function allocateWidth(y0, env) {
 
 	// Avoid thin strokes
 	for (var pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) if (env.WIDTH_GEAR_PROPER >= 2 && env.WIDTH_GEAR_MIN >= 2) {
-		for (var psi = 0; psi < 2; psi++) {
-			var thinStrokeLimit = [properWidths[j], 2][psi];
-			var applyToLowerOnly = [false, true][psi];
-			var minShrinkStrokeLength = [2, 3][psi];
+		for (var psi = 0; psi < 3; psi++) {
+			var applyToLowerOnly = [false, true, true][psi];
+			var minShrinkStrokeLength = [2, 3, 2][psi];
 
 			for (var j = N - 1; j >= 0; j--) {
-				if (!applyToLowerOnly && avaliables[j].hasGlyphStemAbove || !(w[j] < thinStrokeLimit)) continue;
+				var thinStrokeLimit = [properWidths[j], 2, properWidths[j]][psi];
+				if (!(applyToLowerOnly || !avaliables[j].hasGlyphStemAbove) || !(w[j] < thinStrokeLimit)) continue;
 
 				var able = true;
-				for (var k = 0; k < j; k++) if (directOverlaps[j][k] && (
-					y[k] <= avaliables[k].low || y[j] - w[j] - y[k] <= 1
-					&& w[k] < (cover(avaliables[j], avaliables[k]) ? 2 : minShrinkStrokeLength))) {
+				for (var k = 0; k < j; k++) if (directOverlaps[j][k] && 
+					y[j] - w[j] - y[k] <= 1 && (y[k] <= avaliables[k].lowW ||
+					 w[k] < (cover(avaliables[j], avaliables[k]) ? 2 : minShrinkStrokeLength))) {
 					able = false;
 				}
 
 				if (able) {
-					w[j] += 1;
-					for (var k = 0; k < j; k++) if (directOverlaps[j][k] && y[j] - w[j] - y[k] <= 0) {
+					for (var k = 0; k < j; k++) if (directOverlaps[j][k] && y[j] - w[j] - y[k] <= 1) {
 						y[k] -= 1;
 						w[k] -= 1;
 					}
+					w[j] += 1;
 				}
 			}
 		}
@@ -158,8 +158,8 @@ function allocateWidth(y0, env) {
 			if (spaceAbove(env, y, w, k, pixelTopPixels + 1) < 1
 				|| spaceAbove(env, y, w, m, pixelTopPixels + 1) < 1
 				|| spaceBelow(env, y, w, k, pixelBottomPixels - 1) < 1
-				|| y[k] < avaliables[k].low || y[k] > avaliables[k].high
-				|| y[m] < avaliables[m].low || y[m] > avaliables[m].high) {
+				|| y[k] < avaliables[k].lowW || y[k] > avaliables[k].highW
+				|| y[m] < avaliables[m].lowW || y[m] > avaliables[m].highW) {
 				y = y1; w = w1;
 			}
 		}
@@ -187,14 +187,14 @@ function allocateWidth(y0, env) {
 			var d2 = y[k] - w[k] - y[m];
 			var o1 = avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0;
 			var o2 = avaliables[k].y0 - avaliables[k].w0 - avaliables[m].y0;
-			if (su > 1 && (sb < 1 || d1 >= d2 * 2) && y[k] < avaliables[k].high && o1 / o2 <= 1.25 && env.P[j][k] <= env.P[k][m]) {
+			if (su > 1 && (sb < 1 || d1 >= d2 * 2) && y[k] < avaliables[k].highW && o1 / o2 <= 1.25 && env.P[j][k] <= env.P[k][m]) {
 				// A distorted triplet space, but we can adjust this stem up.
 				y[k] += 1;
 			} else if (sb > 1 && (su < 1 || d2 >= d1 * 2) && o2 / o1 <= 1.25 && env.P[j][k] >= env.P[k][m]) {
 				if (w[k] < properWidths[k]) {
 					// A distorted triplet space, but we increase the middle stem’s weight
 					w[k] += 1;
-				} else if (y[k] > avaliables[k].low) {
+				} else if (y[k] > avaliables[k].lowW) {
 					// A distorted triplet space, but we can adjust this stem down.
 					y[k] -= 1;
 				}
