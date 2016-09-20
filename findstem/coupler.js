@@ -182,10 +182,12 @@ function identifyStem(used, segs, candidates, graph, up, j, strategy) {
 		}
 		if (candidate.high.length && candidate.low.length) {
 			foundMatch = true;
-			var highEdge = candidate.high.map(function (x) { return segs[x] })
-				.sort(function (a, b) { return a.xori - b.xori });
-			var lowEdge = candidate.low.map(function (x) { return segs[x] })
-				.sort(function (a, b) { return a.xori - b.xori });
+			var highEdge = [];
+			var lowEdge = [];
+			for (var m = 0; m < candidate.high.length; m++) { highEdge[m] = segs[candidate.high[m]] }
+			for (var m = 0; m < candidate.low.length; m++) { lowEdge[m] = segs[candidate.low[m]] }
+			highEdge = highEdge.sort(by_xori);
+			lowEdge = lowEdge.sort(by_xori).reverse();
 			var segOverlap = overlapInfo(highEdge, lowEdge, strategy);
 			var hasEnoughOverlap = (segOverlap.len / segOverlap.la >= strategy.COLLISION_MIN_OVERLAP_RATIO
 				|| segOverlap.len / segOverlap.lb >= strategy.COLLISION_MIN_OVERLAP_RATIO);
@@ -220,9 +222,11 @@ function identifyStem(used, segs, candidates, graph, up, j, strategy) {
 	}
 }
 
+function by_yori(a, b) { return b[0].yori - a[0].yori };
+function by_xori(a, b) { return b[0].yori - a[0].yori };
 function pairSegmentsForRadical(radical, r, strategy) {
 	var graph = [], up = [];
-	var segs = radical.segments.sort(function (a, b) { return b[0].yori - a[0].yori });
+	var segs = radical.segments.sort(by_yori);
 	for (var j = 0; j < segs.length; j++) {
 		graph[j] = [];
 		for (var k = 0; k < segs.length; k++) {

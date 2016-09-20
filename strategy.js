@@ -55,7 +55,7 @@ var DefaultStrategy = function () {
 		TBST_LIMIT: 0.25,
 		DO_SHORT_ABSORPTION: true,
 		DONT_ADJUST_STEM_WIDTH: false,
-		SLOPE_FUZZ: 0.04,
+		SLOPE_FUZZ: 0.05,
 		Y_FUZZ: 7,
 		WIDTH_ALLOCATION_PASSES: 5,
 		STACK_DEPTH: 200

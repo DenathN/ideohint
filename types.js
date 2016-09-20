@@ -76,7 +76,7 @@ var inPoly = function (point, vs) {
 
 	var x = point.xori, y = point.yori;
 
-	var inside = false;
+	var inside = 0;
 	for (var i = 0, j = vs.length - 2; i < vs.length - 1; j = i++) {
 		var xi = vs[i].xori, yi = vs[i].yori;
 		var xj = vs[j].xori, yj = vs[j].yori;
@@ -85,10 +85,13 @@ var inPoly = function (point, vs) {
 			&& (yj > yi ?
 				(x - xi) * (yj - yi) < (xj - xi) * (y - yi) :
 				(x - xi) * (yj - yi) > (xj - xi) * (y - yi));
-		if (intersect) inside = !inside;
+		if (intersect) {
+			if (yi > yj) inside += 1;
+			else inside -= 1;
+		}
 	}
 
-	return inside;
+	return !!inside;
 };
 Contour.prototype.includesPoint = function (z) {
 	return inPoly(z, this.points);

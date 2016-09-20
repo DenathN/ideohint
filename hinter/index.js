@@ -217,8 +217,7 @@ function hint(glyph, ppem, strategy) {
 			var w = tws[j] * uppx;
 			// The bottom limit of a stem
 			var lowlimit = atGlyphBottom(stems[j])
-				? pixelBottom + Math.min(w, WIDTH_GEAR_MIN * uppx)
-				: pixelBottom + Math.min(w, WIDTH_GEAR_MIN * uppx) + uppx;
+				? pixelBottom + w : pixelBottom + w + uppx;
 
 			// Add additional space below strokes with a fold under it.
 			if (stems[j].hasGlyphFoldBelow && !stems[j].hasGlyphStemBelow) {
