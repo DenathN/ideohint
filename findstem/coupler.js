@@ -18,9 +18,9 @@ function segmentInRadical(z, zkey, radical) {
 }
 
 function segmentJoinable(pivot, segment, radical) {
-	for (var s = 0; s < pivot.length; s++)for (var k = 0; k < pivot[s].length; k++) {
+	for (var k = 0; k < pivot.length; k++) {
 		for (var j = 0; j < segment.length; j++) {
-			if (segmentInRadical(segment[j], pivot[s][k], radical)) {
+			if (segmentInRadical(segment[j], pivot[k], radical)) {
 				return true;
 			}
 		}
@@ -29,21 +29,28 @@ function segmentJoinable(pivot, segment, radical) {
 }
 
 function segmentTetragonalInRadical(s1, s2, radical) {
-	var insegs = 0;
-	if (segmentInRadical(s1[0], s2[0], radical)) insegs++;
-	if (segmentInRadical(s1[0], s2[1], radical)) insegs++;
-	if (segmentInRadical(s1[1], s2[0], radical)) insegs++;
-	if (segmentInRadical(s1[1], s2[1], radical)) insegs++;
-	var m1 = {
-		xori: (s1[0].xori + s1[1].xori) / 2,
-		yori: (s1[0].yori + s1[1].yori) / 2
+	var steps = 32;
+	for (var j = 1; j < steps; j++) {
+		var m1 = {
+			xori: s1[0].xori + (s1[1].xori - s1[0].xori) * (j / steps),
+			yori: s1[0].yori + (s1[1].yori - s1[0].yori) * (j / steps)
+		}
+		var m2 = {
+			xori: s2[0].xori + (s2[1].xori - s2[0].xori) * (j / steps),
+			yori: s2[0].yori + (s2[1].yori - s2[0].yori) * (j / steps)
+		}
+		if (!segmentInRadical(m1, m2, radical)) return false;
+		var m1 = {
+			xori: s1[0].xori + (s1[1].xori - s1[0].xori) * (j / steps),
+			yori: s1[0].yori + (s1[1].yori - s1[0].yori) * (j / steps)
+		}
+		var m2 = {
+			xori: s2[0].xori + (s2[1].xori - s2[0].xori) * (1 - j / steps),
+			yori: s2[0].yori + (s2[1].yori - s2[0].yori) * (1 - j / steps)
+		}
+		if (!segmentInRadical(m1, m2, radical)) return false;
 	}
-	var m2 = {
-		xori: (s2[0].xori + s2[1].xori) / 2,
-		yori: (s2[0].yori + s2[1].yori) / 2
-	}
-	if (segmentInRadical(m1, m2, radical)) insegs++;
-	return (insegs >= 3);
+	return true;
 }
 
 function segmentPairable(u, v, radical) {
@@ -98,57 +105,164 @@ function findHorizontalSegments(radicals, strategy) {
 		}
 	}
 
-	segments = segments.sort(function (p, q) { return p[0].xori - q[0].xori })
+	segments = segments.sort(function (p, q) { return p[0].xori - q[0].xori });
 
 	// Join segments
 	for (var j = 0; j < segments.length; j++) if (segments[j]) {
-		var pivot = [segments[j]];
 		var pivotRadical = segments[j].radical;
-		var orientation = pivot[0][1].xori > pivot[0][0].xori
-		segments[j] = null;
-		for (var k = j + 1; k < segments.length; k++) if (segments[k] && segments[k].radical === pivotRadical) {
-			var pendingSegmentLength = Math.abs(segments[k][1].xori - segments[k][0].xori);
-			var distanceBetween = orientation ? Math.abs(segments[k][0].xori - pivot[pivot.length - 1][1].xori)
-				: Math.abs(segments[k][1].xori - pivot[pivot.length - 1][0].xori);
-			if (Math.abs(segments[k][0].yori - pivot[0][0].yori) <= strategy.Y_FUZZ
-				&& orientation === (segments[k][1].xori > segments[k][0].xori)
-				&& segmentJoinable(pivot, segments[k], radicals[pivotRadical])) {
-				pivot.push(segments[k])
-				segments[k] = null;
-			}
-		}
-		radicals[pivotRadical].mergedSegments.push(pivot.sort(function (s1, s2) {
-			return orientation ? s1[0].xori - s2[0].xori : s2[0].xori - s1[0].xori
-		}))
+		radicals[pivotRadical].segments.push(segments[j]);
 	}
 }
 
-function pairSegmentsForRadical(radical, r, strategy) {
-	var radicalStems = [];
-	var segs = radical.mergedSegments.sort(function (a, b) { return a[0][0].yori - b[0][0].yori });
-	var ori = radical.outline.ccw;
-	// We stem segments upward-down.
-	for (var j = segs.length - 1; j >= 0; j--) if (segs[j] && ori !== (segs[j][0][0].xori < segs[j][0][segs[j][0].length - 1].xori)) {
-		var stem = { high: segs[j] };
-		for (var k = j - 1; k >= 0; k--) if (segs[k]) {
-			var segOverlap = overlapInfo(segs[j], segs[k], strategy);
-			if (segOverlap.len / segOverlap.la >= strategy.COLLISION_MIN_OVERLAP_RATIO || segOverlap.len / segOverlap.lb >= strategy.COLLISION_MIN_OVERLAP_RATIO) {
-				if (ori === (segs[k][0][0].xori < segs[k][0][segs[k][0].length - 1].xori)
-					&& !isVertical(segs[j], segs[k])
-					&& segmentPairable(segs[j], segs[k], radical)) {
-					// A stem is found
-					stem.low = segs[k];
-					stem.yori = stem.high[0][0].yori;
-					stem.width = Math.abs(stem.high[0][0].yori - stem.low[0][0].yori);
-					stem.belongRadical = r;
-					segs[j] = segs[k] = null;
-					radicalStems.push(stem);
+function uuCouplable(sj, sk, radical, strategy) {
+	return Math.abs(sj[0].yori - sk[0].yori) <= strategy.Y_FUZZ && segmentJoinable(sj, sk, radical);
+}
+function udMatchable(sj, sk, radical, strategy) {
+	//var segOverlap = overlapInfo([sj], [sk], strategy);
+	return segmentTetragonalInRadical(sj, sk, radical);
+}
+
+function identifyStem(used, segs, candidates, graph, up, j, strategy) {
+	var candidate = {
+		high: [],
+		low: []
+	}
+	var strat, end, delta;
+	if (up[j]) {
+		candidate.high.push(j);
+	} else {
+		candidate.low.push(j);
+	}
+	var rejected = [];
+	used[j] = true;
+	var succeed = false;
+	var foundMatch = false;
+	var rounds = 0;
+	while (!foundMatch && rounds < 3) {
+		rounds += 1;
+		var expandingU = false;
+		var expandingD = true;
+		var pass = 0;
+		while (expandingU || expandingD) {
+			pass += 1;
+			if (pass % 2) {
+				expandingD = false;
+			} else {
+				expandingU = false;
+			}
+			for (var k = 0; k < segs.length; k++) if (!used[k] && (up[k] !== up[j]) === (!!(pass % 2))) {
+				var sameSide, otherSide;
+				if (up[k]) {
+					sameSide = candidate.high;
+					otherSide = candidate.low;
+				} else {
+					sameSide = candidate.low;
+					otherSide = candidate.high;
 				}
-				break;
+				var matchD = true;
+				var matchU = !sameSide.length;
+				for (var s = 0; s < sameSide.length; s++) {
+					var hj = sameSide[s];
+					if (graph[k][hj] === 1 || graph[hj][k] === 1) matchU = true;
+				}
+				for (var s = 0; s < otherSide.length; s++) {
+					var hj = otherSide[s];
+					if (graph[k][hj] !== 2 && graph[hj][k] !== 2) matchD = false;
+				}
+				if (matchU && matchD) {
+					sameSide.push(k);
+					if (pass % 2) {
+						expandingD = true;
+					} else {
+						expandingU = true;
+					}
+					used[k] = true;
+				}
 			}
 		}
-	};
-	return radicalStems;
+		if (candidate.high.length && candidate.low.length) {
+			foundMatch = true;
+			var highEdge = [];
+			var lowEdge = [];
+			for (var m = 0; m < candidate.high.length; m++) { highEdge[m] = segs[candidate.high[m]] }
+			for (var m = 0; m < candidate.low.length; m++) { lowEdge[m] = segs[candidate.low[m]] }
+			highEdge = highEdge.sort(by_xori);
+			lowEdge = lowEdge.sort(by_xori).reverse();
+			var segOverlap = overlapInfo(highEdge, lowEdge, strategy);
+			var hasEnoughOverlap = (segOverlap.len / segOverlap.la >= strategy.COLLISION_MIN_OVERLAP_RATIO
+				|| segOverlap.len / segOverlap.lb >= strategy.COLLISION_MIN_OVERLAP_RATIO);
+			if (!isVertical(highEdge, lowEdge) && hasEnoughOverlap) {
+				succeed = true;
+				candidates.push({
+					high: highEdge,
+					low: lowEdge
+				});
+			}
+		}
+
+		if (foundMatch && !succeed) {
+			// We found a stem match, but it is not good enough.
+			// We will "reject" the corresponded edge for now, and release them in the future
+			if (up[j]) {
+				for (var k = 0; k < candidate.low.length; k++) {
+					rejected[candidate.low[k]] = true;
+				}
+				candidate.low = [];
+			} else {
+				for (var k = 0; k < candidate.high.length; k++) {
+					rejected[candidate.high[k]] = true;
+				}
+				candidate.high = [];
+			}
+			foundMatch = false;
+		}
+	}
+	for (var k = 0; k < segs.length; k++) {
+		if (rejected[k]) { used[k] = false }
+	}
+}
+
+function by_yori(a, b) { return b[0].yori - a[0].yori };
+function by_xori(a, b) { return b[0].yori - a[0].yori };
+function pairSegmentsForRadical(radical, r, strategy) {
+	var graph = [], up = [];
+	var segs = radical.segments.sort(by_yori);
+	for (var j = 0; j < segs.length; j++) {
+		graph[j] = [];
+		for (var k = 0; k < segs.length; k++) {
+			graph[j][k] = 0;
+		}
+	}
+	for (var j = 0; j < segs.length; j++) {
+		var sj = segs[j];
+		var upperEdgeJ = radical.outline.ccw !== (sj[0].xori < sj[sj.length - 1].xori);
+		up[j] = upperEdgeJ;
+		for (var k = 0; k < j; k++) {
+			var sk = segs[k];
+			var upperEdgeK = radical.outline.ccw !== (sk[0].xori < sk[sk.length - 1].xori);
+			if (upperEdgeJ === upperEdgeK) {
+				// Both upper
+				graph[j][k] = uuCouplable(sj, sk, radical, strategy) ? 1 : 0;
+			} else {
+				graph[j][k] = udMatchable(sj, sk, radical, strategy) ? 2 : 0;
+			}
+		}
+	}
+	var candidates = [];
+	var used = [];
+	for (var j = 0; j < segs.length; j++)if (!used[j]) {
+		identifyStem(used, segs, candidates, graph, up, j, strategy);
+	}
+	return candidates.map(function (s) {
+		return {
+			high: s.high,
+			low: s.low,
+			yori: s.high[0][0].yori,
+			width: Math.abs(s.high[0][0].yori - s.low[0][0].yori),
+			belongRadical: r
+		}
+	});
+
 }
 
 function pairSegments(radicals, strategy) {

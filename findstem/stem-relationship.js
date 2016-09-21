@@ -130,25 +130,31 @@ exports.analyzeStemSpatialRelationships = function (stems, radicals, overlaps, s
 		}
 	}
 };
-exports.analyzePointBetweenStems = function (stems, radicals, strategy) {
+
+function analyzePBS(u, v, radical, strategy) {
 	var blueFuzz = strategy.BLUEZONE_WIDTH || 15;
+	var radicalParts = [radical.outline].concat(radical.holes);
+	var ans = 0;
+	for (var j = 0; j < radicalParts.length; j++) for (var k = 0; k < radicalParts[j].points.length - 1; k++) {
+		var point = radicalParts[j].points[k];
+		if ((!u.hasGlyphPointAbove || !v.hasGlyphPointBelow || point.xExtrema || point.yExtrema) && point.yori > v.yori + blueFuzz && point.yori < u.yori - u.width - blueFuzz
+			&& point.xori > v.xmin + blueFuzz && point.xori < v.xmax - blueFuzz
+			&& point.xori > u.xmin + blueFuzz && point.xori < u.xmax - blueFuzz) {
+			if (ans < 1) ans = 1;
+			if (point.xStrongExtrema && ans < 2) { ans = 2; }
+		}
+	}
+	return ans;
+}
+
+exports.analyzePointBetweenStems = function (stems, radicals, strategy) {
 	var res = [];
 	for (var sj = 0; sj < stems.length; sj++) {
 		res[sj] = [];
 		for (var sk = 0; sk < sj; sk++) {
 			res[sj][sk] = 0;
 			for (var rad = 0; rad < radicals.length; rad++) {
-				var radical = radicals[rad];
-				var radicalParts = [radical.outline].concat(radical.holes);
-				for (var j = 0; j < radicalParts.length; j++) for (var k = 0; k < radicalParts[j].points.length - 1; k++) {
-					var point = radicalParts[j].points[k];
-					if ((!stems[sj].hasGlyphPointAbove || !stems[sk].hasGlyphPointBelow || point.xExtrema || point.yExtrema) && point.yori > stems[sk].yori + blueFuzz && point.yori < stems[sj].yori - stems[sj].width - blueFuzz
-						&& point.xori > stems[sk].xmin + blueFuzz && point.xori < stems[sk].xmax - blueFuzz
-						&& point.xori > stems[sj].xmin + blueFuzz && point.xori < stems[sj].xmax - blueFuzz) {
-						if (res[sj][sk] < 1) res[sj][sk] = 1;
-						if (point.xStrongExtrema && res[sj][sk] < 2) { res[sj][sk] = 2; }
-					}
-				}
+				res[sj][sk] += analyzePBS(stems[sj], stems[sk], radicals[rad], strategy);
 			}
 		}
 	};

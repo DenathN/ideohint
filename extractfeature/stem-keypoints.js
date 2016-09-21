@@ -59,7 +59,7 @@ module.exports = function (glyph, strategy) {
 		s.advAlign = b ? highnonkey : lownonkey;
 		s.posKeyAtTop = !b;
 		s.posKey.keypoint = true;
-		//s.advKey.keypoint = true;
+		s.advKey.keypoint = true;
 		s.posKey.slope = s.advKey.slope = s.slope;
 	}
 }

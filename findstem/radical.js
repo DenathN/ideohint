@@ -4,6 +4,7 @@ function Radical(outline) {
 	this.outline = outline;
 	this.holes = [];
 	this.subs = [];
+	this.segments = [];
 }
 Radical.prototype.includes = function (z) {
 	if (!this.outline.includesPoint(z)) return false;

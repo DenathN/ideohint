@@ -1,21 +1,25 @@
 "use strict"
-
+function byAt(p, q) { return p.at - q.at }
 function overlapInfo(a, b, strategy) {
 	var events = []
 	for (var j = 0; j < a.length; j++) {
-		var low = Math.min(a[j][0].xori, a[j][a[j].length - 1].xori)
-		var high = Math.max(a[j][0].xori, a[j][a[j].length - 1].xori)
-		events.push({ at: low, on: true, a: true })
-		events.push({ at: high, on: false, a: true })
+		var low = Math.min(a[j][0].xori, a[j][a[j].length - 1].xori);
+		var high = Math.max(a[j][0].xori, a[j][a[j].length - 1].xori);
+		if (low < high) {
+			events.push({ at: low, on: true, a: true });
+			events.push({ at: high, on: false, a: true });
+		}
 	}
 	var probeb = new Array(strategy.UPM || 1000);
 	for (var j = 0; j < b.length; j++) {
-		var low = Math.min(b[j][0].xori, b[j][b[j].length - 1].xori)
-		var high = Math.max(b[j][0].xori, b[j][b[j].length - 1].xori)
-		events.push({ at: low, on: true, a: false })
-		events.push({ at: high, on: false, a: false })
+		var low = Math.min(b[j][0].xori, b[j][b[j].length - 1].xori);
+		var high = Math.max(b[j][0].xori, b[j][b[j].length - 1].xori);
+		if (low < high) {
+			events.push({ at: low, on: true, a: false });
+			events.push({ at: high, on: false, a: false });
+		}
 	}
-	events.sort(function (p, q) { return p.at - q.at })
+	events.sort(byAt);
 	var len = 0, la = 0, lb = 0;
 	var st = 0, sa = 0, sb = 0;
 	var ac = 0;

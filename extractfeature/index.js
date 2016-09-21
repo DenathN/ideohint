@@ -10,6 +10,7 @@ var analyzeTriplets = require('./triplet').analyzeTriplets;
 var analyzeBlanks = require('./triplet').analyzeBlanks;
 var analyzeFlex = require('./flex');
 var getStemKeyInfo = require('./stem-keyinfo');
+var analyzeDominance = require('./dominance');
 
 function byyori(a, b) { return a.yori - b.yori }
 
@@ -26,6 +27,7 @@ exports.extractFeature = function (glyph, strategy) {
 	var triplets = analyzeTriplets(glyph.stems, directOverlaps, blanks);
 	var strictTriplets = analyzeTriplets(glyph.stems, strictOverlaps, strictBlanks);
 	var flexes = analyzeFlex(glyph, blanks);
+	var dominancePriority = analyzeDominance(glyph.stems);
 	return {
 		stats: glyph.stats,
 		stems: glyph.stems.map(getStemKeyInfo).sort(byyori),
@@ -41,6 +43,7 @@ exports.extractFeature = function (glyph, strategy) {
 		topBluePoints: blueZonePoints.top,
 		bottomBluePoints: blueZonePoints.bottom,
 		interpolations: iss.interpolations,
-		shortAbsorptions: iss.shortAbsorptions
+		shortAbsorptions: iss.shortAbsorptions,
+		dominancePriority: dominancePriority
 	}
 }

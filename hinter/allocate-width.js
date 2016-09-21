@@ -51,33 +51,12 @@ function allocateWidth(y0, env) {
 			if (w >= wr) allocated[j] = true;
 		}
 	};
-	function allocateUp(j) {
-		var sb = spaceBelow(env, y, w, j, pixelBottomPixels - 1);
-		var sa = spaceAbove(env, y, w, j, pixelTopPixels + 1);
-		var wr = properWidths[j];
-		var wx = Math.min(wr, w[j] + sb);
-		if (wx <= 1) return;
-		if (sa > 1.75 && y[j] < avaliables[j].highW) {
-			if (sb + w[j] >= wr && y[j] - wr >= pixelBottomPixels || avaliables[j].atGlyphBottom && y[j] - wr + 1 >= pixelBottomPixels) {
-				y[j] += 1;
-				w[j] = wr;
-				allocated[j] = true;
-			} else if (y[j] - wx >= pixelBottomPixels || avaliables[j].atGlyphBottom && y[j] - wx + 1 >= pixelBottomPixels) {
-				y[j] += 1;
-				w[j] = wx;
-				if (wx >= wr) allocated[j] = true;
-			}
-		}
-	};
 
 	for (var pass = 0; pass < 5; pass++) {
 		// Allocate top and bottom stems
 		for (var j = 0; j < N; j++) if ((avaliables[j].atGlyphTop || avaliables[j].atGlyphBottom) && !allocated[j]) { allocateDown(j) };
-		for (var j = N - 1; j >= 0; j--) if ((avaliables[j].atGlyphTop || avaliables[j].atGlyphBottom) && !allocated[j]) { allocateUp(j) };
-		// Allocate center stems
 		for (var subpass = 0; subpass < env.strategy.WIDTH_ALLOCATION_PASSES; subpass++) {
 			for (var j = 0; j < N; j++) if (!allocated[j]) { allocateDown(j) };
-			for (var j = N - 1; j >= 0; j--) if (!allocated[j]) { allocateUp(j) };
 		}
 	}
 
@@ -94,10 +73,10 @@ function allocateWidth(y0, env) {
 				for (var k = 0; k < j; k++) if (strictOverlaps[j][k] && y[j] - w[j] - y[k] <= 1
 					// with one pixel space, and see do the lower-adjustment, unless...
 					&& ( // there is no stem below satisifies:
-						y[k] <= avaliables[k].lowW // It is already low enough, or
+						y[k] <= avaliables[k].low // It is already low enough, or
 						|| y[k] <= pixelBottomPixels + w[k] // There is no space, or
 						|| w[k] < 2 // It is already thin enough, or 
-						|| cover(avaliables[k], avaliables[j]) && w[k] < minShrinkStrokeLength) // It is a dominator, and it has only one or two pixels
+					) // It is a dominator, and it has only one or two pixels
 				) {
 					able = false;
 				}
@@ -110,6 +89,27 @@ function allocateWidth(y0, env) {
 					w[j] += 1;
 				}
 			}
+			for (var j = N - 1; j >= 0; j--) {
+				if (w[j] >= (!avaliables[j].hasGlyphFoldBelow ? properWidths[j] : 2) || y[j] >= avaliables[j].highW || (!avaliables[j].hasGlyphStemAbove && y[j] >= pixelTopPixels - 2)) continue;
+				var able = true;
+				// We search for strokes above,
+				for (var k = j + 1; k < N; k++) if (strictOverlaps[k][j] && y[k] - w[k] - y[j] <= 1
+					// with one pixel space, and prevent upward adjustment, if
+					&& ( // there is no stem below satisifies:
+						!cover(avaliables[j], avaliables[k]) // it is not dominated with stroke J
+						|| w[k] < properWidths[k]) // or it is thin enough
+				) {
+					able = false;
+				}
+
+				if (able) {
+					for (var k = j + 1; k < N; k++) if (strictOverlaps[k][j] && y[k] - w[k] - y[j] <= 1) {
+						w[k] -= 1;
+					}
+					y[j] += 1;
+					w[j] += 1;
+				}
+			}
 		}
 
 		// Triplet balancing
@@ -117,7 +117,7 @@ function allocateWidth(y0, env) {
 			var j = strictTriplets[t][0], k = strictTriplets[t][1], m = strictTriplets[t][2];
 			var y1 = y.slice(0), w1 = w.slice(0);
 			// [3] 2 [3] 1 [2] -> [3] 1 [3] 1 [3]
-			if (properWidths[j] > 2 && w[m] <= properWidths[j] - 1 && y[j] - w[j] - y[k] >= 2 && y[k] - w[k] - y[m] === 1) {
+			if (properWidths[j] > 2 && w[m] <= properWidths[m] - 1 && y[j] - w[j] - y[k] >= 2 && y[k] - w[k] - y[m] === 1) {
 				y[k] += 1, y[m] += 1, w[m] += 1;
 			}
 			// [2] 2 [3] 1 [3] -> [3] 1 [3] 1 [3]
@@ -125,7 +125,7 @@ function allocateWidth(y0, env) {
 				w[j] += 1;
 			}
 			// [3] 1 [3] 2 [2] -> [3] 1 [3] 1 [3]
-			else if (properWidths[j] > 2 && w[m] <= properWidths[j] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] >= 2) {
+			else if (properWidths[j] > 2 && w[m] <= properWidths[m] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] >= 2) {
 				y[m] += 1, w[m] += 1;
 			}
 			// [2] 1 [3] 2 [3] -> [3] 1 [3] 1 [3]
@@ -141,15 +141,15 @@ function allocateWidth(y0, env) {
 				}
 			}
 			// [3] 1 [2] 1 [1] -> [2] 1 [2] 1 [2]
-			else if (properWidths[j] > 2 && w[j] === properWidths[j] && w[k] <= properWidths[j] - 1 && w[m] <= properWidths[j] - 2) {
+			else if (properWidths[j] > 2 && w[j] === properWidths[j] && w[k] <= properWidths[k] - 1 && w[m] <= properWidths[m] - 2) {
 				w[j] -= 1, y[k] += 1, y[m] += 1, w[m] += 1;
 			}
 			// [1] 1 [3] 1 [2] -> [2] 1 [2] 1 [2]
-			else if (properWidths[k] > 2 && w[k] === properWidths[k] && w[m] <= properWidths[j] - 1 && w[j] <= properWidths[j] - 2) {
+			else if (properWidths[k] > 2 && w[k] === properWidths[k] && w[m] <= properWidths[m] - 1 && w[j] <= properWidths[j] - 2) {
 				w[j] += 1, y[k] -= 1, w[k] -= 1;
 			}
 			// [2] 1 [1] 1 [3] -> [2] 1 [2] 1 [2]
-			else if (properWidths[m] > 2 && w[m] === properWidths[m] && w[j] <= properWidths[j] - 1 && w[k] <= properWidths[j] - 2) {
+			else if (properWidths[m] > 2 && w[m] === properWidths[m] && w[j] <= properWidths[j] - 1 && w[k] <= properWidths[k] - 2) {
 				w[k] += 1, w[m] -= 1, y[m] -= 1;
 			}
 			// [2] 1 [3] 1 [1] -> [2] 1 [2] 1 [2]
@@ -157,11 +157,11 @@ function allocateWidth(y0, env) {
 				w[k] -= 1, w[m] += 1, y[m] += 1;
 			}
 			// [3] 1 [1] 1 [2] -> [2] 1 [2] 1 [2]
-			else if (properWidths[j] > 2 && w[j] === properWidths[j] && w[m] <= properWidths[m] - 1 && w[k] <= properWidths[j] - 2) {
+			else if (properWidths[j] > 2 && w[j] === properWidths[j] && w[m] <= properWidths[m] - 1 && w[k] <= properWidths[k] - 2) {
 				w[j] -= 1, y[k] += 1, w[k] += 1;
 			}
 			// [1] 1 [2] 1 [3] -> [2] 1 [2] 1 [2]
-			else if (properWidths[m] > 2 && w[m] === properWidths[m] && w[k] <= properWidths[j] - 1 && w[j] <= properWidths[j] - 2) {
+			else if (properWidths[m] > 2 && w[m] === properWidths[m] && w[k] <= properWidths[k] - 1 && w[j] <= properWidths[j] - 2) {
 				w[j] += 1, w[m] -= 1, y[k] -= 1, y[m] -= 1;
 			}
 			// [1] 1 [2] 2 [2] -> [2] 1 [2] 1 [2]
@@ -172,9 +172,18 @@ function allocateWidth(y0, env) {
 			else if (w[m] <= properWidths[j] - 1 && y[j] - w[j] - y[k] > 1 && y[k] - w[k] - y[m] === 1) {
 				y[k] += 1, y[m] += 1, w[m] += 1;
 			}
+			// [1T] 1 [1] 1 [2] -> [2] 1 [1] 1 [1]
+			else if (avaliables[j].atGlyphTop && w[j] <= properWidths[j] - 1 && w[k] <= properWidths[k] - 1 && w[m] >= properWidths[m]) {
+				w[m] -= 1, w[j] += 1, y[m] -= 1, y[k] -= 1
+			}
+			// [1T] 1 [2] 1 [*] -> [2] 1 [1] 1 [*]
+			else if (avaliables[j].atGlyphTop && w[j] <= properWidths[j] - 1 && w[k] >= properWidths[k]) {
+				w[k] -= 1, y[k] -= 1, w[j] += 1
+			}
 
 			// rollback when no space
-			if (spaceAbove(env, y, w, k, pixelTopPixels + 1) < 1
+			if (spaceBelow(env, y, w, j, pixelBottomPixels - 1) < 1
+				|| spaceAbove(env, y, w, k, pixelTopPixels + 1) < 1
 				|| spaceAbove(env, y, w, m, pixelTopPixels + 1) < 1
 				|| spaceBelow(env, y, w, k, pixelBottomPixels - 1) < 1
 				|| y[k] < avaliables[k].lowW || y[k] > avaliables[k].highW
@@ -208,10 +217,10 @@ function allocateWidth(y0, env) {
 			var d2 = y[k] - w[k] - y[m];
 			var o1 = avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0;
 			var o2 = avaliables[k].y0 - avaliables[k].w0 - avaliables[m].y0;
-			if (su > 1 && (sb < 1 || d1 >= d2 * 2) && y[k] < avaliables[k].highW && o1 / o2 <= 1.25 && env.P[j][k] <= env.P[k][m]) {
+			if (su > 1 && (sb < 1 || d1 >= d2 * 1.66) && y[k] < avaliables[k].highW && o1 / o2 <= 1.25 && env.P[j][k] <= env.P[k][m]) {
 				// A distorted triplet space, but we can adjust this stem up.
 				y[k] += 1;
-			} else if (sb > 1 && (su < 1 || d2 >= d1 * 2) && o2 / o1 <= 1.25 && env.P[j][k] >= env.P[k][m]) {
+			} else if (sb > 1 && (su < 1 || d2 >= d1 * 1.66) && o2 / o1 <= 1.25 && env.P[j][k] >= env.P[k][m]) {
 				if (w[k] < properWidths[k]) {
 					// A distorted triplet space, but we increase the middle stem’s weight
 					w[k] += 1;
