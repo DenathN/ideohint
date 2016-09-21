@@ -176,6 +176,10 @@ function allocateWidth(y0, env) {
 			else if (avaliables[j].atGlyphTop && w[j] <= properWidths[j] - 1 && w[k] <= properWidths[k] - 1 && w[m] >= properWidths[m]) {
 				w[m] -= 1, w[j] += 1, y[m] -= 1, y[k] -= 1
 			}
+			// [1T] 1 [2] 1 [*] -> [2] 1 [1] 1 [*]
+			else if (avaliables[j].atGlyphTop && w[j] <= properWidths[j] - 1 && w[k] >= properWidths[k]) {
+				w[k] -= 1, y[k] -= 1, w[j] += 1
+			}
 
 			// rollback when no space
 			if (spaceBelow(env, y, w, j, pixelBottomPixels - 1) < 1

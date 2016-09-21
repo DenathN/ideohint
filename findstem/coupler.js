@@ -140,7 +140,7 @@ function identifyStem(used, segs, candidates, graph, up, j, strategy) {
 	var rounds = 0;
 	while (!foundMatch && rounds < 3) {
 		rounds += 1;
-		var expandingU = true;
+		var expandingU = false;
 		var expandingD = true;
 		var pass = 0;
 		while (expandingU || expandingD) {
