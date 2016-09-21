@@ -4,7 +4,6 @@ function BY_YORI(p, q) { return p.yori - q.yori }
 function adjacent(z1, z2) { return z1.prev === z2 || z2.prev === z1; }
 function shortAbsorptionPointByKeys(shortAbsorptions, strategy, pt, keys, inSameRadical, priority) {
 	if (pt.touched || pt.donttouch || !pt.on || !strategy.DO_SHORT_ABSORPTION || !inSameRadical) return;
-
 	for (var m = 0; m < keys.length; m++) {
 		var key = keys[m];
 		if (key.blued && key.yStrongExtrema && (Math.hypot(pt.yori - key.yori, pt.xori - key.xori) <= strategy.ABSORPTION_LIMIT && pt.xStrongExtrema)) {
@@ -100,6 +99,7 @@ module.exports = function (glyph, strategy) {
 			var midex = contourExtrema.slice(1, -1).filter(function (p) {
 				return p.xStrongExtrema || p.yExtrema
 			});
+			var blues = contourpoints.filter(function (p) { return p.blued });
 			var midexl = contourExtrema.slice(1, -1).filter(function (p) {
 				return p.xExtrema || p.yExtrema
 			});
@@ -107,6 +107,7 @@ module.exports = function (glyph, strategy) {
 				topbot: topbot,
 				midex: midex,
 				midexl: midexl,
+				blues: blues,
 				cka: contourAlignPoints,
 				ck: contourKeypoints,
 				ckx: contourKeypoints.concat(topbot).sort(BY_YORI),
@@ -117,6 +118,8 @@ module.exports = function (glyph, strategy) {
 			records.push({
 				topbot: [],
 				midex: [],
+				midexl: [],
+				blues: [],
 				cka: contourAlignPoints,
 				ck: contourKeypoints,
 				ckx: contourKeypoints,
@@ -128,7 +131,7 @@ module.exports = function (glyph, strategy) {
 	for (var j = 0; j < contours.length; j++) {
 		if (records[j].ck.length > 1) {
 			shortAbsorptionByKeys(shortAbsorptions, strategy, records[j].topbot, records[j].cka, true, 9, false);
-			shortAbsorptionByKeys(shortAbsorptions, strategy, records[j].midexl, records[j].topbot, true, 1, false);
+			shortAbsorptionByKeys(shortAbsorptions, strategy, records[j].midexl, records[j].blues, true, 1, false);
 		}
 	}
 	linkSoleStemPoints(shortAbsorptions, strategy, glyph, 7);

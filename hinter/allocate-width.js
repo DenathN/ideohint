@@ -117,7 +117,7 @@ function allocateWidth(y0, env) {
 			var j = strictTriplets[t][0], k = strictTriplets[t][1], m = strictTriplets[t][2];
 			var y1 = y.slice(0), w1 = w.slice(0);
 			// [3] 2 [3] 1 [2] -> [3] 1 [3] 1 [3]
-			if (properWidths[j] > 2 && w[m] <= properWidths[j] - 1 && y[j] - w[j] - y[k] >= 2 && y[k] - w[k] - y[m] === 1) {
+			if (properWidths[j] > 2 && w[m] <= properWidths[m] - 1 && y[j] - w[j] - y[k] >= 2 && y[k] - w[k] - y[m] === 1) {
 				y[k] += 1, y[m] += 1, w[m] += 1;
 			}
 			// [2] 2 [3] 1 [3] -> [3] 1 [3] 1 [3]
@@ -125,7 +125,7 @@ function allocateWidth(y0, env) {
 				w[j] += 1;
 			}
 			// [3] 1 [3] 2 [2] -> [3] 1 [3] 1 [3]
-			else if (properWidths[j] > 2 && w[m] <= properWidths[j] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] >= 2) {
+			else if (properWidths[j] > 2 && w[m] <= properWidths[m] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] >= 2) {
 				y[m] += 1, w[m] += 1;
 			}
 			// [2] 1 [3] 2 [3] -> [3] 1 [3] 1 [3]
@@ -141,15 +141,15 @@ function allocateWidth(y0, env) {
 				}
 			}
 			// [3] 1 [2] 1 [1] -> [2] 1 [2] 1 [2]
-			else if (properWidths[j] > 2 && w[j] === properWidths[j] && w[k] <= properWidths[j] - 1 && w[m] <= properWidths[j] - 2) {
+			else if (properWidths[j] > 2 && w[j] === properWidths[j] && w[k] <= properWidths[k] - 1 && w[m] <= properWidths[m] - 2) {
 				w[j] -= 1, y[k] += 1, y[m] += 1, w[m] += 1;
 			}
 			// [1] 1 [3] 1 [2] -> [2] 1 [2] 1 [2]
-			else if (properWidths[k] > 2 && w[k] === properWidths[k] && w[m] <= properWidths[j] - 1 && w[j] <= properWidths[j] - 2) {
+			else if (properWidths[k] > 2 && w[k] === properWidths[k] && w[m] <= properWidths[m] - 1 && w[j] <= properWidths[j] - 2) {
 				w[j] += 1, y[k] -= 1, w[k] -= 1;
 			}
 			// [2] 1 [1] 1 [3] -> [2] 1 [2] 1 [2]
-			else if (properWidths[m] > 2 && w[m] === properWidths[m] && w[j] <= properWidths[j] - 1 && w[k] <= properWidths[j] - 2) {
+			else if (properWidths[m] > 2 && w[m] === properWidths[m] && w[j] <= properWidths[j] - 1 && w[k] <= properWidths[k] - 2) {
 				w[k] += 1, w[m] -= 1, y[m] -= 1;
 			}
 			// [2] 1 [3] 1 [1] -> [2] 1 [2] 1 [2]
@@ -157,11 +157,11 @@ function allocateWidth(y0, env) {
 				w[k] -= 1, w[m] += 1, y[m] += 1;
 			}
 			// [3] 1 [1] 1 [2] -> [2] 1 [2] 1 [2]
-			else if (properWidths[j] > 2 && w[j] === properWidths[j] && w[m] <= properWidths[m] - 1 && w[k] <= properWidths[j] - 2) {
+			else if (properWidths[j] > 2 && w[j] === properWidths[j] && w[m] <= properWidths[m] - 1 && w[k] <= properWidths[k] - 2) {
 				w[j] -= 1, y[k] += 1, w[k] += 1;
 			}
 			// [1] 1 [2] 1 [3] -> [2] 1 [2] 1 [2]
-			else if (properWidths[m] > 2 && w[m] === properWidths[m] && w[k] <= properWidths[j] - 1 && w[j] <= properWidths[j] - 2) {
+			else if (properWidths[m] > 2 && w[m] === properWidths[m] && w[k] <= properWidths[k] - 1 && w[j] <= properWidths[j] - 2) {
 				w[j] += 1, w[m] -= 1, y[k] -= 1, y[m] -= 1;
 			}
 			// [1] 1 [2] 2 [2] -> [2] 1 [2] 1 [2]

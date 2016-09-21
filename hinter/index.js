@@ -2,6 +2,7 @@
 
 var util = require('util');
 var roundings = require('../roundings');
+var toposort = require('toposort');
 
 var evolve = require('./evolve');
 var Individual = require('./individual');
@@ -85,23 +86,6 @@ function hint(glyph, ppem, strategy) {
 	var pixelTop = pixelBottom + round(BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER);
 	var glyfBottom = pixelBottom;
 	var glyfTop = pixelTop;
-
-	function calculateWidth(w) {
-		var pixels = w / CANONICAL_STEM_WIDTH * WIDTH_GEAR_PROPER;
-
-		var pixels0 = pixels;
-		if (pixels > WIDTH_GEAR_PROPER) pixels = WIDTH_GEAR_PROPER;
-		if (pixels < WIDTH_GEAR_MIN) {
-			if (WIDTH_GEAR_MIN < 3) {
-				pixels = WIDTH_GEAR_MIN;
-			} else if (pixels < WIDTH_GEAR_MIN - 0.8 && WIDTH_GEAR_MIN === WIDTH_GEAR_PROPER) {
-				pixels = WIDTH_GEAR_MIN - 1;
-			} else {
-				pixels = WIDTH_GEAR_MIN;
-			}
-		}
-		return Math.round(pixels);
-	}
 
 	function atRadicalTop(stem) {
 		return !stem.hasSameRadicalStemAbove
@@ -188,29 +172,81 @@ function hint(glyph, ppem, strategy) {
 			flexMiddleStem(avaliables[flexes[j][0]], avaliables[flexes[j][1]], avaliables[flexes[j][2]]);
 		}
 	};
-	var avaliables = function (stems) {
-		var avaliables = [], tws = [];
+
+	function calculateWidth(w, coordinate) {
+		if (coordinate) {
+			var pixels = w / CANONICAL_STEM_WIDTH * WIDTH_GEAR_PROPER;
+		} else {
+			var pixels = w / uppx;
+		}
+
+		if (pixels > WIDTH_GEAR_PROPER) pixels = WIDTH_GEAR_PROPER;
+		if (pixels < WIDTH_GEAR_MIN) {
+			if (WIDTH_GEAR_MIN < 3) {
+				pixels = WIDTH_GEAR_MIN;
+			} else if (pixels < WIDTH_GEAR_MIN - 0.8 && WIDTH_GEAR_MIN === WIDTH_GEAR_PROPER) {
+				pixels = WIDTH_GEAR_MIN - 1;
+			} else {
+				pixels = WIDTH_GEAR_MIN;
+			}
+		}
+		return Math.round(pixels);
+	}
+
+	function decideWidths(stems, priority, tws) {
+		var areaLost = 0;
+		var totalWidth = 0;
 		for (var j = 0; j < stems.length; j++) {
-			tws[j] = calculateWidth(stems[j].width);
+			tws[j] = calculateWidth(stems[j].width, true);
+			totalWidth += stems[j].width;
+			areaLost += (stems[j].width / uppx - tws[j]) * (stems[j].xmax - stems[j].xmin);
 		}
 		// Coordinate widths
-		var totalWidth = 0;
-		var minWidth = 0xFFFF;
-		for (var j = 0; j < stems.length; j++) {
-			totalWidth += stems[j].width;
-			if (minWidth > stems[j].width) {
-				minWidth = stems[j].width
-			}
-		}
 		var averageWidth = totalWidth / stems.length;
-		var coordinateWidth = calculateWidth(averageWidth);
-		for (var j = 0; j < stems.length; j++) {
-			if (stems[j].width > averageWidth - uppx && tws[j] < coordinateWidth) {
-				tws[j] = coordinateWidth;
-			} else if (stems[j].width < averageWidth + uppx && tws[j] > coordinateWidth) {
-				tws[j] = coordinateWidth;
+		var coordinateWidth = calculateWidth(averageWidth, true);
+		if (areaLost > 0) {
+			var areaLostDecreased = true;
+			var passes = 0;
+			while (areaLostDecreased && areaLost > 0 && passes < 100) {
+				// We will try to increase stroke width if we detected that some pixels are lost.
+				areaLostDecreased = false;
+				passes += 1;
+				for (var m = 0; m < priority.length; m++) {
+					var j = priority[m];
+					var len = stems[j].xmax - stems[j].xmin;
+					if (tws[j] < WIDTH_GEAR_PROPER && areaLost > len / 2) {
+						tws[j] += 1;
+						areaLost -= len;
+						areaLostDecreased = true;
+						break;
+					}
+				}
+			}
+		} else {
+			var areaLostDecreased = true;
+			var passes = 0;
+			while (areaLostDecreased && areaLost < 0 && passes < 100) {
+				// We will try to increase stroke width if we detected that some pixels are lost.
+				areaLostDecreased = false;
+				passes += 1;
+				for (var m = priority.length - 1; m >= 0; m--) {
+					var j = priority[m];
+					var len = stems[j].xmax - stems[j].xmin;
+					if (tws[j] > coordinateWidth && areaLost < -len / 2) {
+						areaLost += len;
+						tws[j] -= 1;
+						areaLostDecreased = true;
+						break;
+					}
+				}
 			}
 		}
+		return coordinateWidth;
+	}
+
+	var avaliables = function (stems) {
+		var avaliables = [], tws = [];
+		var coordinateWidth = decideWidths(stems, glyph.dominancePriority, tws);
 		// Decide avaliability space
 		for (var j = 0; j < stems.length; j++) {
 			var y0 = stems[j].yori, w0 = stems[j].width;
@@ -218,12 +254,14 @@ function hint(glyph, ppem, strategy) {
 			// The bottom limit of a stem
 			var lowlimit = atGlyphBottom(stems[j])
 				? pixelBottom + w : pixelBottom + w + uppx;
-
+			var fold = false;
 			// Add additional space below strokes with a fold under it.
 			if (stems[j].hasGlyphFoldBelow && !stems[j].hasGlyphStemBelow) {
 				lowlimit = Math.max(pixelBottom + Math.max(coordinateWidth + 2, coordinateWidth > 2 ? coordinateWidth * 2 : coordinateWidth * 2 + 1) * uppx, lowlimit);
+				fold = true;
 			} else if (stems[j].hasGlyphSideFoldBelow && !stems[j].hasGlyphStemBelow) {
 				lowlimit = Math.max(pixelBottom + Math.max(coordinateWidth + 2, coordinateWidth * 2) * uppx, lowlimit);
+				fold = true;
 			}
 
 			// The top limit of a stem ('s upper edge)
@@ -246,7 +284,7 @@ function hint(glyph, ppem, strategy) {
 			var low = xclamp(lowlimit, round(center0) - uppx, highlimit);
 			var high = xclamp(lowlimit, round(center0) + uppx, highlimit);
 
-			var lowlimitW = (tws[j] > 2 ? lowlimit - uppx : lowlimit);
+			var lowlimitW = (!fold && tws[j] > 2 ? lowlimit - uppx : lowlimit);
 
 			var lowW = xclamp(lowlimitW, looseRoundingLow ? round(center0 - 2 * uppx) : round(center0) - uppx, highlimit);
 			var highW = xclamp(lowlimitW, looseRoundingHigh ? round(center0 + 2 * uppx) : round(center0) + uppx, highlimit);
