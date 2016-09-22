@@ -131,13 +131,15 @@ function allocateWidth(y0, env) {
 			var y1 = y.slice(0), w1 = w.slice(0);
 			// [1][2] -> [1] 1 [1]
 			if (w[j] === 1 && w[k] === 2 && w[k] === properWidths[k] && y[j] - y[k] === 1) {
-				w[k] -= 1;
-				y[k] -= 1;
+				w[k] -= 1, y[k] -= 1;
+			}
+			// [2][1] -> [1] 1 [1]
+			else if (w[j] === 2 && w[k] === 1 && w[j] === properWidths[j] && y[j] - y[k] === 2) {
+				w[j] -= 1;
 			}
 			// [2][2] -> [2] 1 [1]
 			else if (w[j] === 2 && w[k] === 2 && w[k] === properWidths[k] && y[j] - y[k] === 2) {
-				w[k] -= 1;
-				y[k] -= 1;
+				w[k] -= 1, y[k] -= 1;
 			}
 			if (spaceBelow(env, y, w, j, pixelBottom - 1) < 1
 				|| spaceAbove(env, y, w, k, pixelTop + 1) < 1
