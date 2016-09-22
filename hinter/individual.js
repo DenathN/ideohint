@@ -39,8 +39,8 @@ function ablationPotential(y, env) {
 		if (y[j] > ymax) ymax = y[j];
 		if (y[j] < ymin) ymin = y[j];
 	}
-	var ymaxt = Math.max(ymax, env.glyfTop);
-	var ymint = Math.min(ymin, env.glyfBottom);
+	var ymaxt = Math.max(ymax, env.glyphTop);
+	var ymint = Math.min(ymin, env.glyphBottom);
 	for (var j = 0; j < y.length; j++) {
 		p += avaliables[j].ablationCoeff * Math.abs(y[j] - avaliables[j].center) * env.uppx;
 		p += env.strategy.COEFF_PORPORTION_DISTORTION * Math.abs(y[j] - (ymin + avaliables[j].proportion * (ymax - ymin))) * env.uppx;

@@ -49,10 +49,10 @@ function interpolateByKeys(interpolations, strategy, pts, keys, inSameRadical, p
 function linkRadicalSolePointsToOneStem(shortAbsorptions, strategy, radical, radicalPoints, stem, priority) {
 	var highpts = [].concat.apply([], stem.high);
 	var lowpts = [].concat.apply([], stem.low);
-	var pts = highpts.concat(lowpts)
-	for (var j = 0; j < pts.length; j++) for (var k = 0; k < radicalPoints.length; k++) {
+	var keyPoints = highpts.concat(lowpts)
+	for (var j = 0; j < keyPoints.length; j++) for (var k = 0; k < radicalPoints.length; k++) {
 		var isHigh = j < highpts.length;
-		var zkey = pts[j];
+		var zkey = keyPoints[j];
 		var z = radicalPoints[k];
 		if (z.touched || z.donttouch || zkey.id === z.id) continue;
 
@@ -63,20 +63,7 @@ function linkRadicalSolePointsToOneStem(shortAbsorptions, strategy, radical, rad
 		if(!(yDifference > 0 ? yDifference < strategy.Y_FUZZ * 2 : -yDifference < strategy.Y_FUZZ)) continue;
 		
 		// And it should have at least one segment in the glyph's outline.'
-		var SEGMENTS = 10;
-		var segmentInRadical = true;
-		for (var s = 1; s < SEGMENTS; s++) {
-			var testz = {
-				xori: zkey.xori + (z.xori - zkey.xori) * (s / SEGMENTS),
-				yori: zkey.yori + (z.yori - zkey.yori) * (s / SEGMENTS)
-			}
-			if (!radical.includes(testz)) {
-				segmentInRadical = false;
-				break;
-			}
-		}
-
-		if (segmentInRadical) {
+		if (radical.includesSegment(z, zkey)) {
 			var key = isHigh ? stem.highkey : stem.lowkey;
 			shortAbsorptions.push([key.id, z.id, priority + (z.yExtrema ? 1 : 0)]);
 			z.touched = true;

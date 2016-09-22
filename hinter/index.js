@@ -81,11 +81,9 @@ function hint(glyph, ppem, strategy) {
 	var roundUp = roundings.Rutg(upm, ppem);
 
 
-	var pixelBottom = round(BLUEZONE_BOTTOM_CENTER);
+	var glyphBottom = round(BLUEZONE_BOTTOM_CENTER);
 	var oPixelTop = round(BLUEZONE_TOP_CENTER);
-	var pixelTop = pixelBottom + round(BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER);
-	var glyfBottom = pixelBottom;
-	var glyfTop = pixelTop;
+	var glyphTop = glyphBottom + round(BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER);
 
 	function atRadicalTop(stem) {
 		return !stem.hasSameRadicalStemAbove
@@ -121,14 +119,14 @@ function hint(glyph, ppem, strategy) {
 	var triplets = glyph.triplets;
 	var flexes = glyph.flexes;
 
-	var cyb = pixelBottom
+	var cyb = glyphBottom
 		+ (ppem <= PPEM_INCREASE_GLYPH_LIMIT ? 0 : roundDown(BLUEZONE_BOTTOM_DOTBAR - BLUEZONE_BOTTOM_CENTER));
-	var cyt = pixelTop
+	var cyt = glyphTop
 		- (ppem <= PPEM_INCREASE_GLYPH_LIMIT ? 0 : roundDown(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_DOTBAR));
-	var cybx = pixelBottom
+	var cybx = glyphBottom
 		+ (ppem <= PPEM_INCREASE_GLYPH_LIMIT ? 0 : roundDown(BLUEZONE_BOTTOM_BAR - BLUEZONE_BOTTOM_CENTER))
-		+ Math.min(0, ppem <= PPEM_INCREASE_GLYPH_LIMIT ? pixelBottom - BLUEZONE_BOTTOM_BAR : pixelBottom - BLUEZONE_BOTTOM_CENTER);
-	var cytx = pixelTop
+		+ Math.min(0, ppem <= PPEM_INCREASE_GLYPH_LIMIT ? glyphBottom - BLUEZONE_BOTTOM_BAR : glyphBottom - BLUEZONE_BOTTOM_CENTER);
+	var cytx = glyphTop
 		- (ppem <= PPEM_INCREASE_GLYPH_LIMIT ? 0 : roundDown(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_BAR))
 		+ Math.max(0, ppem <= PPEM_INCREASE_GLYPH_LIMIT ? oPixelTop - BLUEZONE_TOP_BAR : oPixelTop - BLUEZONE_TOP_CENTER);
 
@@ -157,13 +155,13 @@ function hint(glyph, ppem, strategy) {
 			if (!stems[j].hasGlyphStemBelow) {
 				avaliables[j].high = Math.round(Math.max(
 					avaliables[j].center,
-					pixelBottom / uppx + avaliables[j].properWidth + (atGlyphBottom(stems[j]) ? 0 : 1
+					glyphBottom / uppx + avaliables[j].properWidth + (atGlyphBottom(stems[j]) ? 0 : 1
 					)));
 			};
 			if (!stems[j].hasGlyphStemAbove) {
 				avaliables[j].low = Math.round(avaliables[j].center);
 			};
-			if (ppem > PPEM_INCREASE_GLYPH_LIMIT && avaliables[j].properWidth < 3 && atGlyphBottom(stems[j]) && avaliables[j].high - avaliables[j].low <= 1 && avaliables[j].low <= pixelBottom / uppx + avaliables[j].properWidth + 0.1) {
+			if (ppem > PPEM_INCREASE_GLYPH_LIMIT && avaliables[j].properWidth < 3 && atGlyphBottom(stems[j]) && avaliables[j].high - avaliables[j].low <= 1 && avaliables[j].low <= glyphBottom / uppx + avaliables[j].properWidth + 0.1) {
 				// Lock the bottommost stroke
 				avaliables[j].high = avaliables[j].low;
 			}
@@ -245,6 +243,10 @@ function hint(glyph, ppem, strategy) {
 		return tws;
 	}
 
+	// The "avaliability" table records the parameters used when placing stems, including:
+	// - the posotion limit.
+	// - the stem's proper width (in pixels).
+	// - key spatial relationships.
 	var avaliables = function (stems) {
 		var avaliables = [];
 		var tws = decideWidths(stems, glyph.dominancePriority);
@@ -254,21 +256,21 @@ function hint(glyph, ppem, strategy) {
 			var w = tws[j] * uppx;
 			// The bottom limit of a stem
 			var lowlimit = atGlyphBottom(stems[j])
-				? pixelBottom + w : pixelBottom + w + uppx;
-				var fold = false;
+				? glyphBottom + w : glyphBottom + w + uppx;
+			var fold = false;
 			// Add additional space below strokes with a fold under it.
 			if (stems[j].hasGlyphFoldBelow && !stems[j].hasGlyphStemBelow) {
-				lowlimit = Math.max(pixelBottom + Math.max(2, WIDTH_GEAR_PROPER + 1) * uppx + w, lowlimit);
+				lowlimit = Math.max(glyphBottom + Math.max(2, WIDTH_GEAR_PROPER + 1) * uppx + w, lowlimit);
 				fold = true;
 			} else if (stems[j].hasGlyphSideFoldBelow && !stems[j].hasGlyphStemBelow) {
-				lowlimit = Math.max(pixelBottom + Math.max(WIDTH_GEAR_PROPER + 2, WIDTH_GEAR_PROPER * 2) * uppx, lowlimit);
+				lowlimit = Math.max(glyphBottom + Math.max(WIDTH_GEAR_PROPER + 2, WIDTH_GEAR_PROPER * 2) * uppx, lowlimit);
 				fold = true;
 			}
 
 			// The top limit of a stem ('s upper edge)
 			var highlimit = ppem <= PPEM_INCREASE_GLYPH_LIMIT // small sizes
-				? pixelTop - (atGlyphTop(stems[j]) ? 0 : uppx) // leave 0px for top stroke, 1 for non-top
-				: pixelTop - xclamp( // for larger size, consider BLUEZONE_TOP_BAR's value
+				? glyphTop - (atGlyphTop(stems[j]) ? 0 : uppx) // leave 0px for top stroke, 1 for non-top
+				: glyphTop - xclamp( // for larger size, consider BLUEZONE_TOP_BAR's value
 					atGlyphTop(stems[j]) ? 0 : uppx,
 					atGlyphTop(stems[j])
 						? round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_BAR) + roundDown(BLUEZONE_TOP_BAR - y0)
@@ -328,10 +330,12 @@ function hint(glyph, ppem, strategy) {
 	} (stems);
 
 	var env = {
+		// ACSP matrices
 		A: glyph.collisionMatrices.alignment,
 		C: glyph.collisionMatrices.collision,
 		S: glyph.collisionMatrices.swap,
 		P: glyph.collisionMatrices.promixity,
+		// symmetry matrix
 		symmetry: (function () {
 			var sym = [];
 			for (var j = 0; j < avaliables.length; j++) {
@@ -347,18 +351,20 @@ function hint(glyph, ppem, strategy) {
 			};
 			return sym;
 		})(),
+		// overlap matrices
 		directOverlaps: directOverlaps,
 		strictOverlaps: glyph.strictOverlaps,
+		// recorded triplets
 		triplets: triplets,
 		strictTriplets: glyph.strictTriplets,
+		// avalibility
 		avaliables: avaliables,
+		// other parameters
 		strategy: strategy,
 		ppem: ppem,
 		uppx: uppx,
-		glyfTop: glyfTop,
-		glyfBottom: glyfBottom,
-		pixelTop: pixelTop,
-		pixelBottom: pixelBottom,
+		glyphTop: glyphTop,
+		glyphBottom: glyphBottom,
 		WIDTH_GEAR_MIN: WIDTH_GEAR_MIN,
 		WIDTH_GEAR_PROPER: WIDTH_GEAR_PROPER,
 		noAblation: false

@@ -4,24 +4,10 @@ var overlapInfo = require('./overlap').overlapInfo;
 var by_start = function (p, q) { return p[0].xori - q[0].xori };
 var minmaxOfSeg = require('./seg').minmaxOfSeg;
 
-function segmentInRadical(z, zkey, radical) {
-	var SEGMENTS = 64;
-	for (var s = 1; s < SEGMENTS; s++) {
-		var testz = {
-			xori: zkey.xori + (z.xori - zkey.xori) * (s / SEGMENTS),
-			yori: zkey.yori + (z.yori - zkey.yori) * (s / SEGMENTS)
-		}
-		if (!radical.includes(testz)) {
-			return false
-		}
-	}
-	return true;
-}
-
 function segmentJoinable(pivot, segment, radical) {
 	for (var k = 0; k < pivot.length; k++) {
 		for (var j = 0; j < segment.length; j++) {
-			if (segmentInRadical(segment[j], pivot[k], radical)) {
+			if (radical.includesSegment(segment[j], pivot[k])) {
 				return true;
 			}
 		}
@@ -29,35 +15,10 @@ function segmentJoinable(pivot, segment, radical) {
 	return false;
 }
 
-function segmentTetragonalInRadical(s1, s2, radical) {
-	var steps = 32;
-	for (var j = 1; j < steps; j++) {
-		var m1 = {
-			xori: s1[0].xori + (s1[1].xori - s1[0].xori) * (j / steps),
-			yori: s1[0].yori + (s1[1].yori - s1[0].yori) * (j / steps)
-		}
-		var m2 = {
-			xori: s2[0].xori + (s2[1].xori - s2[0].xori) * (j / steps),
-			yori: s2[0].yori + (s2[1].yori - s2[0].yori) * (j / steps)
-		}
-		if (!segmentInRadical(m1, m2, radical)) return false;
-		var m1 = {
-			xori: s1[0].xori + (s1[1].xori - s1[0].xori) * (j / steps),
-			yori: s1[0].yori + (s1[1].yori - s1[0].yori) * (j / steps)
-		}
-		var m2 = {
-			xori: s2[0].xori + (s2[1].xori - s2[0].xori) * (1 - j / steps),
-			yori: s2[0].yori + (s2[1].yori - s2[0].yori) * (1 - j / steps)
-		}
-		if (!segmentInRadical(m1, m2, radical)) return false;
-	}
-	return true;
-}
-
 function segmentPairable(u, v, radical) {
 	for (var s = 0; s < u.length; s++) {
 		for (var r = 0; r < v.length; r++) {
-			if (!segmentTetragonalInRadical(u[s], v[r], radical)) return false;
+			if (!radical.includesTetragon(u[s], v[r])) return false;
 		}
 	}
 	return true;
@@ -110,10 +71,7 @@ function findHorizontalSegments(radicals, strategy) {
 function uuCouplable(sj, sk, radical, strategy) {
 	return Math.abs(sj[0].yori - sk[0].yori) <= strategy.Y_FUZZ && segmentJoinable(sj, sk, radical);
 }
-function udMatchable(sj, sk, radical, strategy) {
-	//var segOverlap = overlapInfo([sj], [sk], strategy);
-	return segmentTetragonalInRadical(sj, sk, radical);
-}
+function udMatchable(sj, sk, radical, strategy) { return radical.includesTetragon(sj, sk); }
 
 function identifyStem(used, segs, candidates, graph, up, j, strategy) {
 	var candidate = {
