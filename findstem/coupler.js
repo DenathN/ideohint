@@ -2,6 +2,7 @@
 
 var overlapInfo = require('./overlap').overlapInfo;
 var by_start = function (p, q) { return p[0].xori - q[0].xori };
+var minmaxOfSeg = require('./seg').minmaxOfSeg;
 
 function segmentInRadical(z, zkey, radical) {
 	var SEGMENTS = 64;
@@ -60,14 +61,6 @@ function segmentPairable(u, v, radical) {
 		}
 	}
 	return true;
-}
-function minmaxOfSeg(u) {
-	var min = 0xFFFF, max = -0xFFFF;
-	for (var s = 0; s < u.length; s++)for (var k = 0; k < u[s].length; k++) {
-		if (u[s][k].xori < min) min = u[s][k].xori
-		if (u[s][k].xori > max) max = u[s][k].xori
-	}
-	return { min: min, max: max }
 }
 function isVertical(u, v) {
 	var d1 = minmaxOfSeg(u);

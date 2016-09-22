@@ -1,3 +1,6 @@
+"use strict"
+var minmaxOfSeg = require('./seg').minmaxOfSeg;
+
 function analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, strategy) {
 	var blueFuzz = strategy.BLUEZONE_WIDTH || 15;
 	var a0 = stem.low[0][0].xori, az = stem.low[stem.low.length - 1][stem.low[stem.low.length - 1].length - 1].xori;
@@ -103,9 +106,9 @@ function analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, str
 }
 
 function analyzePointToStemSpatialRelationships(stem, radicals, strategy) {
-	var a0 = stem.low[0][0].xori, az = stem.low[stem.low.length - 1][stem.low[stem.low.length - 1].length - 1].xori;
-	var b0 = stem.high[0][0].xori, bz = stem.high[stem.high.length - 1][stem.high[stem.high.length - 1].length - 1].xori;
-	var xmin = Math.min(a0, b0, az, bz), xmax = Math.max(a0, b0, az, bz);
+	var rHigh = minmaxOfSeg(stem.high);
+	var rLow = minmaxOfSeg(stem.low);
+	var xmin = Math.min(rHigh.min, rLow.min), xmax = Math.max(rHigh.max, rLow.max);
 	for (var rad = 0; rad < radicals.length; rad++) {
 		var radical = radicals[rad];
 		var sameRadical = (radical === radicals[stem.belongRadical]);

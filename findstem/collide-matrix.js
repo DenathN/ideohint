@@ -29,7 +29,7 @@ function atRadicalBottom(stem, strategy) {
 		&& !(stem.hasRadicalRightAdjacentPointBelow && stem.radicalRightAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT)
 }
 
-module.exports = function calculateCollisionMatrices(strategy, stems, overlaps, overlapLengths, pbs) {
+module.exports = function calculateCollisionMatrices(strategy, stems, overlapLengths, pbs) {
 	// A : Alignment operator
 	// C : Collision operator
 	// S : Swap operator
@@ -47,7 +47,7 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlaps, 
 	for (var j = 0; j < n; j++) {
 		for (var k = 0; k < j; k++) {
 			// Overlap weight
-			var ovr = overlaps[j][k] * overlapLengths[j][k];
+			var ovr = overlapLengths[j][k];
 			var isSideTouch = stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax
 				|| stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax;
 			// For side touches witn low overlap, drop it.

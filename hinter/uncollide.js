@@ -2,6 +2,8 @@
 
 var evolve = require('./evolve');
 var Individual = require('./individual');
+var balance = require("./balance");
+
 function xclamp(low, x, high) { return x < low ? low : x > high ? high : x }
 
 function uncollide(yInit, env, terminalStrictness, scale) {
@@ -46,6 +48,7 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 	for (var j = 1; j < population.length; j++) if (population[j].fitness > best.fitness) {
 		best = population[j];
 	}
+	best = new Individual(balance(best.gene, env), env);
 	// "no-improvement" generations
 	var steadyStages = 0;
 	// Build a swapchain
@@ -58,6 +61,7 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 		for (var j = 1; j < population.length; j++) if (population[j].fitness > elite.fitness) {
 			elite = population[j];
 		}
+		elite = new Individual(balance(elite.gene, env), env);
 		if (elite.fitness <= best.fitness) {
 			steadyStages += 1
 		} else {

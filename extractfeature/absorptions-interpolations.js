@@ -6,7 +6,7 @@ function shortAbsorptionPointByKeys(shortAbsorptions, strategy, pt, keys, inSame
 	if (pt.touched || pt.donttouch || !pt.on || !strategy.DO_SHORT_ABSORPTION || !inSameRadical) return;
 	for (var m = 0; m < keys.length; m++) {
 		var key = keys[m];
-		if (key.blued && key.yStrongExtrema && (Math.hypot(pt.yori - key.yori, pt.xori - key.xori) <= strategy.ABSORPTION_LIMIT && pt.xStrongExtrema)) {
+		if (key.blued && key.yStrongExtrema && key.yori <= strategy.BLUEZONE_BOTTOM_LIMIT && (Math.hypot(pt.yori - key.yori, pt.xori - key.xori) <= strategy.ABSORPTION_LIMIT && pt.xStrongExtrema)) {
 			shortAbsorptions.push([key.id, pt.id, priority + (pt.yExtrema ? 1 : 0)]);
 			pt.touched = true;
 			return;
@@ -19,16 +19,30 @@ function shortAbsorptionByKeys(shortAbsorptions, strategy, pts, keys, inSameRadi
 		shortAbsorptionPointByKeys(shortAbsorptions, strategy, pts[k], keys, inSameRadical, priority)
 	}
 }
+var COEFF_EXT = 2;
 function interpolateByKeys(interpolations, strategy, pts, keys, inSameRadical, priority) {
 	for (var k = 0; k < pts.length; k++) {
 		var pt = pts[k];
 		if (pt.touched || pt.donttouch) continue;
-		out: for (var m = keys.length - 2; m >= 0; m--) if (keys[m].yori < pt.yori - strategy.BLUEZONE_WIDTH) {
-			for (var n = m + 1; n < keys.length; n++) if (keys[n].yori - keys[m].yori > strategy.BLUEZONE_WIDTH && keys[n].yori > pt.yori + strategy.BLUEZONE_WIDTH) {
-				interpolations.push([keys[m].id, keys[n].id, pt.id, priority + (pt.yExtrema ? 1 : 0)]);
-				pt.touched = true;
-				break out;
+		var upperK = null, upperdist = 0xFFFF;
+		var lowerK = null, lowerdist = 0xFFFF;
+		for (var m = keys.length - 1; m >= 0; m--) if (keys[m].yori < pt.yori - strategy.Y_FUZZ) {
+			if (!lowerK || Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori)) < lowerdist) {
+				lowerK = keys[m];
+				lowerdist = Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori))
 			}
+		}
+		for (var m = keys.length - 1; m >= 0; m--) if (keys[m].yori > pt.yori + strategy.Y_FUZZ) {
+			if (!upperK || Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori)) < upperdist) {
+				upperK = keys[m];
+				upperdist = Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori))
+			}
+		}
+		if (lowerK && upperK) {
+			if (upperK.linkedKey) upperK = upperK.linkedKey
+			if (lowerK.linkedKey) lowerK = lowerK.linkedKey
+			interpolations.push([upperK.id, lowerK.id, pt.id, priority]);
+			pt.touched = true;
 		}
 	}
 }
@@ -41,6 +55,14 @@ function linkRadicalSolePointsToOneStem(shortAbsorptions, strategy, radical, rad
 		var zkey = pts[j];
 		var z = radicalPoints[k];
 		if (z.touched || z.donttouch || zkey.id === z.id) continue;
+
+		// detect whether this sole point is attached to the stem edge.
+		// in most cases, absorbing a lower point should be stricter due to the topology of ideographs
+		// so we use asymmetric condition for "above" and "below" cases.
+		var yDifference = z.yori - (zkey.yori + (z.xori - zkey.xori) * (zkey.slope || 0));
+		if(!(yDifference > 0 ? yDifference < strategy.Y_FUZZ * 2 : -yDifference < strategy.Y_FUZZ)) continue;
+		
+		// And it should have at least one segment in the glyph's outline.'
 		var SEGMENTS = 10;
 		var segmentInRadical = true;
 		for (var s = 1; s < SEGMENTS; s++) {
@@ -53,7 +75,8 @@ function linkRadicalSolePointsToOneStem(shortAbsorptions, strategy, radical, rad
 				break;
 			}
 		}
-		if (segmentInRadical && Math.abs(zkey.yori + (z.xori - zkey.xori) * (zkey.slope || 0) - z.yori) <= strategy.BLUEZONE_WIDTH) {
+
+		if (segmentInRadical) {
 			var key = isHigh ? stem.highkey : stem.lowkey;
 			shortAbsorptions.push([key.id, z.id, priority + (z.yExtrema ? 1 : 0)]);
 			z.touched = true;
@@ -81,38 +104,28 @@ module.exports = function (glyph, strategy) {
 	var contours = glyph.contours;
 	var glyphKeypoints = [];
 	for (var j = 0; j < contours.length; j++) for (var k = 0; k < contours[j].points.length; k++) {
-		if (contours[j].points[k].touched && contours[j].points[k].keypoint) {
-			glyphKeypoints.push(contours[j].points[k]);
-		}
+		var z = contours[j].points[k];
+		if (z.touched && z.keypoint || z.linkedKey) { glyphKeypoints.push(z); }
 	};
 	glyphKeypoints = glyphKeypoints.sort(BY_YORI);
 	var records = [];
 
 	for (var j = 0; j < contours.length; j++) {
 		var contourpoints = contours[j].points.slice(0, -1);
-		var contourKeypoints = contourpoints.filter(function (p) { return p.keypoint }).sort(BY_YORI);
 		var contourAlignPoints = contourpoints.filter(function (p) { return p.touched }).sort(BY_YORI);
 		var contourExtrema = contourpoints.filter(function (p) { return p.xExtrema || p.yExtrema }).sort(BY_YORI);
 
 		if (contourExtrema.length > 1) {
 			var topbot = [contourExtrema[0], contourExtrema[contourExtrema.length - 1]];
-			var midex = contourExtrema.slice(1, -1).filter(function (p) {
-				return p.xStrongExtrema || p.yExtrema
-			});
+			var midex = contourExtrema.slice(1, -1).filter(function (p) { return p.xStrongExtrema || p.yExtrema });
 			var blues = contourpoints.filter(function (p) { return p.blued });
-			var midexl = contourExtrema.slice(1, -1).filter(function (p) {
-				return p.xExtrema || p.yExtrema
-			});
+			var midexl = contourExtrema.slice(1, -1).filter(function (p) { return p.xExtrema || p.yExtrema });
 			records.push({
 				topbot: topbot,
 				midex: midex,
 				midexl: midexl,
 				blues: blues,
 				cka: contourAlignPoints,
-				ck: contourKeypoints,
-				ckx: contourKeypoints.concat(topbot).sort(BY_YORI),
-				ckxx: contourKeypoints.concat(topbot).concat(midex).sort(BY_YORI),
-				all: contourpoints
 			})
 		} else {
 			records.push({
@@ -121,31 +134,20 @@ module.exports = function (glyph, strategy) {
 				midexl: [],
 				blues: [],
 				cka: contourAlignPoints,
-				ck: contourKeypoints,
-				ckx: contourKeypoints,
-				ckxx: contourKeypoints,
-				all: contourpoints
 			})
 		}
 	};
 	for (var j = 0; j < contours.length; j++) {
-		if (records[j].ck.length > 1) {
-			shortAbsorptionByKeys(shortAbsorptions, strategy, records[j].topbot, records[j].cka, true, 9, false);
-			shortAbsorptionByKeys(shortAbsorptions, strategy, records[j].midexl, records[j].blues, true, 1, false);
-		}
+		shortAbsorptionByKeys(shortAbsorptions, strategy, records[j].topbot, records[j].cka, true, 9, false);
+		shortAbsorptionByKeys(shortAbsorptions, strategy, records[j].midexl, records[j].blues, true, 1, false);
 	}
 	linkSoleStemPoints(shortAbsorptions, strategy, glyph, 7);
+
 	for (var j = 0; j < contours.length; j++) {
-		if (records[j].ck.length > 1) {
-			interpolateByKeys(interpolations, strategy, records[j].topbot, records[j].ck, true, 5, true)
-		}
-		interpolateByKeys(interpolations, strategy, records[j].topbot, glyphKeypoints, false, 5)
+		interpolateByKeys(interpolations, strategy, records[j].topbot, glyphKeypoints, false, 5);
 	};
 	for (var j = 0; j < contours.length; j++) {
-		if (records[j].ckx.length > 1) {
-			interpolateByKeys(interpolations, strategy, records[j].midex, records[j].ckx, true, 3, true)
-		}
-		interpolateByKeys(interpolations, strategy, records[j].midex, glyphKeypoints, false, 3)
+		interpolateByKeys(interpolations, strategy, records[j].midex, glyphKeypoints, false, 3);
 	};
 
 	return {

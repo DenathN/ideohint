@@ -6,12 +6,24 @@ function collidePotential(y, env) {
 	var n = y.length;
 	for (var j = 0; j < n; j++) {
 		for (var k = 0; k < j; k++) {
-			if (y[j] === y[k]) { p += A[j][k] }
-			else if (y[j] === y[k] + 1 || y[j] + 1 === y[k]) { p += C[j][k] }
+			if (y[j] === y[k]) {
+				// Alignment
+				p += A[j][k]
+			}
+			else if (y[j] <= y[k] + env.avaliables[j].properWidth) {
+				// collide
+				p += C[j][k]
+			}
 			if (j !== k && sym[j][k]) {
-				if (y[j] !== y[k]) { p += S[j][k] }
+				if (y[j] !== y[k]) {
+					// symmetry break
+					p += S[j][k]
+				}
 			} else {
-				if (y[j] < y[k]) { p += S[j][k]; }
+				if (y[j] < y[k]) {
+					//swap
+					p += S[j][k];
+				}
 			}
 		};
 	};

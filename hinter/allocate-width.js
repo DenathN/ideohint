@@ -25,6 +25,11 @@ function spaceAbove(env, y, w, k, top) {
 	}
 	return space;
 }
+
+var ANY = 0;
+var LESS = 1;
+var SUFF = 2;
+
 function allocateWidth(y0, env) {
 	var N = y0.length;
 	var allocated = new Array(N), y = new Array(N), w = new Array(N), properWidths = new Array(N);
@@ -51,6 +56,16 @@ function allocateWidth(y0, env) {
 			if (w >= wr) allocated[j] = true;
 		}
 	};
+	function relationSat(w, p, op) {
+		if (op === LESS) return w < p;
+		else if (op === SUFF) return (p > 1 && w >= p);
+		else return true;
+	}
+	function tripletSatisifiesPattern(j, k, m, w1, w2, w3, j1, j2, j3) {
+		return (!w1 || w[j] === w1 && relationSat(w[j], properWidths[j], j1))
+			&& (!w2 || w[k] === w2 && relationSat(w[k], properWidths[k], j2))
+			&& (!w3 || w[m] === w3 && relationSat(w[m], properWidths[m], j3))
+	}
 
 	for (var pass = 0; pass < 5; pass++) {
 		// Allocate top and bottom stems
@@ -111,29 +126,47 @@ function allocateWidth(y0, env) {
 				}
 			}
 		}
-
+		// Doublet balancing
+		for (var j = N - 1; j >= 0; j--) for (var k = j - 1; k >= 0; k--) if (strictOverlaps[j][k]) {
+			var y1 = y.slice(0), w1 = w.slice(0);
+			// [1][2] -> [1] 1 [1]
+			if (w[j] === 1 && w[k] === 2 && w[k] === properWidths[k] && y[j] - y[k] === 1) {
+				w[k] -= 1;
+				y[k] -= 1;
+			}
+			// [2][2] -> [2] 1 [1]
+			else if (w[j] === 2 && w[k] === 2 && w[k] === properWidths[k] && y[j] - y[k] === 2) {
+				w[k] -= 1;
+				y[k] -= 1;
+			}
+			if (spaceBelow(env, y, w, j, pixelBottomPixels - 1) < 1
+				|| spaceAbove(env, y, w, k, pixelTopPixels + 1) < 1
+				|| y[k] < avaliables[k].lowW || y[k] > avaliables[k].highW) {
+				y = y1; w = w1;
+			}
+		}
 		// Triplet balancing
 		for (var t = 0; t < strictTriplets.length; t++) {
 			var j = strictTriplets[t][0], k = strictTriplets[t][1], m = strictTriplets[t][2];
 			var y1 = y.slice(0), w1 = w.slice(0);
 			// [3] 2 [3] 1 [2] -> [3] 1 [3] 1 [3]
-			if (properWidths[j] > 2 && w[m] <= properWidths[m] - 1 && y[j] - w[j] - y[k] >= 2 && y[k] - w[k] - y[m] === 1) {
+			if (tripletSatisifiesPattern(j, k, m, 3, 3, 2, SUFF, SUFF, LESS) && y[j] - w[j] - y[k] >= 2) {
 				y[k] += 1, y[m] += 1, w[m] += 1;
 			}
 			// [2] 2 [3] 1 [3] -> [3] 1 [3] 1 [3]
-			else if (properWidths[m] > 2 && w[j] <= properWidths[j] - 1 && y[j] - w[j] - y[k] >= 2 && y[k] - w[k] - y[m] === 1) {
+			else if (tripletSatisifiesPattern(j, k, m, 2, 3, 3, LESS, SUFF, SUFF) && y[j] - w[j] - y[k] >= 2) {
 				w[j] += 1;
 			}
 			// [3] 1 [3] 2 [2] -> [3] 1 [3] 1 [3]
-			else if (properWidths[j] > 2 && w[m] <= properWidths[m] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] >= 2) {
+			else if (tripletSatisifiesPattern(j, k, m, 3, 3, 2, SUFF, SUFF, LESS) && y[k] - w[k] - y[m] >= 2) {
 				y[m] += 1, w[m] += 1;
 			}
 			// [2] 1 [3] 2 [3] -> [3] 1 [3] 1 [3]
-			else if (properWidths[m] > 2 && w[j] <= properWidths[j] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] >= 2) {
+			else if (tripletSatisifiesPattern(j, k, m, 2, 3, 3, LESS, SUFF, SUFF) && y[k] - w[k] - y[m] >= 2) {
 				w[j] += 1, y[k] -= 1;
 			}
 			// [3] 1 [1] 1 [3] -> [2] 1 [2] 1 [3] or [3] 1 [2] 1 [2]
-			else if (properWidths[j] > 2 && w[j] === properWidths[j] && w[m] === properWidths[m] && w[k] <= properWidths[j] - 2) {
+			else if (tripletSatisifiesPattern(j, k, m, 3, 1, 3, SUFF, LESS, SUFF)) {
 				if (env.P[j][k] > env.P[k][m]) {
 					w[j] -= 1, y[k] += 1, w[k] += 1;
 				} else {
@@ -141,39 +174,39 @@ function allocateWidth(y0, env) {
 				}
 			}
 			// [3] 1 [2] 1 [1] -> [2] 1 [2] 1 [2]
-			else if (properWidths[j] > 2 && w[j] === properWidths[j] && w[k] <= properWidths[k] - 1 && w[m] <= properWidths[m] - 2) {
+			else if (tripletSatisifiesPattern(j, k, m, 3, 2, 1, SUFF, ANY, LESS)) {
 				w[j] -= 1, y[k] += 1, y[m] += 1, w[m] += 1;
 			}
 			// [1] 1 [3] 1 [2] -> [2] 1 [2] 1 [2]
-			else if (properWidths[k] > 2 && w[k] === properWidths[k] && w[m] <= properWidths[m] - 1 && w[j] <= properWidths[j] - 2) {
+			else if (tripletSatisifiesPattern(j, k, m, 1, 3, 2, LESS, SUFF, ANY)) {
 				w[j] += 1, y[k] -= 1, w[k] -= 1;
 			}
 			// [2] 1 [1] 1 [3] -> [2] 1 [2] 1 [2]
-			else if (properWidths[m] > 2 && w[m] === properWidths[m] && w[j] <= properWidths[j] - 1 && w[k] <= properWidths[k] - 2) {
+			else if (tripletSatisifiesPattern(j, k, m, 2, 1, 3, ANY, LESS, SUFF)) {
 				w[k] += 1, w[m] -= 1, y[m] -= 1;
 			}
 			// [2] 1 [3] 1 [1] -> [2] 1 [2] 1 [2]
-			else if (properWidths[k] > 2 && w[k] === properWidths[k] && w[j] <= properWidths[j] - 1 && w[m] <= properWidths[m] - 2) {
+			else if (tripletSatisifiesPattern(j, k, m, 2, 3, 1, ANY, SUFF, LESS)) {
 				w[k] -= 1, w[m] += 1, y[m] += 1;
 			}
 			// [3] 1 [1] 1 [2] -> [2] 1 [2] 1 [2]
-			else if (properWidths[j] > 2 && w[j] === properWidths[j] && w[m] <= properWidths[m] - 1 && w[k] <= properWidths[k] - 2) {
+			else if (tripletSatisifiesPattern(j, k, m, 3, 1, 2, SUFF, LESS, ANY)) {
 				w[j] -= 1, y[k] += 1, w[k] += 1;
 			}
 			// [1] 1 [2] 1 [3] -> [2] 1 [2] 1 [2]
-			else if (properWidths[m] > 2 && w[m] === properWidths[m] && w[k] <= properWidths[k] - 1 && w[j] <= properWidths[j] - 2) {
+			else if (tripletSatisifiesPattern(j, k, m, 1, 2, 3, LESS, ANY, SUFF)) {
 				w[j] += 1, w[m] -= 1, y[k] -= 1, y[m] -= 1;
 			}
 			// [1] 1 [2] 2 [2] -> [2] 1 [2] 1 [2]
-			else if (w[j] <= properWidths[j] - 1 && y[j] - w[j] - y[k] === 1 && y[k] - w[k] - y[m] === 2) {
+			else if (tripletSatisifiesPattern(j, k, m, 1, 2, 2, LESS, SUFF, SUFF) && y[k] - w[k] - y[m] > 1) {
 				w[j] += 1, y[k] -= 1;
 			}
 			// [2] 2 [2] 1 [1] -> [2] 1 [2] 1 [2]
-			else if (w[m] <= properWidths[j] - 1 && y[j] - w[j] - y[k] > 1 && y[k] - w[k] - y[m] === 1) {
+			else if (tripletSatisifiesPattern(j, k, m, 2, 2, 1, SUFF, ANY, LESS) && y[j] - w[j] - y[k] > 1) {
 				y[k] += 1, y[m] += 1, w[m] += 1;
 			}
 			// [1T] 1 [1] 1 [2] -> [2] 1 [1] 1 [1]
-			else if (avaliables[j].atGlyphTop && w[j] <= properWidths[j] - 1 && w[k] <= properWidths[k] - 1 && w[m] >= properWidths[m]) {
+			else if (avaliables[j].atGlyphTop && tripletSatisifiesPattern(j, k, m, 1, 1, 2, LESS, ANY, SUFF)) {
 				w[m] -= 1, w[j] += 1, y[m] -= 1, y[k] -= 1
 			}
 			// [1T] 1 [2] 1 [*] -> [2] 1 [1] 1 [*]
@@ -204,7 +237,13 @@ function allocateWidth(y0, env) {
 			}
 		}
 
-		for (var j = 0; j < N; j++) { w[j] = Math.min(w[j], y[j] - pixelBottomPixels) }
+		for (var j = 0; j < N; j++) {
+			w[j] = Math.min(w[j], y[j] - pixelBottomPixels);
+			// For bottommost stems with a folds below, reduce stroke width when it compresses the thing below.
+			if (avaliables[j].hasFoldBelow && y[j] < avaliables[j].low && w[j] === properWidths[j] && w[j] > 1) {
+				w[j] -= 1;
+			}
+		}
 	};
 
 	// Triplet whitespace balancing
@@ -231,7 +270,6 @@ function allocateWidth(y0, env) {
 			}
 		}
 	}
-
 	return { y: y, w: w }
 };
 

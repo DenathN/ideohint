@@ -194,6 +194,7 @@ function hint(glyph, ppem, strategy) {
 	}
 
 	function decideWidths(stems, priority, tws) {
+		var tws = [];
 		var areaLost = 0;
 		var totalWidth = 0;
 		for (var j = 0; j < stems.length; j++) {
@@ -241,12 +242,12 @@ function hint(glyph, ppem, strategy) {
 				}
 			}
 		}
-		return coordinateWidth;
+		return tws;
 	}
 
 	var avaliables = function (stems) {
-		var avaliables = [], tws = [];
-		var coordinateWidth = decideWidths(stems, glyph.dominancePriority, tws);
+		var avaliables = [];
+		var tws = decideWidths(stems, glyph.dominancePriority);
 		// Decide avaliability space
 		for (var j = 0; j < stems.length; j++) {
 			var y0 = stems[j].yori, w0 = stems[j].width;
@@ -254,13 +255,13 @@ function hint(glyph, ppem, strategy) {
 			// The bottom limit of a stem
 			var lowlimit = atGlyphBottom(stems[j])
 				? pixelBottom + w : pixelBottom + w + uppx;
-			var fold = false;
+				var fold = false;
 			// Add additional space below strokes with a fold under it.
 			if (stems[j].hasGlyphFoldBelow && !stems[j].hasGlyphStemBelow) {
-				lowlimit = Math.max(pixelBottom + Math.max(coordinateWidth + 2, coordinateWidth > 2 ? coordinateWidth * 2 : coordinateWidth * 2 + 1) * uppx, lowlimit);
+				lowlimit = Math.max(pixelBottom + Math.max(2, WIDTH_GEAR_PROPER + 1) * uppx + w, lowlimit);
 				fold = true;
 			} else if (stems[j].hasGlyphSideFoldBelow && !stems[j].hasGlyphStemBelow) {
-				lowlimit = Math.max(pixelBottom + Math.max(coordinateWidth + 2, coordinateWidth * 2) * uppx, lowlimit);
+				lowlimit = Math.max(pixelBottom + Math.max(WIDTH_GEAR_PROPER + 2, WIDTH_GEAR_PROPER * 2) * uppx, lowlimit);
 				fold = true;
 			}
 
@@ -284,7 +285,7 @@ function hint(glyph, ppem, strategy) {
 			var low = xclamp(lowlimit, round(center0) - uppx, highlimit);
 			var high = xclamp(lowlimit, round(center0) + uppx, highlimit);
 
-			var lowlimitW = (!fold && tws[j] > 2 ? lowlimit - uppx : lowlimit);
+			var lowlimitW = tws[j] > 1 ? lowlimit - uppx : lowlimit;
 
 			var lowW = xclamp(lowlimitW, looseRoundingLow ? round(center0 - 2 * uppx) : round(center0) - uppx, highlimit);
 			var highW = xclamp(lowlimitW, looseRoundingHigh ? round(center0 + 2 * uppx) : round(center0) + uppx, highlimit);
@@ -294,22 +295,29 @@ function hint(glyph, ppem, strategy) {
 				: !stems[j].hasGlyphStemAbove || !stems[j].hasGlyphStemBelow ? ABLATION_GLYPH_EDGE
 					: !stems[j].hasSameRadicalStemAbove || !stems[j].hasSameRadicalStemBelow ? ABLATION_RADICAL_EDGE : ABLATION_IN_RADICAL;
 			avaliables[j] = {
+				// limit of the stroke's y, when positioning, in pixels
 				low: Math.round(low / uppx),
 				high: Math.round(high / uppx),
+				// limit of the stroke's y, when width allocating, in pixels
 				lowW: Math.round(lowW / uppx),
 				highW: Math.round(highW / uppx),
+				// its proper width, in pixels
 				properWidth: tws[j],
+				// its proper position, in pixels
 				center: center / uppx,
 				ablationCoeff: ablationCoeff / uppx * (1 + 0.5 * (stems[j].xmax - stems[j].xmin) / upm),
+				// original position and width
 				y0: y0,
 				w0: w0,
 				xmin: stems[j].xmin,
 				xmax: stems[j].xmax,
 				length: stems[j].xmax - stems[j].xmin,
+				// spatial relationships
 				atGlyphTop: atGlyphTop(stems[j]),
 				atGlyphBottom: atGlyphBottom(stems[j]),
 				hasGlyphStemAbove: stems[j].hasGlyphStemAbove,
-				hasGlyphFoldBelow: stems[j].hasGlyphFoldBelow
+				hasGlyphStemBelow: stems[j].hasGlyphStemBelow,
+				hasFoldBelow: fold
 			};
 		};
 		flexCenter(avaliables);
@@ -378,15 +386,12 @@ function hint(glyph, ppem, strategy) {
 		var og = new Individual(y0, env);
 		if (og.collidePotential <= 0) {
 			y0 = uncollide(y0, env, 4, POPULATION_LIMIT_SMALL);
-			y0 = balance(y0, env);
 		} else {
 			y0 = earlyAdjust(y0.length, env);
 			env.noAblation = true;
-			y0 = uncollide(y0, env, 6, POPULATION_LIMIT);
-			y0 = balance(y0, env);
+			y0 = uncollide(y0, env, 8, POPULATION_LIMIT);
 			env.noAblation = false;
 			y0 = uncollide(y0, env, 4, POPULATION_LIMIT);
-			y0 = balance(y0, env);
 		};
 		return y0;
 	})();
