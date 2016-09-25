@@ -22,6 +22,29 @@ exports.builder = function (yargs) {
 		.describe('CVT_PADDING', 'Specify CVT Padding.');
 }
 
+function by_rp(a, b) { return a[0] - b[0] || a[1] - b[1] }
+function getIpsaCalls(glyph) {
+	var ip = [];
+	var sa = [];
+	for (var j = 0; j < glyph.interpolations.length; j++) {
+		if (!ip[glyph.interpolations[j][3]]) ip[glyph.interpolations[j][3]] = [];
+		ip[glyph.interpolations[j][3]].push(glyph.interpolations[j])
+	}
+	for (var j = 0; j < glyph.shortAbsorptions.length; j++) {
+		if (!sa[glyph.shortAbsorptions[j][2]]) sa[glyph.shortAbsorptions[j][2]] = [];
+		sa[glyph.shortAbsorptions[j][2]].push(glyph.shortAbsorptions[j])
+	}
+	var ipsacalls = [];
+	var maxpri = Math.max(ip.length - 1, sa.length - 1);
+	for (var j = maxpri; j >= 0; j--) {
+		ipsacalls = ipsacalls.concat(
+			ip[j] ? ip[j].sort(by_rp).map(slicelast) : [],
+			sa[j] ? sa[j].sort(by_rp).map(slicelast) : []);
+	}
+	return ipsacalls;
+}
+function slicelast(x) { return x.slice(0, -1); }
+
 exports.handler = function (argv) {
 
 	if (argv.help) { yargs.showHelp(); process.exit(0) }
@@ -69,8 +92,8 @@ exports.handler = function (argv) {
 		if (finished) return;
 		finished = true;
 		var currentProgress = progressbar(0, PROGRESS_LENGTH);
-		for (var j = 0; j < pendings.length; j++) {
-			var data = pendings[j];
+		for (var glyphIndex = 0; glyphIndex < pendings.length; glyphIndex++) {
+			var data = pendings[glyphIndex];
 			var glyph = data[2];
 			var stemActions = [];
 			var nMDRPnr = 0, nMDRPr = 0;
@@ -85,12 +108,13 @@ exports.handler = function (argv) {
 				}
 				stemActions[ppem] = actions;
 			}
-			currentProgress = showProgressBar(currentProgress, j, pendings.length);
-			var exportGlyph = {
+			currentProgress = showProgressBar(currentProgress, glyphIndex, pendings.length);
+
+
+			var sideIndependent = {
 				bottomBluePoints: glyph.bottomBluePoints,
 				topBluePoints: glyph.topBluePoints,
-				interpolations: glyph.interpolations,
-				shortAbsorptions: glyph.shortAbsorptions,
+				ipsacalls: getIpsaCalls(glyph),
 				stems: glyph.stems.map(function (s) {
 					return {
 						y0: s.yori,
@@ -103,10 +127,10 @@ exports.handler = function (argv) {
 					}
 				})
 			};
-			var recordLine = [data[0], data[1], { si: exportGlyph, sd: stemActions }];
+			var recordLine = [data[0], data[1], { si: sideIndependent, sd: stemActions }];
 			outStream.write(JSON.stringify(recordLine) + '\n');
 		};
-		currentProgress = showProgressBar(currentProgress, j, pendings.length);
+		currentProgress = showProgressBar(currentProgress, glyphIndex, pendings.length);
 		if (process.stdout !== outStream) outStream.end();
 	}
 

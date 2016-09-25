@@ -76,7 +76,7 @@ function allocateWidth(y0, env) {
 	}
 
 	// Avoid thin strokes
-	for (var pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) if (env.WIDTH_GEAR_PROPER >= 2 && env.WIDTH_GEAR_MIN >= 2) {
+	for (var pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) if (env.WIDTH_GEAR_PROPER >= 2) {
 		for (var psi = 0; psi < 3; psi++) {
 			var applyToLowerOnly = [false, true, true][psi];
 			var minShrinkStrokeLength = [2, 3, 3][psi];
