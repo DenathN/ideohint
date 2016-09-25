@@ -1,20 +1,7 @@
 "use strict"
 
 var slopeOf = require('../types').slopeOf;
-
-function adjacent(z1, z2) {
-	return z1.prev === z2 || z2.prev === z1;
-}
-function segmentsPromixity(s1, s2) {
-	var count = 0;
-	for (var j = 0; j < s1.length; j++) for (var k = 0; k < s2.length; k++) {
-		if (adjacent(s1[j][0], s2[k][0])) count += 1;
-		if (adjacent(s1[j][0], s2[k][1])) count += 1;
-		if (adjacent(s1[j][1], s2[k][0])) count += 1;
-		if (adjacent(s1[j][1], s2[k][1])) count += 1;
-	}
-	return 2 * count / (s1.length + s2.length);
-}
+var segmentsPromixity = require('./seg').segmentsPromixity;
 
 function atRadicalTop(stem, strategy) {
 	return !stem.hasSameRadicalStemAbove
@@ -29,7 +16,7 @@ function atRadicalBottom(stem, strategy) {
 		&& !(stem.hasRadicalRightAdjacentPointBelow && stem.radicalRightAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT)
 }
 
-module.exports = function calculateCollisionMatrices(strategy, stems, overlaps, overlapLengths, pbs) {
+module.exports = function calculateCollisionMatrices(strategy, stems, overlapLengths, pbs) {
 	// A : Alignment operator
 	// C : Collision operator
 	// S : Swap operator
@@ -47,7 +34,7 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlaps, 
 	for (var j = 0; j < n; j++) {
 		for (var k = 0; k < j; k++) {
 			// Overlap weight
-			var ovr = overlaps[j][k] * overlapLengths[j][k];
+			var ovr = overlapLengths[j][k];
 			var isSideTouch = stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax
 				|| stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax;
 			// For side touches witn low overlap, drop it.

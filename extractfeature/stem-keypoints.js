@@ -35,6 +35,7 @@ module.exports = function (glyph, strategy) {
 			} else if (s.high[j][k] !== highkey) {
 				s.high[j][k].donttouch = true;
 			}
+			s.high[j][k].linkedKey = highkey;
 		}
 		for (var j = 0; j < s.low.length; j++) for (var k = 0; k < s.low[j].length; k++) {
 			if (j !== jLow) {
@@ -47,6 +48,7 @@ module.exports = function (glyph, strategy) {
 			} else if (s.low[j][k] !== lowkey) {
 				s.low[j][k].donttouch = true
 			}
+			s.low[j][k].linkedKey = lowkey;
 		};
 		s.slope = slope;
 		s.yori = highkey.yori;

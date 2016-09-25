@@ -1,20 +1,33 @@
 "use strict"
 
 function collidePotential(y, env) {
-	var A = env.A, C = env.C, S = env.S, avaliables = env.avaliables, sym = env.symmetry;
-	var p = 0;
-	var n = y.length;
+	var A = env.A, C = env.C, S = env.S, P = env.P, avaliables = env.avaliables, sym = env.symmetry;
+	var p = 0, n = y.length, nCollides = 0;
 	for (var j = 0; j < n; j++) {
 		for (var k = 0; k < j; k++) {
-			if (y[j] === y[k]) { p += A[j][k] }
-			else if (y[j] === y[k] + 1 || y[j] + 1 === y[k]) { p += C[j][k] }
+			if (y[j] === y[k]) {
+				// Alignment
+				p += A[j][k]
+			}
+			else if (y[j] <= y[k] + env.avaliables[j].properWidth) {
+				// collide
+				p += C[j][k];
+				nCollides += P[j][k];
+			}
 			if (j !== k && sym[j][k]) {
-				if (y[j] !== y[k]) { p += S[j][k] }
+				if (y[j] !== y[k]) {
+					// symmetry break
+					p += S[j][k]
+				}
 			} else {
-				if (y[j] < y[k]) { p += S[j][k]; }
+				if (y[j] < y[k]) {
+					//swap
+					p += S[j][k];
+				}
 			}
 		};
 	};
+	p += nCollides * env.strategy.COEFF_C_MULTIPLIER;
 	return p;
 };
 function ablationPotential(y, env) {
@@ -27,8 +40,8 @@ function ablationPotential(y, env) {
 		if (y[j] > ymax) ymax = y[j];
 		if (y[j] < ymin) ymin = y[j];
 	}
-	var ymaxt = Math.max(ymax, env.glyfTop);
-	var ymint = Math.min(ymin, env.glyfBottom);
+	var ymaxt = Math.max(ymax, env.glyphTop);
+	var ymint = Math.min(ymin, env.glyphBottom);
 	for (var j = 0; j < y.length; j++) {
 		p += avaliables[j].ablationCoeff * Math.abs(y[j] - avaliables[j].center) * env.uppx;
 		p += env.strategy.COEFF_PORPORTION_DISTORTION * Math.abs(y[j] - (ymin + avaliables[j].proportion * (ymax - ymin))) * env.uppx;

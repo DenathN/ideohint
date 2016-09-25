@@ -26,19 +26,19 @@ function findStems(glyph, strategy) {
 	var radicals = findRadicals(glyph.contours);
 	var stems = analyzeStems(radicals, strategy);
 
-	var overlaps = glyph.stemMinOverlaps = OverlapMatrix(stems, function (p, q) {
-		return stemOverlapRatio(p, q, Math.min, strategy);
-	});
+	// There are two overlapping matrices are being used: one "minimal" and one "canonical".
+	// The minimal one is ued for collision matrices calclulation, and the canonical one is
+	// used for spatial relationship detection
 	glyph.stemOverlaps = OverlapMatrix(stems, function (p, q) {
 		return stemOverlapRatio(p, q, Math.max, strategy);
 	});
 	var overlapLengths = glyph.stemOverlapLengths = OverlapMatrix(stems, function (p, q) {
 		return stemOverlapLength(p, q, strategy);
 	});
-	analyzeStemSpatialRelationships(stems, radicals, overlaps, strategy);
+	analyzeStemSpatialRelationships(stems, radicals, glyph.stemOverlaps, strategy);
 	var pointBetweenStems = analyzePointBetweenStems(stems, radicals, strategy);
 	glyph.radicals = radicals;
-	glyph.collisionMatrices = calculateCollisionMatrices(strategy, stems, overlaps, overlapLengths, pointBetweenStems);
+	glyph.collisionMatrices = calculateCollisionMatrices(strategy, stems, overlapLengths, pointBetweenStems);
 	glyph.stems = stems;
 	return glyph;
 }

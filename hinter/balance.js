@@ -38,9 +38,10 @@ function aligned(y, p, q) { return y[p] - y[q] < 1; }
 function spare(y, p, q) { return y[p] - y[q] > 1; }
 function veryspare(y, p, q) { return y[p] - y[q] > 2; }
 function balance(y, env) {
+	y = y.slice(0);
 	var REBALANCE_PASSES = env.strategy.REBALANCE_PASSES;
-	var pixelTopPixels = Math.round(env.pixelTop / env.uppx);
-	var pixelBottomPixels = Math.round(env.pixelBottom / env.uppx);
+	var pixelTopPixels = Math.round(env.glyphTop / env.uppx);
+	var pixelBottomPixels = Math.round(env.glyphBottom / env.uppx);
 
 	var N = y.length;
 	var avaliables = env.avaliables, triplets = env.triplets, directOverlaps = env.directOverlaps;
