@@ -80,12 +80,18 @@ The hinting parameters are stored in `hinting` section. They include:
 * **Metric Parameters**
 
   * **UPM** : The units-per-em value of your sfd
+
+* **Top Positioning Parameters**
+
   * **BLUEZONE_TOP_CENTER** and **BLUEZONE_TOP_LIMIT** : Center and lower limit of the top blue zone. Use characters like “木” to decide the value of **BLUEZONE_TOP_CENTER**.
-  * **BLUEZONE_BOTTOM_CENTER** and **BLUEZONE_BOTTOM_LIMIT**: Center and upper limit of the bottom blue zone. Use characters like “木” to decide the value of **BLUEZONE_BOTTOM_CENTER**.
-  * **BLUEZONE_TOP_BAR** : Common position of the upper edge of "top" hotizontal strokes without any stroke above or touching its upper edge. Like the position of the first horizontal stroke in “里”.
-  * **BLUEZONE_BOTTOM_BAR** : Common position of the lower edge of "bottom" hotizontal strokes without any stroke below or touching its lower edge. Like the position of the lowest horizontal stroke in “里”.
-  * **BLUEZONE_TOP_DOTBAR** : Common position of the upper edge of "top" hotizontal strokes with stroke touching its upper edge. Like the position of the first horizontal stroke in “章”.
-  * **BLUEZONE_BOTTOM_DOTBAR** : Common position of the lower edge of "bottom" hotizontal strokes with stroke touching its upper edge.
+  * **BLUEZONE_TOP_BAR_REF** : The "reference" position of the upper edge of "top" hotizontal strokes without any stroke above or touching its upper edge. This value is used to determine the relative position of strokes.
+  * **BLUEZONE_TOP_BAR_MIDDLE_SIZE**: The text size being identified as "middle size", in pixels.
+
+
+  * **BLUEZONE_TOP_BAR_SMALL**, **BLUEZONE_TOP_BAR_MIDDLE**, **BLUEZONE_TOP_BAR_LARGE**: The controlled position of topmost horizontal stroke's upper edges in small, middle and large font sizes. Carefully adjusting them can optimize the visual representation of the hinted result. This applies to the topmost strokes of characters “里”.
+  * **BLUEZONE_TOP_DOTBAR_SMALL**, **BLUEZONE_TOP_DOTBAR_MIDDLE**, **BLUEZONE_TOP_DOTBAR_LARGE**: The controlled position of the upper edge of "top" hotizontal strokes with stroke touching its upper edge. Like the position of the first horizontal stroke in “章”.
+
+* **Bottom Positioning Parameters**: Similar as the previous  section, with the name **\_TOP\_** replaced to **\_BOTTOM\_**, and applies to the bottommost features of the characters.
 
 * **Stem Detection Parameters**
 
