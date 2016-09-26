@@ -287,7 +287,6 @@ function allocateWidth(y0, env) {
 			}
 		}
 	}
-	if (env.ppem === 16) console.log(y, w);
 
 	return { y: y, w: w }
 };

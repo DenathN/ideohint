@@ -264,11 +264,17 @@ function hint(glyph, ppem, strategy) {
 			var highlimit = glyphTop - xclamp(
 				atGlyphTop(stems[j]) ? 0 : uppx, // essential space above
 				atGlyphTop(stems[j])
-					? round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_BAR) + roundDown(BLUEZONE_TOP_BAR - y0)
-					: Math.max(
-						round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_DOTBAR),
-						roundDown(BLUEZONE_TOP_BAR - y0)
-					),
+					? (
+						y0 > BLUEZONE_TOP_BAR
+							? round(BLUEZONE_TOP_CENTER - y0)
+							: round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_BAR) + roundDown(BLUEZONE_TOP_BAR - y0))
+					: (
+						y0 > BLUEZONE_TOP_DOTBAR
+							? round(BLUEZONE_TOP_CENTER - y0)
+							: Math.max(
+								round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_DOTBAR),
+								roundDown(BLUEZONE_TOP_BAR - y0)
+							)),
 				WIDTH_GEAR_MIN * uppx);
 
 			var looseRoundingLow = ppem > PPEM_INCREASE_GLYPH_LIMIT && !(stems[j].hasGlyphFoldBelow && !stems[j].hasGlyphStemBelow || stems[j].hasGlyphSideFoldBelow && !stems[j].hasGlyphStemBelow);
