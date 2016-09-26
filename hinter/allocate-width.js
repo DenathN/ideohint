@@ -127,6 +127,7 @@ function allocateWidth(y0, env) {
 				}
 			}
 		}
+
 		// Doublet balancing
 		for (var j = N - 1; j >= 0; j--) for (var k = j - 1; k >= 0; k--) if (strictOverlaps[j][k]) {
 			var y1 = y.slice(0), w1 = w.slice(0);
@@ -138,9 +139,13 @@ function allocateWidth(y0, env) {
 			else if (w[j] === 2 && w[k] === 1 && w[j] === properWidths[j] && y[j] - y[k] === 2) {
 				w[j] -= 1;
 			}
-			// [2][2] -> [2] 1 [1]
+			// [2][2] -> [1] 1 [2]
 			else if (w[j] === 2 && w[k] === 2 && w[k] === properWidths[k] && y[j] - y[k] === 2) {
-				w[k] -= 1, y[k] -= 1;
+				if (pass % 2) {
+					w[j] -= 1;
+				} else {
+					w[k] -= 1; y[k] -= 1;
+				}
 			}
 			if (spaceBelow(env, y, w, j, pixelBottom - 2) < 1
 				|| spaceAbove(env, y, w, k, pixelTop + 2) < 1
@@ -148,6 +153,7 @@ function allocateWidth(y0, env) {
 				y = y1; w = w1;
 			}
 		}
+
 		// Triplet balancing
 		for (var t = 0; t < strictTriplets.length; t++) {
 			var j = strictTriplets[t][0], k = strictTriplets[t][1], m = strictTriplets[t][2];
@@ -221,7 +227,7 @@ function allocateWidth(y0, env) {
 				w[m] -= 1, w[j] += 1, y[m] -= 1, y[k] -= 1
 			}
 			// [1T] 1 [2] 1 [*] -> [2] 1 [1] 1 [*]
-			else if (avaliables[j].atGlyphTop && w[j] <= properWidths[j] - 1 && w[k] >= properWidths[k]) {
+			else if (avaliables[j].atGlyphTop && w[j] <= properWidths[j] - 1 && w[k] >= properWidths[k] && properWidths[k] > 1) {
 				w[k] -= 1, y[k] -= 1, w[j] += 1
 			}
 			// rollback when no space
@@ -234,6 +240,7 @@ function allocateWidth(y0, env) {
 				y = y1; w = w1;
 			}
 		}
+
 		// Edge touch balancing
 		for (var j = 0; j < N; j++) {
 			if (w[j] <= 1 && y[j] > pixelBottom + 2) {
@@ -280,6 +287,7 @@ function allocateWidth(y0, env) {
 			}
 		}
 	}
+	if (env.ppem === 16) console.log(y, w);
 
 	return { y: y, w: w }
 };
