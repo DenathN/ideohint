@@ -6,7 +6,8 @@ var stream = require('stream');
 var util = require('util');
 var devnull = require('dev-null');
 var hint = require('../hinter').hint;
-var instruct = require('../instructor').instruct;
+var paramfileLib = require('../paramfile');
+var strategyLib = require('../strategy');
 
 exports.command = 'hint';
 exports.describe = 'Hint a feature file (hgf).'
@@ -18,8 +19,7 @@ exports.builder = function (yargs) {
 		.describe('o', 'Output sfd path. When absent, the result sfd is written to STDOUT.')
 		.describe('d', 'Only process dk+m\'th glyphs in the feature file. Combine with -m for parallel processing.')
 		.describe('m', 'Only process dk+m\'th glyphs in the feature file. Combine with -d for parallel processing.')
-		.describe('parameters', 'Specify parameter file (in TOML).')
-		.describe('CVT_PADDING', 'Specify CVT Padding.');
+		.describe('parameters', 'Specify parameter file (in TOML).');
 }
 
 function by_rp(a, b) { return a[0] - b[0] || a[1] - b[1] }
@@ -54,11 +54,8 @@ exports.handler = function (argv) {
 	var rl = readline.createInterface(inStream, devnull());
 
 
-	var parameterFile = require('../paramfile').from(argv);
-	var strategy = require('../strategy').from(argv, parameterFile);
-	var cvtlib = require('../cvt');
-	var cvtPadding = cvtlib.getPadding(argv, parameterFile);
-	var cvt = cvtlib.createCvt([], strategy, cvtlib.getPadding(argv, parameterFile))
+	var parameterFile = paramfileLib.from(argv);
+	var strategy = strategyLib.from(argv, parameterFile);
 
 	var divide = argv.d || 1;
 	var modulo = argv.m || 0;
@@ -97,7 +94,7 @@ exports.handler = function (argv) {
 			var glyph = data[2];
 			var stemActions = [];
 			var nMDRPnr = 0, nMDRPr = 0;
-			for (var ppem = strategy.PPEM_MIN; ppem < strategy.PPEM_MAX; ppem++) {
+			for (var ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
 				var actions = hint(glyph, ppem, strategy);
 				for (var k = 0; k < actions.length; k++) {
 					if (actions[k].length === 4) {

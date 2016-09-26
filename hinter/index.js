@@ -333,9 +333,13 @@ function hint(glyph, ppem, strategy) {
 				sym[j] = [];
 				for (var k = 0; k < j; k++) {
 					sym[j][k] = !directOverlaps[j][k]
-						&& Math.abs(avaliables[j].y0 - avaliables[k].y0) < 0.3 * uppx
-						&& Math.abs(avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0 + avaliables[k].w0) < 0.3 * uppx
-						&& Math.abs(avaliables[j].length - avaliables[k].length) < 0.3 * uppx
+						&& Math.abs(avaliables[j].y0 - avaliables[k].y0) < uppx / 3
+						&& Math.abs(avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0 + avaliables[k].w0) < uppx / 3
+						&& Math.abs(avaliables[j].length - avaliables[k].length) < uppx / 3
+						&& (stems[j].hasGlyphStemAbove === stems[k].hasGlyphStemAbove)
+						&& (stems[j].hasGlyphStemBelow === stems[k].hasGlyphStemBelow)
+						&& (stems[j].hasSameRadicalStemAbove === stems[k].hasSameRadicalStemAbove)
+						&& (stems[j].hasSameRadicalStemBelow === stems[k].hasSameRadicalStemBelow)
 						&& (avaliables[j].atGlyphTop === avaliables[k].atGlyphTop)
 						&& (avaliables[j].atGlyphBottom === avaliables[k].atGlyphBottom);
 				}
@@ -384,8 +388,13 @@ function hint(glyph, ppem, strategy) {
 		if (og.collidePotential <= 0) {
 			y0 = uncollide(y0, env, 4, strategy.POPULATION_LIMIT_SMALL);
 		} else {
+			var passes = Math.round(stems.length / 3);
+			if (passes < 2) passes = 2;
 			y0 = earlyAdjust(y0.length, env);
-			y0 = uncollide(y0, env, stems.length, strategy.POPULATION_LIMIT);
+			env.noAblation = true;
+			y0 = uncollide(y0, env, passes, strategy.POPULATION_LIMIT);
+			env.noAblation = false;
+			y0 = uncollide(y0, env, passes, strategy.POPULATION_LIMIT);
 		};
 		return y0;
 	})();

@@ -47,6 +47,9 @@ function ipsaInvokes(actions) {
 	var cur_rp1 = -1;
 	var cur_rp2 = -1;
 	for (var k = 0; k < actions.length; k++) {
+		if (actions[k].length > 2 && actions[k][0] === actions[k][1]) {
+			actions[k] = [actions[k][0], actions[k][2]];
+		}
 		if (actions[k].length > 2) {
 			// an IP
 			var rp1 = actions[k][0];
@@ -119,7 +122,7 @@ function instruct(glyph, actions, strategy, cvt, padding) {
 	// Top
 	// Normal cases:
 	// Padding + 3 + ppem is the CVT index of top blue zone center.
-	tt.push('PUSHB_1', strategy.PPEM_MIN, 'MPPEM', 'LTEQ', 'PUSHB_1', strategy.PPEM_MAX, 'MPPEM', 'GT', 'AND', 'IF');
+	tt.push('PUSHB_1', strategy.PPEM_MIN, 'MPPEM', 'LTEQ', 'PUSHB_1', strategy.PPEM_MAX, 'MPPEM', 'GTEQ', 'AND', 'IF');
 	tt.push('MPPEM');
 	pushargs(tt, padding + 3);
 	tt.push('ADD');
@@ -231,7 +234,7 @@ function instruct(glyph, actions, strategy, cvt, padding) {
 		invocations.push(currentDeltaCall);
 	}
 
-	mirps.push('PUSHB_1', strategy.PPEM_MAX, 'MPPEM', 'LTEQ', 'IF');
+	mirps.push('PUSHB_1', strategy.PPEM_MAX, 'MPPEM', 'LT', 'IF');
 	var largeMdrpInvokes = [];
 	if (glyph.stems.length) {
 		for (var k = 0; k < glyph.stems.length; k++) {

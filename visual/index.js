@@ -17,7 +17,11 @@ function interpolate(a, b, c) {
 }
 function interpolateIP(a, b, c) {
 	c.touched = true;
-	c.ytouch = (c.yori - a.yori) / (b.yori - a.yori) * (b.ytouch - a.ytouch) + a.ytouch;
+	if (a.yori === b.yori) {
+		c.ytouch = c.yori - a.yori + a.ytouch;
+	} else {
+		c.ytouch = (c.yori - a.yori) / (b.yori - a.yori) * (b.ytouch - a.ytouch) + a.ytouch;
+	}
 }
 function IUPy(contours) {
 	for (var j = 0; j < contours.length; j++) {
@@ -229,7 +233,7 @@ function render() {
 	var hPreview = document.getElementById('preview').getContext('2d');
 	hPreview.font = (12 * DPI) + 'px sans-serif'
 	var y = 10 * DPI;
-	for (var ppem = 12; ppem < 36; ppem++) {
+	for (var ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
 		// fill with red block
 		hPreview.fillStyle = 'white';
 		hPreview.fillRect(0, y, 128 + glyphs.length * DPI * ppem, y + DPI * ppem)
@@ -246,7 +250,7 @@ window.testInstruct = function (m) {
 	var glyph = glyphs[m].features;
 	var stemActions = [];
 	var nMDRPnr = 0, nMDRPr = 0;
-	for (var ppem = strategy.PPEM_MIN; ppem < strategy.PPEM_MAX; ppem++) {
+	for (var ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
 		var actions = hint(glyph, ppem, strategy);
 		for (var k = 0; k < actions.length; k++) {
 			if (actions[k].length === 4) {

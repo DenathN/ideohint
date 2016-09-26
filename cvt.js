@@ -5,7 +5,7 @@ function pushWhenAbsent(a, x) {
 }
 
 function createCvt(src, strategy, padding) {
-	var MAX_SW = 4;
+	var MAX_SW = 5;
 	var cvt = (src || []).slice(0);
 	padding = padding || 0;
 	if (padding) cvt = cvt.slice(0, padding);
@@ -22,12 +22,12 @@ function createCvt(src, strategy, padding) {
 		pushWhenAbsent(cvt, vtop);
 	}
 	for (var w = 1; w <= MAX_SW; w++) {
-		for (var ppem = strategy.PPEM_MIN; ppem < strategy.PPEM_MAX; ppem++) {
+		for (var ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
 			pushWhenAbsent(cvt, -Math.round(strategy.UPM / ppem * w))
 		}
 	};
 	for (var w = 1; w <= MAX_SW; w++) {
-		for (var ppem = strategy.PPEM_MIN; ppem < strategy.PPEM_MAX; ppem++) {
+		for (var ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
 			pushWhenAbsent(cvt, Math.round(strategy.UPM / ppem * w))
 		}
 	};

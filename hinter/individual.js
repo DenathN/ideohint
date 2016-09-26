@@ -12,7 +12,7 @@ function collidePotential(y, env) {
 			else if (y[j] <= y[k] + env.avaliables[j].properWidth) {
 				// collide
 				p += C[j][k];
-				nCollides += P[j][k];
+				nCollides += P[j][k] + 1;
 			}
 			if (j !== k && sym[j][k]) {
 				if (y[j] !== y[k]) {
