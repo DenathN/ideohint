@@ -47,6 +47,9 @@ function ipsaInvokes(actions) {
 	var cur_rp1 = -1;
 	var cur_rp2 = -1;
 	for (var k = 0; k < actions.length; k++) {
+		if (actions[k].length > 2 && actions[k][0] === actions[k][1]) {
+			actions[k] = [actions[k][0], actions[k][2]];
+		}
 		if (actions[k].length > 2) {
 			// an IP
 			var rp1 = actions[k][0];

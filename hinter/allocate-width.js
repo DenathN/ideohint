@@ -183,12 +183,20 @@ function allocateWidth(y0, env) {
 			else if (tripletSatisifiesPattern(j, k, m, 1, 3, 2, LESS, SUFF, ANY)) {
 				w[j] += 1, y[k] -= 1, w[k] -= 1;
 			}
+			// [1] 1 [3] 1 [3] -> [2] 1 [2] 1 [3]
+			else if (tripletSatisifiesPattern(j, k, m, 1, 3, 3, LESS, SUFF, ANY)) {
+				w[j] += 1, y[k] -= 1, w[k] -= 1;
+			}
 			// [2] 1 [1] 1 [3] -> [2] 1 [2] 1 [2]
 			else if (tripletSatisifiesPattern(j, k, m, 2, 1, 3, ANY, LESS, SUFF)) {
 				w[k] += 1, w[m] -= 1, y[m] -= 1;
 			}
 			// [2] 1 [3] 1 [1] -> [2] 1 [2] 1 [2]
 			else if (tripletSatisifiesPattern(j, k, m, 2, 3, 1, ANY, SUFF, LESS)) {
+				w[k] -= 1, w[m] += 1, y[m] += 1;
+			}
+			// [3] 1 [3] 1 [1] -> [2] 1 [2] 1 [2]
+			else if (tripletSatisifiesPattern(j, k, m, 3, 3, 1, ANY, SUFF, LESS)) {
 				w[k] -= 1, w[m] += 1, y[m] += 1;
 			}
 			// [3] 1 [1] 1 [2] -> [2] 1 [2] 1 [2]

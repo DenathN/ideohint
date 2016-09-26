@@ -333,9 +333,13 @@ function hint(glyph, ppem, strategy) {
 				sym[j] = [];
 				for (var k = 0; k < j; k++) {
 					sym[j][k] = !directOverlaps[j][k]
-						&& Math.abs(avaliables[j].y0 - avaliables[k].y0) < 0.3 * uppx
-						&& Math.abs(avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0 + avaliables[k].w0) < 0.3 * uppx
-						&& Math.abs(avaliables[j].length - avaliables[k].length) < 0.3 * uppx
+						&& Math.abs(avaliables[j].y0 - avaliables[k].y0) < uppx / 3
+						&& Math.abs(avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0 + avaliables[k].w0) < uppx / 3
+						&& Math.abs(avaliables[j].length - avaliables[k].length) < uppx / 3
+						&& (stems[j].hasGlyphStemAbove === stems[k].hasGlyphStemAbove)
+						&& (stems[j].hasGlyphStemBelow === stems[k].hasGlyphStemBelow)
+						&& (stems[j].hasSameRadicalStemAbove === stems[k].hasSameRadicalStemAbove)
+						&& (stems[j].hasSameRadicalStemBelow === stems[k].hasSameRadicalStemBelow)
 						&& (avaliables[j].atGlyphTop === avaliables[k].atGlyphTop)
 						&& (avaliables[j].atGlyphBottom === avaliables[k].atGlyphBottom);
 				}

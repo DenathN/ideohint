@@ -16,7 +16,7 @@ function atRadicalBottom(stem, strategy) {
 		&& !(stem.hasRadicalRightAdjacentPointBelow && stem.radicalRightAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT)
 }
 
-module.exports = function calculateCollisionMatrices(strategy, stems, overlapLengths, pbs) {
+module.exports = function calculateCollisionMatrices(strategy, stems, overlapRatios, overlapLengths, pbs) {
 	// A : Alignment operator
 	// C : Collision operator
 	// S : Swap operator

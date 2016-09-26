@@ -17,7 +17,11 @@ function interpolate(a, b, c) {
 }
 function interpolateIP(a, b, c) {
 	c.touched = true;
-	c.ytouch = (c.yori - a.yori) / (b.yori - a.yori) * (b.ytouch - a.ytouch) + a.ytouch;
+	if (a.yori === b.yori) {
+		c.ytouch = c.yori - a.yori + a.ytouch;
+	} else {
+		c.ytouch = (c.yori - a.yori) / (b.yori - a.yori) * (b.ytouch - a.ytouch) + a.ytouch;
+	}
 }
 function IUPy(contours) {
 	for (var j = 0; j < contours.length; j++) {
