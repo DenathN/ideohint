@@ -233,7 +233,7 @@ function render() {
 	var hPreview = document.getElementById('preview').getContext('2d');
 	hPreview.font = (12 * DPI) + 'px sans-serif'
 	var y = 10 * DPI;
-	for (var ppem = 12; ppem < 36; ppem++) {
+	for (var ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
 		// fill with red block
 		hPreview.fillStyle = 'white';
 		hPreview.fillRect(0, y, 128 + glyphs.length * DPI * ppem, y + DPI * ppem)
@@ -250,7 +250,7 @@ window.testInstruct = function (m) {
 	var glyph = glyphs[m].features;
 	var stemActions = [];
 	var nMDRPnr = 0, nMDRPr = 0;
-	for (var ppem = strategy.PPEM_MIN; ppem < strategy.PPEM_MAX; ppem++) {
+	for (var ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
 		var actions = hint(glyph, ppem, strategy);
 		for (var k = 0; k < actions.length; k++) {
 			if (actions[k].length === 4) {

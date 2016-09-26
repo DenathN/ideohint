@@ -112,7 +112,8 @@ function allocateWidth(y0, env) {
 					// with one pixel space, and prevent upward adjustment, if
 					&& ( // there is no stem below satisifies:
 						!cover(avaliables[j], avaliables[k]) // it is not dominated with stroke J
-						|| w[k] < properWidths[k]) // or it is thin enough
+						|| w[k] < properWidths[k]  // or it is thin enough
+						|| w[k] < 2) // or it is thin enough
 				) {
 					able = false;
 				}
@@ -141,8 +142,8 @@ function allocateWidth(y0, env) {
 			else if (w[j] === 2 && w[k] === 2 && w[k] === properWidths[k] && y[j] - y[k] === 2) {
 				w[k] -= 1, y[k] -= 1;
 			}
-			if (spaceBelow(env, y, w, j, pixelBottom - 1) < 1
-				|| spaceAbove(env, y, w, k, pixelTop + 1) < 1
+			if (spaceBelow(env, y, w, j, pixelBottom - 2) < 1
+				|| spaceAbove(env, y, w, k, pixelTop + 2) < 1
 				|| y[k] < avaliables[k].lowW || y[k] > avaliables[k].highW) {
 				y = y1; w = w1;
 			}
@@ -223,7 +224,6 @@ function allocateWidth(y0, env) {
 			else if (avaliables[j].atGlyphTop && w[j] <= properWidths[j] - 1 && w[k] >= properWidths[k]) {
 				w[k] -= 1, y[k] -= 1, w[j] += 1
 			}
-
 			// rollback when no space
 			if (spaceBelow(env, y, w, j, pixelBottom - 1) < 1
 				|| spaceAbove(env, y, w, k, pixelTop + 1) < 1
@@ -280,6 +280,7 @@ function allocateWidth(y0, env) {
 			}
 		}
 	}
+
 	return { y: y, w: w }
 };
 

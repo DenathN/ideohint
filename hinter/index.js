@@ -388,8 +388,13 @@ function hint(glyph, ppem, strategy) {
 		if (og.collidePotential <= 0) {
 			y0 = uncollide(y0, env, 4, strategy.POPULATION_LIMIT_SMALL);
 		} else {
+			var passes = Math.round(stems.length / 3);
+			if (passes < 2) passes = 2;
 			y0 = earlyAdjust(y0.length, env);
-			y0 = uncollide(y0, env, stems.length, strategy.POPULATION_LIMIT);
+			env.noAblation = true;
+			y0 = uncollide(y0, env, passes, strategy.POPULATION_LIMIT);
+			env.noAblation = false;
+			y0 = uncollide(y0, env, passes, strategy.POPULATION_LIMIT);
 		};
 		return y0;
 	})();
