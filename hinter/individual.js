@@ -2,7 +2,7 @@
 
 function collidePotential(y, env) {
 	var A = env.A, C = env.C, S = env.S, P = env.P, avaliables = env.avaliables, sym = env.symmetry;
-	var p = 0, n = y.length, nCollides = 0;
+	var p = 0, n = y.length;
 	for (var j = 0; j < n; j++) {
 		for (var k = 0; k < j; k++) {
 			if (y[j] === y[k]) {
@@ -12,7 +12,6 @@ function collidePotential(y, env) {
 			else if (y[j] <= y[k] + env.avaliables[j].properWidth) {
 				// collide
 				p += C[j][k];
-				nCollides += P[j][k] + 1;
 			}
 			if (j !== k && sym[j][k]) {
 				if (y[j] !== y[k]) {
@@ -27,7 +26,6 @@ function collidePotential(y, env) {
 			}
 		};
 	};
-	p += nCollides * env.strategy.COEFF_C_MULTIPLIER;
 	return p;
 };
 function ablationPotential(y, env) {

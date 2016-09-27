@@ -70,7 +70,7 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlapRat
 			if (Math.abs(stems[j].xmax - stems[k].xmax) <= strategy.BLUEZONE_WIDTH) {
 				symmetryCoeff += 2;
 			}
-			C[j][k] = strategy.COEFF_C_MULTIPLIER * ovr * coeffC * slopesCoeff * symmetryCoeff;
+			C[j][k] = strategy.COEFF_C_MULTIPLIER * (1 + ovr * coeffC * slopesCoeff * symmetryCoeff);
 
 			S[j][k] = strategy.COEFF_S;
 			P[j][k] = promixity + (pbs[j][k] ? 1 : 0);

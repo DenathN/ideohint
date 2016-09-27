@@ -13,8 +13,12 @@ var allocateWidth = require("./allocate-width");
 var stemPositionToActions = require('./actions');
 
 function xclamp(low, x, high) { return x < low ? low : x > high ? high : x }
+function lerp(x, x1, x2, y1, y2) {
+	return (x - x1) / (x2 - x1) * (y2 - y1) + y1;
+}
+
 function xlerp(x, x1, x2, x3, y1, y2, y3) {
-	if (x <= x1) {
+	if (x <= x2) {
 		return (x - x1) / (x2 - x1) * (y2 - y1) + y1;
 	} else {
 		return (x - x2) / (x3 - x2) * (y3 - y2) + y2;
@@ -37,8 +41,16 @@ function hint(glyph, ppem, strategy) {
 
 	var PPEM_INCREASE_GLYPH_LIMIT = strategy.PPEM_INCREASE_GLYPH_LIMIT;
 
-	var CANONICAL_STEM_WIDTH = (ppem <= PPEM_INCREASE_GLYPH_LIMIT ? strategy.CANONICAL_STEM_WIDTH_SMALL : strategy.CANONICAL_STEM_WIDTH);
+	var CANONICAL_STEM_WIDTH = (ppem <= PPEM_INCREASE_GLYPH_LIMIT
+		? strategy.CANONICAL_STEM_WIDTH_SMALL
+		: strategy.CANONICAL_STEM_WIDTH +
+		lerp(ppem, PPEM_INCREASE_GLYPH_LIMIT, strategy.PPEM_MAX,
+			0, strategy.CANONICAL_STEM_WIDTH_LARGE_ADJ));
 	var CANONICAL_STEM_WIDTH_DENSE = strategy.CANONICAL_STEM_WIDTH_DENSE;
+	if (ppem > PPEM_INCREASE_GLYPH_LIMIT) {
+		CANONICAL_STEM_WIDTH_DENSE += lerp(ppem, PPEM_INCREASE_GLYPH_LIMIT, strategy.PPEM_MAX,
+			0, strategy.CANONICAL_STEM_WIDTH_LARGE_ADJ)
+	}
 
 	var WIDTH_GEAR_PROPER = Math.round(CANONICAL_STEM_WIDTH / uppx);
 	var WIDTH_GEAR_MIN = Math.round(CANONICAL_STEM_WIDTH_DENSE / uppx);
