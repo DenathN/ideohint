@@ -4,11 +4,11 @@ var toml = require('toml');
 var fs = require('fs');
 
 var DefaultStrategy = function () {
-	var g = [[0, 1, 1], [23, 2, 2], [36, 3, 2]]
 	return {
 		UPM: 1000,
 		CANONICAL_STEM_WIDTH: 65,
 		CANONICAL_STEM_WIDTH_SMALL: 65,
+		CANONICAL_STEM_WIDTH_LARGE_ADJ: 0,
 		CANONICAL_STEM_WIDTH_DENSE: 65,
 		ABSORPTION_LIMIT: 65,
 		STEM_SIDE_MIN_RISE: 40,
