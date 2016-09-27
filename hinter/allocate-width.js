@@ -67,14 +67,13 @@ function allocateWidth(y0, env) {
 			&& (!w3 || w[m] === w3 && relationSat(w[m], properWidths[m], j3))
 	}
 
-	for (var pass = 0; pass < 5; pass++) {
+	for (var allocPass = 0; allocPass < 5; allocPass++) {
 		// Allocate top and bottom stems
 		for (var j = 0; j < N; j++) if ((avaliables[j].atGlyphTop || avaliables[j].atGlyphBottom) && !allocated[j]) { allocateDown(j) };
 		for (var subpass = 0; subpass < env.strategy.WIDTH_ALLOCATION_PASSES; subpass++) {
 			for (var j = 0; j < N; j++) if (!allocated[j]) { allocateDown(j) };
 		}
 	}
-
 	// Avoid thin strokes
 	for (var pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) if (env.WIDTH_GEAR_PROPER >= 2) {
 		for (var psi = 0; psi < 3; psi++) {
@@ -97,6 +96,7 @@ function allocateWidth(y0, env) {
 				}
 
 				if (able) {
+					if (env.ppem === 28) console.log('DOWN', j);
 					for (var k = 0; k < j; k++) if (strictOverlaps[j][k] && y[j] - w[j] - y[k] <= 1) {
 						y[k] -= 1;
 						w[k] -= 1;
@@ -119,6 +119,7 @@ function allocateWidth(y0, env) {
 				}
 
 				if (able) {
+					if (env.ppem === 28) console.log('UP', j);
 					for (var k = j + 1; k < N; k++) if (strictOverlaps[k][j] && y[k] - w[k] - y[j] <= 1) {
 						w[k] -= 1;
 					}
@@ -127,7 +128,6 @@ function allocateWidth(y0, env) {
 				}
 			}
 		}
-
 		// Doublet balancing
 		for (var j = N - 1; j >= 0; j--) for (var k = j - 1; k >= 0; k--) if (strictOverlaps[j][k]) {
 			var y1 = y.slice(0), w1 = w.slice(0);
@@ -279,6 +279,9 @@ function allocateWidth(y0, env) {
 			if (su > 1 && (sb < 1 || d1 >= d2 * 1.66) && y[k] < avaliables[k].highW && o1 / o2 <= 1.25 && env.P[j][k] <= env.P[k][m]) {
 				// A distorted triplet space, but we can adjust this stem up.
 				y[k] += 1;
+				if (w[k] < properWidths[k] && Math.abs((d1 - 1) / (d2) - o1 / o2) < Math.abs((d1 - 1) / (d2 + 1) - o1 / o2)) {
+					w[k] += 1;
+				}
 			} else if (sb > 1 && (su < 1 || d2 >= d1 * 1.66) && o2 / o1 <= 1.25 && env.P[j][k] >= env.P[k][m]) {
 				if (w[k] < properWidths[k]) {
 					// A distorted triplet space, but we increase the middle stem’s weight
@@ -286,11 +289,13 @@ function allocateWidth(y0, env) {
 				} else if (y[k] > avaliables[k].lowW) {
 					// A distorted triplet space, but we can adjust this stem down.
 					y[k] -= 1;
+					if (w[j] < properWidths[j] && Math.abs((d1) / (d2 - 1) - o1 / o2) < Math.abs((d1 + 1) / (d2 - 1) - o1 / o2) && spaceBelow(env, y, w, j, pixelBottom - 2) > 1) {
+						w[j] += 1;
+					}
 				}
 			}
 		}
 	}
-
 	return { y: y, w: w }
 };
 
