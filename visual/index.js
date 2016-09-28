@@ -265,7 +265,7 @@ window.testInstruct = function (m) {
 }
 
 var strategyControlGroups = [
-	['UPM','BLUEZONE_WIDTH'],
+	['UPM','BLUEZONE_WIDTH','PPEM_INCREASE_GLYPH_LIMIT'],
 	[
 		'BLUEZONE_TOP_CENTER',
 		'BLUEZONE_TOP_LIMIT',
