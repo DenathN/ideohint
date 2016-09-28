@@ -96,7 +96,6 @@ function allocateWidth(y0, env) {
 				}
 
 				if (able) {
-					if (env.ppem === 28) console.log('DOWN', j);
 					for (var k = 0; k < j; k++) if (strictOverlaps[j][k] && y[j] - w[j] - y[k] <= 1) {
 						y[k] -= 1;
 						w[k] -= 1;
@@ -119,7 +118,6 @@ function allocateWidth(y0, env) {
 				}
 
 				if (able) {
-					if (env.ppem === 28) console.log('UP', j);
 					for (var k = j + 1; k < N; k++) if (strictOverlaps[k][j] && y[k] - w[k] - y[j] <= 1) {
 						w[k] -= 1;
 					}

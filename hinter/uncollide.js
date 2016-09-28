@@ -14,25 +14,24 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 	for (var j = 0; j < n; j++) {
 		y0[j] = xclamp(avaliables[j].low, Math.round(yInit[j]), avaliables[j].high);
 	}
-	var totalStages = Math.max(env.strategy.EVOLUTION_STAGES, Math.ceil(n * env.strategy.EVOLUTION_STAGES * (n / env.ppem)));
 
-	var population = [new Individual(y0, env)];
+	var population = [new Individual(balance(y0, env), env)];
 	// Generate initial population
 	// Extereme
 	for (var j = 0; j < n; j++) {
 		for (var k = avaliables[j].low; k <= avaliables[j].high; k++) if (k !== y0[j]) {
 			var y1 = y0.slice(0);
 			y1[j] = k;
-			population.push(new Individual(y1, env));
+			population.push(new Individual(balance(y1, env), env));
 		};
 	};
 	// Y-mutant
-	population.push(new Individual(y0.map(function (y, j) {
+	population.push(new Individual(balance(y0.map(function (y, j) {
 		return xclamp(avaliables[j].low, y - 1, avaliables[j].high)
-	}), env));
-	population.push(new Individual(y0.map(function (y, j) {
+	}), env), env));
+	population.push(new Individual(balance(y0.map(function (y, j) {
 		return xclamp(avaliables[j].low, y + 1, avaliables[j].high)
-	}), env));
+	}), env), env));
 	// Random
 	for (var c = population.length; c < scale; c++) {
 		// fill population with random individuals
@@ -40,7 +39,7 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 		for (var j = 0; j < n; j++) {
 			ry[j] = xclamp(avaliables[j].low, Math.floor(avaliables[j].low + Math.random() * (avaliables[j].high - avaliables[j].low + 1)), avaliables[j].high);
 		}
-		population.push(new Individual(ry, env));
+		population.push(new Individual(balance(ry, env), env));
 	}
 
 	// Hall of fame
@@ -48,20 +47,18 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 	for (var j = 1; j < population.length; j++) if (population[j].fitness > best.fitness) {
 		best = population[j];
 	}
-	best = new Individual(balance(best.gene, env), env);
 	// "no-improvement" generations
 	var steadyStages = 0;
 	// Build a swapchain
 	var p = population, q = new Array(population.length);
 
 	// Start evolution
-	for (var s = 0; s < totalStages; s++) {
+	for (var s = 0; s < env.strategy.EVOLUTION_STAGES; s++) {
 		population = evolve(p, q, !(s % 2), env);
 		var elite = population[0];
 		for (var j = 1; j < population.length; j++) if (population[j].fitness > elite.fitness) {
 			elite = population[j];
 		}
-		elite = new Individual(balance(elite.gene, env), env);
 		if (elite.fitness <= best.fitness) {
 			steadyStages += 1
 		} else {
@@ -70,7 +67,6 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 		}
 		if (steadyStages > terminalStrictness) break;
 	};
-
 	return best.gene;
 };
 
