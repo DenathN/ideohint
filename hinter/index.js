@@ -277,11 +277,11 @@ function hint(glyph, ppem, strategy) {
 				atGlyphTop(stems[j]) ? 0 : uppx, // essential space above
 				atGlyphTop(stems[j])
 					? (
-						y0 > BLUEZONE_TOP_BAR
+						y0 > BLUEZONE_TOP_BAR && ppem <= PPEM_INCREASE_GLYPH_LIMIT
 							? round(BLUEZONE_TOP_CENTER - y0)
 							: round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_BAR) + roundDown(BLUEZONE_TOP_BAR - y0))
 					: (
-						y0 > BLUEZONE_TOP_DOTBAR
+						y0 > BLUEZONE_TOP_DOTBAR && ppem <= PPEM_INCREASE_GLYPH_LIMIT
 							? round(BLUEZONE_TOP_CENTER - y0)
 							: Math.max(
 								round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_DOTBAR),
