@@ -1,5 +1,5 @@
 var fs = require('fs');
-var roundings = require('./roundings');
+var roundings = require('../roundings');
 function pushWhenAbsent(a, x) {
 	a.push(x)
 }

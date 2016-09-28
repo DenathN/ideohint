@@ -11,7 +11,7 @@ var es = require('event-stream');
 var oboe = require('oboe');
 var instruct = require('../instructor').instruct;
 
-var cvtlib = require('../cvt');
+var cvtlib = require('../instructor/cvt');
 
 var hashContours = require('../otdParser').hashContours;
 
