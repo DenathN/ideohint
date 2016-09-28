@@ -4,7 +4,7 @@ var extractFeature = require('../extractfeature').extractFeature;
 var hint = require('../hinter').hint;
 var roundings = require('../roundings');
 var instruct = require('../instructor').instruct;
-var createCvt = require('../cvt').createCvt;
+var createCvt = require('../instructor/cvt').createCvt;
 
 var defaultStrategy;
 var strategy;
