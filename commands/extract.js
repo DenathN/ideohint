@@ -8,7 +8,6 @@ var extractFeature = require('../extractfeature').extractFeature;
 var devnull = require('dev-null');
 var util = require('util');
 
-var parseSFD = require('../sfdParser').parseSFD;
 var parseOTD = require('../otdParser').parseOTD;
 
 var crypto = require('crypto');
@@ -28,67 +27,13 @@ exports.builder = function (yargs) {
 }
 
 exports.handler = function (argv) {
-	var format = argv.format || 'hgl';
-
 	var instream = argv._[1] ? fs.createReadStream(argv._[1]) : process.stdin;
 	var outstream = argv.o ? fs.createWriteStream(argv.o, { encoding: 'utf-8' }) : process.stdout;
 
 	var parameterFile = require('../paramfile').from(argv);
 	var strategy = require('../strategy').from(argv, parameterFile);
 
-	var formatMap = {
-		sfd: processSFD,
-		otd: processHGL,
-		hgl: processHGL
-	}
-	formatMap[format](argv, instream, outstream, strategy);
-}
-
-function processSFD(argv, instream, outstream, strategy) {
-	var rl = readline.createInterface(instream, devnull());
-	var buf = '';
-	var started = false;
-
-	var curChar = null;
-	var readingSpline = false;
-
-	var divide = argv.d || 1;
-	var modulo = argv.m || 0;
-	var n = 0;
-	var j = 0;
-
-	rl.on('line', function (line) {
-		if (/^StartChar:/.test(line)) {
-			curChar = { input: '', id: line.split(' ')[1] }
-		} else if (/^SplineSet/.test(line)) {
-			readingSpline = true;
-		} else if (/^EndSplineSet/.test(line)) {
-			readingSpline = false;
-		} else if (curChar && readingSpline) {
-			curChar.input += line + '\n';
-		} else if (/^EndChar/.test(line)) {
-			if (curChar) {
-				if (n % divide === modulo) {
-					var hash = md5(curChar.input);
-					var glyphdata = extractFeature(findStems(parseSFD(curChar.input), strategy), strategy);
-					glyphdata.id = curChar.id;
-					buf += JSON.stringify([curChar.id, hash, glyphdata, j]) + '\n';
-					j += 1;
-					started = true;
-				}
-				n += 1;
-			};
-			curChar = null;
-		};
-		if (buf.length >= 16384) {
-			outstream.write(buf);
-			buf = '';
-		}
-	});
-
-	rl.on('close', function () {
-		outstream.write(buf + '\n')
-	});
+	processHGL(argv, instream, outstream, strategy);
 }
 
 function processHGL(argv, instream, outstream, strategy) {

@@ -1,6 +1,7 @@
 "use strict"
 
 var Individual = require('./individual');
+var balance = require("./balance");
 function xclamp(low, x, high) { return x < low ? low : x > high ? high : x }
 
 function crossover(p, q, r, env) {
@@ -15,7 +16,7 @@ function crossover(p, q, r, env) {
 			newgene[j] = p.gene[j];
 		}
 	}
-	return new Individual(newgene, env);
+	return new Individual(balance(newgene, env), env);
 };
 // Use a swapchain to avoid re-allochain
 function evolve(p, q, odd, env) {

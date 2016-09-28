@@ -11,7 +11,7 @@ var es = require('event-stream');
 var oboe = require('oboe');
 var instruct = require('../instructor').instruct;
 
-var cvtlib = require('../cvt');
+var cvtlib = require('../instructor/cvt');
 
 var hashContours = require('../otdParser').hashContours;
 
@@ -49,97 +49,12 @@ exports.handler = function (argv) {
 		var data = JSON.parse(line.trim());
 		activeInstructions[data[1]] = instruct(data[2].si, data[2].sd, strategy, linkCvt, cvtPadding);
 	});
-	rl.on('close', function () {
-		var format = argv.format || 'hgl';
-		var formatMap = {
-			sfd: pass_weaveSFD,
-			otd: pass_weaveOTD,
-			hgl: pass_weaveOTD
-		}
-		formatMap[format](activeInstructions);
-	});
+	rl.on('close', function () { pass_weaveOTD(activeInstructions); });
 
-
-	function pass_weaveSFD(activeInstructions) {
-		var sfdStream = argv._[2] ? fs.createReadStream(argv._[2]) : fs.createReadStream(argv._[1]);
-		var outStream = argv.o ? fs.createWriteStream(argv.o, { encoding: 'utf-8' }) : process.stdout;
-		var rl = readline.createInterface(sfdStream, devnull());
-		var cvt = linkCvt;
-
-		if (argv.subpattern) { var pattern = new RegExp(argv.subpattern, argv.subflag || ''); var replacement = argv.subreplacement }
-
-
-		process.stderr.write('WEAVE: Start weaving ' + (argv.o || '(stdout)') + '\n')
-		process.stderr.write('WEAVE: ' + (Object.keys(activeInstructions).length) + ' Active hinting records : ' + Object.keys(activeInstructions).slice(0, 3) + '...' + '\n')
-
-		var nGlyphs = 0;
-		var nApplied = 0;
-		var buf = '';
-
-		var curChar = null;
-		var readingSpline = false;
-		var readingTT = false;
-		var sourceCvt = '';
-		var readingCvt = false;
-		rl.on('line', function (line) {
-			line = line.replace(/\r$/, '');
-
-			if (/^ShortTable: cvt /.test(line)) {
-				sourceCvt += line + "\n";
-				readingCvt = true;
-				return;
-			} else if (readingCvt) {
-				sourceCvt += line + "\n";
-				if (/^EndShort/.test(line)) {
-					readingCvt = false;
-					var oldCvt = sourceCvt.trim().split('\n').slice(1, -1).map(function (x) { return x.trim() - 0 });
-					cvt = cvtlib.createCvt(oldCvt, strategy, cvtlib.getPadding(argv, parameterFile));
-					if (argv.dump_cvt) {
-						fs.writeFileSync(argv.dump_cvt, JSON.stringify({ cvt: cvt }), 'utf-8')
-					}
-				};
-				return;
-			} else if (/^StartChar:/.test(line)) {
-				curChar = { input: '', id: line.split(' ')[1] }
-			} else if (/^SplineSet/.test(line)) {
-				readingSpline = true;
-			} else if (/^EndSplineSet/.test(line)) {
-				readingSpline = false;
-			} else if (curChar && readingSpline) {
-				curChar.input += line + '\n';
-			} else if (/^EndChar/.test(line)) {
-				if (curChar) {
-					var hash = md5(curChar.input);
-					if (!argv.just_modify_cvt && activeInstructions[hash]) {
-						nApplied += 1;
-						buf += "TtInstrs:\n" + activeInstructions[hash] + "\nEndTTInstrs\n";
-					}
-					nGlyphs += 1;
-				};
-				curChar = null;
-			} else if (/^BeginChars:/.test(line)) {
-				buf += 'ShortTable: cvt  ' + cvt.length + '\n' + cvt.join('\n') + '\nEndShort\n'
-			};
-
-			if (pattern) line = line.replace(pattern, replacement);
-
-			buf += line + '\n';
-			if (buf.length >= 4096) {
-				outStream.write(buf);
-				buf = '';
-			}
-		});
-
-		rl.on('close', function () {
-			process.stderr.write('WEAVE: ' + nGlyphs + ' glyphs processed; ' + nApplied + ' glyphs applied hint.\n');
-			if (buf) outStream.write(buf);
-			outStream.end();
-		});
-	}
 
 	function pass_weaveOTD(activeInstructions) {
-		process.stderr.write("Weaving OTD.\n");
 		var otdPath = argv._[2] ? argv._[2] : argv._[1];
+		process.stderr.write("Weaving OTD " + otdPath + '\n');
 		var instream = fs.createReadStream(otdPath, 'utf-8');
 		var foundCVT = false;
 
@@ -176,5 +91,4 @@ exports.handler = function (argv) {
 				}).pipe(JSONStream.stringifyObject()).pipe(outStream);
 			});
 	}
-
 }

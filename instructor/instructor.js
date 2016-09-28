@@ -1,44 +1,10 @@
 "use strict"
 
-var rtg = require('./roundings').rtg_raw;
+var rtg = require('../roundings').rtg_raw;
 var util = require('util');
-
-function pushargs(tt) {
-	var vals = [];
-	for (var j = 1; j < arguments.length; j++) vals = vals.concat(arguments[j]);
-	if (!vals.length) return;
-	var datatype = 'B';
-	var shortpush = vals.length <= 8;
-	for (var j = 0; j < vals.length; j++) if (vals[j] < 0 || vals[j] > 255) datatype = 'W';
-	if (shortpush) {
-		tt.push('PUSH' + datatype + '_' + vals.length);
-		for (var j = 0; j < vals.length; j++) tt.push(vals[j])
-	} else if (vals.length < 250) {
-		tt.push('NPUSH' + datatype);
-		tt.push(vals.length);
-		for (var j = 0; j < vals.length; j++) tt.push(vals[j])
-	}
-};
-function invokesToInstrs(invocations, limit) {
-	var stackSofar = [];
-	var actionsSofar = [];
-	var instrs = [];
-	for (var j = 0; j < invocations.length; j++) {
-		var arg = invocations[j][0];
-		var action = invocations[j][1];
-		if (stackSofar.length + arg.length > limit) {
-			pushargs(instrs, stackSofar);
-			instrs = instrs.concat(actionsSofar);
-			stackSofar = [];
-			actionsSofar = [];
-		}
-		stackSofar = arg.concat(stackSofar);
-		actionsSofar = actionsSofar.concat(action);
-	};
-	pushargs(instrs, stackSofar);
-	instrs = instrs.concat(actionsSofar);
-	return instrs;
-}
+var pushargs = require('./invoke').pushargs;
+var invokesToInstrs = require('./invoke').invokesToInstrs;
+var pushInvokes = require('./invoke').pushInvokes;
 
 function ipsaInvokes(actions) {
 	if (!actions) return [];
@@ -74,14 +40,6 @@ function ipsaInvokes(actions) {
 		}
 	};
 	return invokes;
-}
-
-function pushInvokes(tt, invocations, STACK_DEPTH) {
-	var invokeInstrs = invokesToInstrs(invocations, STACK_DEPTH);
-	for (var j = 0; j < invokeInstrs.length; j++) {
-		tt.push(invokeInstrs[j])
-	}
-	invocations.length = 0;
 }
 
 function instruct(glyph, actions, strategy, cvt, padding) {
@@ -219,6 +177,7 @@ function instruct(glyph, actions, strategy, cvt, padding) {
 			}
 		}
 	};
+
 	if (deltaCalls.length) {
 		var currentDeltaCall = [deltaCalls[0][0].slice(0), deltaCalls[0][1].slice(0)];
 		for (var j = 1; j < deltaCalls.length; j++) {
@@ -268,8 +227,8 @@ function instruct(glyph, actions, strategy, cvt, padding) {
 		invokesToInstrs(invocations, STACK_DEPTH),
 		mirps,
 		invokesToInstrs([].concat(
-			ipsaInvokes(glyph.ipsacalls),
-			isalInvocations
+			isalInvocations,
+			ipsaInvokes(glyph.ipsacalls)
 		), STACK_DEPTH));
 
 	tt.push('IUP[y]');

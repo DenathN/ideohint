@@ -397,25 +397,11 @@ function hint(glyph, ppem, strategy) {
 		stems[j].touchwidth = uppx;
 	};
 
-	var stemPositions = (function () {
-		var y0 = [];
-		for (var j = 0; j < stems.length; j++) {
-			y0[j] = Math.round(avaliables[j].center);
-		}
-		var og = new Individual(y0, env);
-		if (og.collidePotential <= 0) {
-			y0 = uncollide(y0, env, 4, strategy.POPULATION_LIMIT_SMALL);
-		} else {
-			var passes = Math.round(stems.length / 3);
-			if (passes < 2) passes = 2;
-			y0 = earlyAdjust(y0.length, env);
-			env.noAblation = true;
-			y0 = uncollide(y0, env, passes, strategy.POPULATION_LIMIT);
-			env.noAblation = false;
-			y0 = uncollide(y0, env, passes, strategy.POPULATION_LIMIT);
-		};
-		return y0;
-	})();
+	var stemPositions = [];
+	for (var j = 0; j < stems.length; j++) {
+		stemPositions[j] = avaliables[j].center;
+	}
+	stemPositions = uncollide(stemPositions, env, 2, strategy.POPULATION_LIMIT * Math.max(1, stems.length));
 
 	assignWidths(allocateWidth(stemPositions, env));
 	return stemPositionToActions(stems, uppx);
