@@ -1,10 +1,10 @@
-var fs = require('fs');
-var roundings = require('../roundings');
-function pushWhenAbsent(a, x) {
-	a.push(x)
+var fs = require("fs");
+var roundings = require("../roundings");
+function pushWhenAbsent (a, x) {
+	a.push(x);
 }
 
-function createCvt(src, strategy, padding) {
+function createCvt (src, strategy, padding) {
 	var MAX_SW = 5;
 	var cvt = (src || []).slice(0);
 	padding = padding || 0;
@@ -17,30 +17,29 @@ function createCvt(src, strategy, padding) {
 	pushWhenAbsent(cvt, 0);
 	for (var ppem = 1; ppem <= strategy.PPEM_MAX; ppem++) {
 		var rtg = roundings.Rtg(strategy.UPM, ppem);
-		var roundDown = roundings.Rdtg(strategy.UPM, ppem);
 		var vtop = Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER) + rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER));
 		pushWhenAbsent(cvt, vtop);
 	}
 	for (var w = 1; w <= MAX_SW; w++) {
 		for (var ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
-			pushWhenAbsent(cvt, -Math.round(strategy.UPM / ppem * w))
+			pushWhenAbsent(cvt, -Math.round(strategy.UPM / ppem * w));
 		}
-	};
+	}
 	for (var w = 1; w <= MAX_SW; w++) {
 		for (var ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
-			pushWhenAbsent(cvt, Math.round(strategy.UPM / ppem * w))
+			pushWhenAbsent(cvt, Math.round(strategy.UPM / ppem * w));
 		}
-	};
+	}
 	return cvt;
-};
+}
 
 exports.getPadding = function (argv, parameterFile) {
 	if (parameterFile && parameterFile.cvt) {
-		return (parameterFile.cvt.padding - 0) || 0
+		return (parameterFile.cvt.padding - 0) || 0;
 	} else if (argv.CVT_PADDING) {
-		return (argv.CVT_PADDING - 0) || 0
+		return (argv.CVT_PADDING - 0) || 0;
 	} else {
 		return 0;
 	}
-}
+};
 exports.createCvt = createCvt;
