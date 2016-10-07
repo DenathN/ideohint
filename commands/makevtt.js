@@ -193,8 +193,8 @@ exports.handler = function (argv) {
 				controlStream.write(buffer);
 				controlStream.write(`  </glyf></ttFont>`);
 				console.log("Please assign these CVT items in Visual TrueType:");
-				console.log(`${cvtPadding + 1} : ${strategy.BLUEZONE_TOP_CENTER}`);
-				console.log(`${cvtPadding + 2} : ${strategy.BLUEZONE_BOTTOM_CENTER}`);
+				console.log(`${cvtPadding + 1} : ${strategy.BLUEZONE_TOP_CENTER} /* BLUEZONE_TOP_CENTER */`);
+				console.log(`${cvtPadding + 2} : ${strategy.BLUEZONE_BOTTOM_CENTER} /* BLUEZONE_BOTTOM_CENTER */ `);
 				console.log(`And then import thr XML ${argv.o} to it.`);
 			});
 	}
