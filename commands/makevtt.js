@@ -83,12 +83,15 @@ function talk (si, sd, strategy, cvt, padding, gid) {
 		talk(sanityDelta(s.posKey, deltaPos));
 		talk(`YDist(${s.posKey},${s.advKey})`);
 		talk(sanityDelta(s.advKey, deltaADv));
-
+		let pk = s.posKey;
 		for (let zp of s.posAlign) {
-			talk(`YShift(${s.posKey},${zp})`);
+			talk(`YShift(${pk},${zp})`);
+			pk = zp;
 		}
+		pk = s.advKey;
 		for (let zp of s.advAlign) {
 			talk(`YShift(${s.advKey},${zp})`);
+			pk = zp;
 		}
 	}
 	for (let c of si.ipsacalls) {
@@ -109,8 +112,7 @@ exports.builder = function (yargs) {
 		.alias("?", "help")
 		.alias("p", "parameters")
 		.describe("help", "Displays this help.")
-		.describe("o", "Output sfd path.")
-		.describe("x", "Output VTT XML path.")
+		.describe("o", "Output XML file path.")
 		.describe("parameters", "Specify parameter file (in TOML).")
 		.describe("CVT_PADDING", "Specify CVT Padding.");
 };
@@ -161,7 +163,7 @@ exports.handler = function (argv) {
 				}
 				glyph.instructions = [];
 				gid += 1;
-				return glyph;
+				return null;
 			})
 			.on("done", function (otd) {
 				if (!foundCVT) {
@@ -169,39 +171,31 @@ exports.handler = function (argv) {
 				}
 				otd.fpgm = [];
 				otd.prep = [];
-				var outStream = fs.createWriteStream(argv.o, { encoding: "utf-8" });
-				es.readable(function (count, next) {
-					for (var k in otd) {
-						this.emit("data", [k, otd[k]]);
-					}
-					this.emit("end");
-					next();
-				}).pipe(JSONStream.stringifyObject()).pipe(outStream);
-				console.log("Please assign these CVT items in VTT:");
-				console.log(`${cvtPadding + 1} : ${strategy.BLUEZONE_TOP_CENTER}`);
-				console.log(`${cvtPadding + 2} : ${strategy.BLUEZONE_BOTTOM_CENTER}`);
-				{
-					let controlStream = fs.createWriteStream(argv.x, { encoding: "utf-8" });
-					controlStream.write(`<?xml version="1.0" encoding="UTF-8"?>
+
+				let controlStream = fs.createWriteStream(argv.o, { encoding: "utf-8" });
+				controlStream.write(`<?xml version="1.0" encoding="UTF-8"?>
 						<ttFont ttVttLibVersion="1.0">
 						<glyf>
 					`);
-					let buffer = "";
-					for (let {gid, hash} of arr) {
-						buffer += (`
+				let buffer = "";
+				for (let {gid, hash} of arr) {
+					buffer += (`
 						<TTGlyph ID="${gid}">
 							<instructions>
 								<talk>${activeInstructions[hash]}</talk>
 							</instructions>
 						</TTGlyph>`);
-						if (buffer.length > 0x20000) {
-							controlStream.write(buffer);
-							buffer = "";
-						}
+					if (buffer.length > 0x20000) {
+						controlStream.write(buffer);
+						buffer = "";
 					}
-					controlStream.write(buffer);
-					controlStream.write(`  </glyf></ttFont>`);
 				}
+				controlStream.write(buffer);
+				controlStream.write(`  </glyf></ttFont>`);
+				console.log("Please assign these CVT items in Visual TrueType:");
+				console.log(`${cvtPadding + 1} : ${strategy.BLUEZONE_TOP_CENTER}`);
+				console.log(`${cvtPadding + 2} : ${strategy.BLUEZONE_BOTTOM_CENTER}`);
+				console.log(`And then import thr XML ${argv.o} to it.`);
 			});
 	}
 };
