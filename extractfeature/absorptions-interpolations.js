@@ -2,6 +2,7 @@
 
 function BY_YORI (p, q) { return p.yori - q.yori; }
 function adjacent (z1, z2) { return z1.prev === z2 || z2.prev === z1; }
+var STEPS = 10;
 function shortAbsorptionPointByKeys (shortAbsorptions, strategy, pt, keys, inSameRadical, priority) {
 	if (pt.touched || pt.donttouch || !pt.on || !strategy.DO_SHORT_ABSORPTION || !inSameRadical) return;
 	for (var m = 0; m < keys.length; m++) {
@@ -18,7 +19,7 @@ function shortAbsorptionByKeys (shortAbsorptions, strategy, pts, keys, inSameRad
 		shortAbsorptionPointByKeys(shortAbsorptions, strategy, pts[k], keys, inSameRadical, priority);
 	}
 }
-var COEFF_EXT = 2;
+var COEFF_EXT = 1 / 2;
 function interpolateByKeys (interpolations, strategy, pts, keys, inSameRadical, priority) {
 	for (var k = 0; k < pts.length; k++) {
 		var pt = pts[k];
@@ -40,7 +41,7 @@ function interpolateByKeys (interpolations, strategy, pts, keys, inSameRadical, 
 		if (lowerK && upperK) {
 			if (upperK.linkedKey) upperK = upperK.linkedKey;
 			if (lowerK.linkedKey) lowerK = lowerK.linkedKey;
-			interpolations.push([upperK.id, lowerK.id, pt.id, priority]);
+			if (!upperK.phantom && !lowerK.phantom) interpolations.push([upperK.id, lowerK.id, pt.id, priority]);
 			pt.touched = true;
 		}
 	}
@@ -93,6 +94,34 @@ module.exports = function (glyph, strategy) {
 			var z = contours[j].points[k];
 			if (z.touched && z.keypoint || z.linkedKey) { glyphKeypoints.push(z); }
 	}
+	// phantom points
+	for (var s = 0; s < glyph.stems.length; s++) {
+		var stem = glyph.stems[s];
+		for (var j = 0; j < stem.high.length; j++) {
+			var l = stem.high[j][0];
+			var r = stem.high[j][stem.high[j].length - 1];
+			for (var step = 1; step < STEPS; step++) {
+				glyphKeypoints.push({
+					xori: l.xori + (step / STEPS) * (r.xori - l.xori),
+					yori: l.yori + (step / STEPS) * (r.yori - l.yori),
+					linkedKey: l.linkedKey || r.linkedKey,
+					phantom: true
+				});
+			}
+		}
+		for (var j = 0; j < stem.low.length; j++) {
+			var l = stem.low[j][0];
+			var r = stem.low[j][stem.low[j].length - 1];
+			for (var step = 1; step < STEPS; step++) {
+				glyphKeypoints.push({
+					xori: l.xori + (step / STEPS) * (r.xori - l.xori),
+					yori: l.yori + (step / STEPS) * (r.yori - l.yori),
+					linkedKey: l.linkedKey || r.linkedKey,
+					phantom: true
+				});
+			}
+		}
+	}
 	glyphKeypoints = glyphKeypoints.sort(BY_YORI);
 	var records = [];
 
@@ -103,7 +132,27 @@ module.exports = function (glyph, strategy) {
 
 		if (contourExtrema.length > 1) {
 			var topbot = [contourExtrema[0], contourExtrema[contourExtrema.length - 1]];
-			var midex = contourExtrema.slice(1, -1).filter(function (p) { return p.yExtrema && !p.yStrongExtrema;});
+			var extrema = contourExtrema.slice(1, -1).filter(function (z) {
+				return !z.touched && !z.donttouch && z.yExtrema;
+			});
+			var midex = [];
+			for (var m = 0; m < extrema.length; m++) {
+				if (extrema[m].yori === topbot[0].yori) {
+					if (!adjacent(topbot[0], extrema[m])) {
+						shortAbsorptions.push([topbot[0].id, extrema[m].id, 1]);
+					}
+					extrema[m].touched = true;
+					extrema[m].donttouch = true;
+				} else if (extrema[m].yori === topbot[1].yori) {
+					if (!adjacent(topbot[1], extrema[m])) {
+						shortAbsorptions.push([topbot[1].id, extrema[m].id, 1]);
+					}
+					extrema[m].touched = true;
+					extrema[m].donttouch = true;
+				} else {
+					midex.push(extrema[m]);
+				}
+			}
 			var blues = contourpoints.filter(function (p) { return p.blued; });
 			var midexl = contourExtrema.slice(1, -1).filter(function (p) { return p.xExtrema || p.yExtrema; });
 			records.push({
@@ -128,12 +177,15 @@ module.exports = function (glyph, strategy) {
 		shortAbsorptionByKeys(shortAbsorptions, strategy, records[j].midexl, records[j].blues, true, 1, false);
 	}
 	linkSoleStemPoints(shortAbsorptions, strategy, glyph, 7);
-
+	var b = [];
 	for (var j = 0; j < contours.length; j++) {
 		interpolateByKeys(interpolations, strategy, records[j].topbot, glyphKeypoints, false, 5);
+		b = b.concat(records[j].topbot.filter(function () {return z.touched;}));
+	}
+	glyphKeypoints = glyphKeypoints.concat(b).sort(BY_YORI);
+	for (var j = 0; j < contours.length; j++) {
 		interpolateByKeys(interpolations, strategy, records[j].midex, glyphKeypoints, false, 3);
 	}
-
 	return {
 		interpolations: interpolations,
 		shortAbsorptions: shortAbsorptions

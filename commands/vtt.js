@@ -26,11 +26,21 @@ function md5 (text) {
 }
 function sanityDelta (z, d) {
 	var deltas = d.filter((x) => x.delta);
-	if (deltas.length) {
-		return `YDelta(${z},${deltas.map((x)=>`${x.delta}@${x.ppem}`).join(',')})`;
-	} else {
-		return "";
+	if (!deltas.length) return "";
+	let buf = [];
+	let ppemstart = 0,ppemend = 0;
+	let curdelta = 0;
+	for (let x of deltas) {
+		if (x.ppem === ppemend + 1 && x.delta === curdelta) {
+			ppemend += 1;
+		} else {
+			if (curdelta) buf.push(curdelta + "@" + (ppemend > ppemstart ? ppemstart + ".." + ppemend : ppemstart));
+			ppemstart = ppemend = x.ppem;
+			curdelta = x.delta;
+		}
 	}
+	if (curdelta) buf.push(curdelta + "@" + (ppemend > ppemstart ? ppemstart + ".." + ppemend : ppemstart));
+	return `YDelta(${z},${buf.join(',')})`;
 }
 function decideDelta (source, dest, upm, ppem) {
 	return {
@@ -46,6 +56,7 @@ function talk (si, sd, strategy, cvt, padding, gid) {
 	for (let z of si.bottomBluePoints) {
 		talk(`YAnchor(${z},${padding + 2})`);
 	}
+	// top
 	for (let z of si.topBluePoints) {
 		talk(`YAnchor(${z},${padding + 1})`);
 		let deltas = [];
@@ -90,17 +101,29 @@ function talk (si, sd, strategy, cvt, padding, gid) {
 		let pk = s.posKey;
 		for (let zp of s.posAlign) {
 			talk(`YShift(${pk},${zp})`);
-			pk = zp;
 		}
 		pk = s.advKey;
 		for (let zp of s.advAlign) {
 			talk(`YShift(${s.advKey},${zp})`);
-			pk = zp;
+		}
+	}
+	var l = 0;
+	for (let j = 1; j < si.ipsacalls.length; j++) {
+		if (
+			si.ipsacalls[l].length > 2
+			&& si.ipsacalls[j].length > 2
+			&& si.ipsacalls[l][0] === si.ipsacalls[j][0]
+			&& si.ipsacalls[l][1] === si.ipsacalls[j][1]) {
+			si.ipsacalls[l].push(si.ipsacalls[j][2]);
+			si.ipsacalls[j] = null;
+		} else {
+			l = j;
 		}
 	}
 	for (let c of si.ipsacalls) {
-		if (c.length === 3) { // ip
-			if (c[0] !== c[1]) talk(`YInterpolate(${c[0]},${c[2]},${c[1]})`);
+		if (!c)continue;
+		if (c.length >= 3) { // ip
+			if (c[0] !== c[1]) talk(`YInterpolate(${c[0]},${c.slice(2).join(',')},${c[1]})`);
 		} else {
 			talk(`YShift(${c[0]},${c[1]})`);
 		}
