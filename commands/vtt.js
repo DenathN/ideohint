@@ -17,6 +17,10 @@ var roundings = require("../roundings");
 var hashContours = require("../otdParser").hashContours;
 
 var crypto = require("crypto");
+
+const GREEN = "\x1b[92m";
+const RESTORE = "\x1b[39;49m";
+
 function md5 (text) {
 	return crypto.createHash("md5").update(text).digest("hex");
 }
@@ -105,7 +109,7 @@ function talk (si, sd, strategy, cvt, padding, gid) {
 	return buf;
 }
 
-exports.command = "makevtt";
+exports.command = "vtt";
 exports.describe = "Create VTTTalk file.";
 exports.builder = function (yargs) {
 	return yargs.alias("o", "output-into")
@@ -193,9 +197,11 @@ exports.handler = function (argv) {
 				controlStream.write(buffer);
 				controlStream.write(`  </glyf></ttFont>`);
 				console.log("Please assign these CVT items in Visual TrueType:");
-				console.log(`${cvtPadding + 1} : ${strategy.BLUEZONE_TOP_CENTER} /* BLUEZONE_TOP_CENTER */`);
-				console.log(`${cvtPadding + 2} : ${strategy.BLUEZONE_BOTTOM_CENTER} /* BLUEZONE_BOTTOM_CENTER */ `);
-				console.log(`And then import thr XML ${argv.o} to it.`);
+				console.log("/* ----------------------- */");
+				console.log(`${GREEN}${cvtPadding + 1} : ${strategy.BLUEZONE_TOP_CENTER} /* BLUEZONE_TOP_CENTER */${RESTORE}`);
+				console.log(`${GREEN}${cvtPadding + 2} : ${strategy.BLUEZONE_BOTTOM_CENTER} /* BLUEZONE_BOTTOM_CENTER */ ${RESTORE}`);
+				console.log("/* ---------------------- */");
+				console.log(`And then import '${argv.o}' to it.`);
 			});
 	}
 };
