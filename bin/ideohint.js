@@ -7,6 +7,6 @@ var yargs = require("yargs")
 	.command(require("../commands/apply"))
 	.command(require("../commands/merge"))
 	.command(require("../commands/visual"))
-	.command(require("../commands/makevtt"))
+	.command(require("../commands/vtt"))
 	.help()
 	.argv;

@@ -88,23 +88,23 @@ The hinting parameters are stored in `hinting` section. They include:
   * **BLUEZONE_TOP_BAR_MIDDLE_SIZE**: The text size being identified as "middle size", in pixels.
 
 
-  * **BLUEZONE_TOP_BAR_SMALL**, **BLUEZONE_TOP_BAR_MIDDLE**, **BLUEZONE_TOP_BAR_LARGE**: The controlled position of topmost horizontal stroke's upper edges in small, middle and large font sizes. Carefully adjusting them can optimize the visual representation of the hinted result. This applies to the topmost strokes of characters “里”.
-  * **BLUEZONE_TOP_DOTBAR_SMALL**, **BLUEZONE_TOP_DOTBAR_MIDDLE**, **BLUEZONE_TOP_DOTBAR_LARGE**: The controlled position of the upper edge of "top" hotizontal strokes with stroke touching its upper edge. Like the position of the first horizontal stroke in “章”.
+* **BLUEZONE_TOP_BAR_SMALL**, **BLUEZONE_TOP_BAR_MIDDLE**, **BLUEZONE_TOP_BAR_LARGE**: The controlled position of topmost horizontal stroke's upper edges in small, middle and large font sizes. Carefully adjusting them can optimize the visual representation of the hinted result. This applies to the topmost strokes of characters “里”.
+* **BLUEZONE_TOP_DOTBAR_SMALL**, **BLUEZONE_TOP_DOTBAR_MIDDLE**, **BLUEZONE_TOP_DOTBAR_LARGE**: The controlled position of the upper edge of "top" hotizontal strokes with stroke touching its upper edge. Like the position of the first horizontal stroke in “章”.
 
 * **Bottom Positioning Parameters**: Similar as the previous  section, with the name **\_TOP\_** replaced to **\_BOTTOM\_**, and applies to the bottommost features of the characters.
 
 * **Stem Detection Parameters**
 
-  * **ABSORPTION_LIMIT**: The limit when a horizontal extremum being linked to a point aligned to the top or bottom blue zone. Useful when preserving diagonal strokes’ width. Preferred value: slightly larger than **MAX_STEM_WIDTH**.
-  * **CANONICAL_STEM_WIDTH** : The “Canonical” stroke width among the entire font. Measured in a loose character like “里”. 
-  * **CANONICAL_STEM_WIDTH_SMALL**: The “Canonical” stroke width used under small sizes. Measured in a loose character like “里”. Preferred value: Equal to or small smaller than **CANONICAL_STEM_WIDTH**.
-  * **CANONICAL_STEM_WIDTH_DENSE**: The “Canonical” stroke width of dense characters like “襄”. Useful in bold weights. For lighter width, it should be identical to **CANONICAL_STEM_WIDTH**.
-  * **STEM_SIDE_MIN_RISE** : The maximum height of decorative shapes placed aside a hotizontal stem's upper edge.
-  * **STEM_SIDE_MIN_DESCENT** : The maximum depth of close decorative shapes placed aside a hotizontal stem's lower edge.
-  * **STEM_CENTER_MIN_RISE** : The maximum height of close decorative shapes placed above a hotizontal stem's upper edge.
-  * **STEM_CENTER_MIN_DESCENT** : The maximum depth of decorative shapes placed below a hotizontal stem's lower edge.
-  * **STEM_SIDE_MIN_DIST_RISE** : The maximum height of distanced decorative shapes placed aside a hotizontal stem's upper edge.
-  * **STEM_SIDE_MIN_DIST_DESCENT** : The maximum depth of distanced decorative shapes placed aside a hotizontal stem's lower edge.
+    * **ABSORPTION_LIMIT**: The limit when a horizontal extremum being linked to a point aligned to the top or bottom blue zone. Useful when preserving diagonal strokes’ width. Preferred value: slightly larger than **MAX_STEM_WIDTH**.
+    * **CANONICAL_STEM_WIDTH** : The “Canonical” stroke width among the entire font. Measured in a loose character like “里”. 
+    * **CANONICAL_STEM_WIDTH_SMALL**: The “Canonical” stroke width used under small sizes. Measured in a loose character like “里”. Preferred value: Equal to or small smaller than **CANONICAL_STEM_WIDTH**.
+    * **CANONICAL_STEM_WIDTH_DENSE**: The “Canonical” stroke width of dense characters like “襄”. Useful in bold weights. For lighter width, it should be identical to **CANONICAL_STEM_WIDTH**.
+    * **STEM_SIDE_MIN_RISE** : The maximum height of decorative shapes placed aside a hotizontal stem's upper edge.
+    * **STEM_SIDE_MIN_DESCENT** : The maximum depth of close decorative shapes placed aside a hotizontal stem's lower edge.
+    * **STEM_CENTER_MIN_RISE** : The maximum height of close decorative shapes placed above a hotizontal stem's upper edge.
+    * **STEM_CENTER_MIN_DESCENT** : The maximum depth of decorative shapes placed below a hotizontal stem's lower edge.
+    * **STEM_SIDE_MIN_DIST_RISE** : The maximum height of distanced decorative shapes placed aside a hotizontal stem's upper edge.
+    * **STEM_SIDE_MIN_DIST_DESCENT** : The maximum depth of distanced decorative shapes placed aside a hotizontal stem's lower edge.
 
 #### CVT padding
 
@@ -155,3 +155,17 @@ ideohint visual hans.sfd -w "<test characters>" [<strategy parameters>]
 ```
 
 It will provide an interactive parameter adjustment utility accessable from `localhost:9527`.
+
+### Visual TrueType interface
+
+The subcommand `ideohint vtt` will produce a VTT-compatible XML with VTTTalks instead of raw instructions. The usage is:
+
+```bash
+otfccdump in.ttf -o in.otd
+...
+ideohint vtt hints.hgi in.otd -o out.xml
+```
+
+Depending on the CVT padding, ideohint vtt will show the required CVT entries in VTT, and produce a XML representing the hinted instructions. You can import them to your font (`in.ttf`) using VTT's built-in "import" feature.
+
+As an advice, you can use the TTF with VTT's editable instructions as the input of ideohint, so that you can apply the hints generated immediately after ideohint finishes hinting.
