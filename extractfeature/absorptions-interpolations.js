@@ -186,8 +186,26 @@ module.exports = function (glyph, strategy) {
 	for (var j = 0; j < contours.length; j++) {
 		interpolateByKeys(interpolations, strategy, records[j].midex, glyphKeypoints, false, 3);
 	}
+	interpolations = interpolations.sort(function (u, v) {return glyph.indexedPoints[u[2]].xori - glyph.indexedPoints[v[2]].xori;});
+	for (var j = 0; j < interpolations.length; j++) {
+		if (!interpolations[j]) continue;
+		for (var k = j + 1; k < interpolations.length; k++) {
+			if (interpolations[k]
+				&& interpolations[j][0] === interpolations[k][0]
+				&& interpolations[j][1] === interpolations[k][1]
+				&& interpolations[j][3] === interpolations[k][3]
+				&& Math.abs(glyph.indexedPoints[interpolations[j][2]].yori - glyph.indexedPoints[interpolations[k][2]].yori) <= strategy.Y_FUZZ) {
+				shortAbsorptions.push([
+					interpolations[j][2],
+					interpolations[k][2],
+					interpolations[j][3] - 1
+				]);
+				interpolations[k] = null;
+			}
+		}
+	}
 	return {
-		interpolations: interpolations,
+		interpolations: interpolations.filter(function (x) {return x;}),
 		shortAbsorptions: shortAbsorptions
 	};
 };
