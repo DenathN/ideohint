@@ -111,6 +111,7 @@ function talk (si, sd, strategy, cvt, padding, gid) {
 	for (let j = 1; j < si.ipsacalls.length; j++) {
 		if (
 			si.ipsacalls[l].length > 2
+			&& si.ipsacalls[l].length < 16
 			&& si.ipsacalls[j].length > 2
 			&& si.ipsacalls[l][0] === si.ipsacalls[j][0]
 			&& si.ipsacalls[l][1] === si.ipsacalls[j][1]) {
