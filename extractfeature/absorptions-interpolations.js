@@ -1,9 +1,9 @@
 "use strict";
 
-function BY_YORI (p, q) { return p.yori - q.yori; }
-function adjacent (z1, z2) { return z1.prev === z2 || z2.prev === z1; }
+function BY_YORI(p, q) { return p.yori - q.yori; }
+function adjacent(z1, z2) { return z1.prev === z2 || z2.prev === z1; }
 var STEPS = 10;
-function shortAbsorptionPointByKeys (shortAbsorptions, strategy, pt, keys, inSameRadical, priority) {
+function shortAbsorptionPointByKeys(shortAbsorptions, strategy, pt, keys, inSameRadical, priority) {
 	if (pt.touched || pt.donttouch || !pt.on || !strategy.DO_SHORT_ABSORPTION || !inSameRadical) return;
 	for (var m = 0; m < keys.length; m++) {
 		var key = keys[m];
@@ -14,13 +14,13 @@ function shortAbsorptionPointByKeys (shortAbsorptions, strategy, pt, keys, inSam
 		}
 	}
 }
-function shortAbsorptionByKeys (shortAbsorptions, strategy, pts, keys, inSameRadical, priority) {
+function shortAbsorptionByKeys(shortAbsorptions, strategy, pts, keys, inSameRadical, priority) {
 	for (var k = 0; k < pts.length; k++) {
 		shortAbsorptionPointByKeys(shortAbsorptions, strategy, pts[k], keys, inSameRadical, priority);
 	}
 }
 var COEFF_EXT = 1 / 2;
-function interpolateByKeys (interpolations, strategy, pts, keys, inSameRadical, priority) {
+function interpolateByKeys(interpolations, strategy, pts, keys, inSameRadical, priority) {
 	for (var k = 0; k < pts.length; k++) {
 		var pt = pts[k];
 		if (pt.touched || pt.donttouch) continue;
@@ -46,7 +46,7 @@ function interpolateByKeys (interpolations, strategy, pts, keys, inSameRadical, 
 		}
 	}
 }
-function linkRadicalSolePointsToOneStem (shortAbsorptions, strategy, radical, radicalPoints, stem, priority) {
+function linkRadicalSolePointsToOneStem(shortAbsorptions, strategy, radical, radicalPoints, stem, priority) {
 	var highpts = [].concat.apply([], stem.high);
 	var lowpts = [].concat.apply([], stem.low);
 	var keyPoints = highpts.concat(lowpts);
@@ -55,7 +55,6 @@ function linkRadicalSolePointsToOneStem (shortAbsorptions, strategy, radical, ra
 			var zkey = keyPoints[j];
 			var z = radicalPoints[k];
 			if (z.touched || z.donttouch || zkey.id === z.id) continue;
-
 			// detect whether this sole point is attached to the stem edge.
 			// in most cases, absorbing a lower point should be stricter due to the topology of ideographs
 			// so we use asymmetric condition for "above" and "below" cases.
@@ -63,21 +62,21 @@ function linkRadicalSolePointsToOneStem (shortAbsorptions, strategy, radical, ra
 			if (!(yDifference > 0 ? yDifference < strategy.Y_FUZZ * 2 : -yDifference < strategy.Y_FUZZ)) continue;
 
 			// And it should have at least one segment in the glyph's outline.'
-			if (radical.includesSegment(z, zkey)) {
+			if (radical.includesSegmentEdge(z, zkey, strategy.Y_FUZZ * 0.752)) {
 				var key = isHigh ? stem.highkey : stem.lowkey;
 				shortAbsorptions.push([key.id, z.id, priority + (z.yExtrema ? 1 : 0)]);
 				z.touched = true;
 			}
 	}
 }
-function linkRadicalSoleStemPoints (shortAbsorptions, strategy, radical, radicalStems, priority) {
+function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalStems, priority) {
 	var radicalParts = [radical.outline].concat(radical.holes);
 	var radicalPoints = [].concat.apply([], radicalParts.map(function (c) { return c.points.slice(0, -1); }));
 	for (var s = 0; s < radicalStems.length; s++) {
 		linkRadicalSolePointsToOneStem(shortAbsorptions, strategy, radical, radicalPoints, radicalStems[s], priority);
 	}
 }
-function linkSoleStemPoints (shortAbsorptions, strategy, glyph, priority) {
+function linkSoleStemPoints(shortAbsorptions, strategy, glyph, priority) {
 	for (var j = 0; j < glyph.radicals.length; j++) {
 		var radical = glyph.radicals[j];
 		var radicalStems = glyph.stems.filter(function (s) { return s.belongRadical === j; });
@@ -180,13 +179,13 @@ module.exports = function (glyph, strategy) {
 	var b = [];
 	for (var j = 0; j < contours.length; j++) {
 		interpolateByKeys(interpolations, strategy, records[j].topbot, glyphKeypoints, false, 5);
-		b = b.concat(records[j].topbot.filter(function () {return z.touched;}));
+		b = b.concat(records[j].topbot.filter(function () { return z.touched; }));
 	}
 	glyphKeypoints = glyphKeypoints.concat(b).sort(BY_YORI);
 	for (var j = 0; j < contours.length; j++) {
 		interpolateByKeys(interpolations, strategy, records[j].midex, glyphKeypoints, false, 3);
 	}
-	interpolations = interpolations.sort(function (u, v) {return glyph.indexedPoints[u[2]].xori - glyph.indexedPoints[v[2]].xori;});
+	interpolations = interpolations.sort(function (u, v) { return glyph.indexedPoints[u[2]].xori - glyph.indexedPoints[v[2]].xori; });
 	for (var j = 0; j < interpolations.length; j++) {
 		if (!interpolations[j]) continue;
 		for (var k = j + 1; k < interpolations.length; k++) {
@@ -205,7 +204,7 @@ module.exports = function (glyph, strategy) {
 		}
 	}
 	return {
-		interpolations: interpolations.filter(function (x) {return x;}),
+		interpolations: interpolations.filter(function (x) { return x; }),
 		shortAbsorptions: shortAbsorptions
 	};
 };
