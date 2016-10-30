@@ -19,13 +19,19 @@ exports.handler = function (argv) {
 	var onlyhan = false;
 	var keep = {};
 	getCMAPInfo();
-	function getCMAPInfo () {
+	function getCMAPInfo() {
 		var sParseCmap = JSONStream.parse(["cmap"]);
 		var instream = fs.createReadStream(argv._[1], "utf-8");
 		sParseCmap.on("data", function (cmap) {
 			onlyhan = true;
 			for (var k in cmap) {
-				var code = k - 0;
+				var code;
+				if (k[0] == "U" && k[1] == "+") {
+					// hex dump
+					code = parseInt(k.slice(2), 16);
+				} else {
+					code = parseInt(k, 10);
+				}
 				if (code >= 0x2E80 && code <= 0x2FFF
 					|| code >= 0x3192 && code <= 0x319F
 					|| code >= 0x3300 && code <= 0x9FFF
@@ -40,7 +46,7 @@ exports.handler = function (argv) {
 		});
 		instream.pipe(sParseCmap);
 	}
-	function mapGlyf () {
+	function mapGlyf() {
 		var sParseGlyf = JSONStream.parse(["glyf", { emitKey: true }]);
 		var instream = fs.createReadStream(argv._[1], "utf-8");
 		sParseGlyf.on("data", function (data) {
