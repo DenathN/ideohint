@@ -1,6 +1,6 @@
 "use strict";
 
-function Point (x, y, on, id) {
+function Point(x, y, on, id) {
 	this.xori = x;
 	this.yori = y;
 	this.xtouch = x;
@@ -11,12 +11,12 @@ function Point (x, y, on, id) {
 	this.id = id;
 	this.interpolated = id < 0;
 }
-function Contour () {
+function Contour() {
 	this.points = [];
 	this.ccw = false;
 }
 
-function checkExtrema (prev, z, next) {
+function checkExtrema(prev, z, next) {
 	if (
 		z.yori > prev.yori && z.yori >= next.yori || z.yori < prev.yori && z.yori <= next.yori) {
 		z.yExtrema = true;
@@ -49,7 +49,7 @@ Contour.prototype.stat = function () {
 	this.ymin = Math.min.apply(Math, yoris);
 	this.orient();
 };
-function setHidden (obj, prop, v) {
+function setHidden(obj, prop, v) {
 	Object.defineProperty(obj, prop, { value: v, enumerable: false, configurable: true });
 }
 Contour.prototype.orient = function () {
@@ -80,7 +80,7 @@ var inPoly = function (point, vs) {
 	for (var i = 0, j = vs.length - 2; i < vs.length - 1; j = i++) {
 		var xi = vs[i].xori, yi = vs[i].yori;
 		var xj = vs[j].xori, yj = vs[j].yori;
-
+		if (xi == x && yi == y)return true;
 		var intersect = ((yi > y) !== (yj > y))
 		&& (yj > yi ?
 			(x - xi) * (yj - yi) < (xj - xi) * (y - yi) :
@@ -102,7 +102,7 @@ Contour.prototype.includes = function (that) {
 	}
 	return true;
 };
-function Glyph (contours) {
+function Glyph(contours) {
 	this.contours = contours || [];
 	this.stems = [];
 }
@@ -123,7 +123,7 @@ exports.Point = Point;
 
 
 // /
-function slopeOf (segs) {
+function slopeOf(segs) {
 	var sy = 0, sx = 0, n = 0;
 	for (var j = 0; j < segs.length; j++) for (var k = 0; k < segs[j].length; k++) {
 			sy += segs[j][k].yori;
