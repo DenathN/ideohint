@@ -41,21 +41,21 @@ Radical.prototype.includesTetragon = function (s1, s2) {
 	var steps = 32;
 	for (var j = 1; j < steps; j++) {
 		var m1 = {
-			xori: s1[0].xori + (s1[1].xori - s1[0].xori) * (j / steps),
-			yori: s1[0].yori + (s1[1].yori - s1[0].yori) * (j / steps)
+			xori: s1[0].xori + (s1[s1.length - 1].xori - s1[0].xori) * (j / steps),
+			yori: s1[0].yori + (s1[s1.length - 1].yori - s1[0].yori) * (j / steps)
 		};
 		var m2 = {
-			xori: s2[0].xori + (s2[1].xori - s2[0].xori) * (j / steps),
-			yori: s2[0].yori + (s2[1].yori - s2[0].yori) * (j / steps)
+			xori: s2[0].xori + (s2[s2.length - 1].xori - s2[0].xori) * (j / steps),
+			yori: s2[0].yori + (s2[s2.length - 1].yori - s2[0].yori) * (j / steps)
 		};
 		if (!this.includesSegment(m1, m2)) return false;
 		var m1 = {
-			xori: s1[0].xori + (s1[1].xori - s1[0].xori) * (j / steps),
-			yori: s1[0].yori + (s1[1].yori - s1[0].yori) * (j / steps)
+			xori: s1[0].xori + (s1[s1.length - 1].xori - s1[0].xori) * (j / steps),
+			yori: s1[0].yori + (s1[s1.length - 1].yori - s1[0].yori) * (j / steps)
 		};
 		var m2 = {
-			xori: s2[0].xori + (s2[1].xori - s2[0].xori) * (1 - j / steps),
-			yori: s2[0].yori + (s2[1].yori - s2[0].yori) * (1 - j / steps)
+			xori: s2[0].xori + (s2[s2.length - 1].xori - s2[0].xori) * (1 - j / steps),
+			yori: s2[0].yori + (s2[s2.length - 1].yori - s2[0].yori) * (1 - j / steps)
 		};
 		if (!this.includesSegment(m1, m2)) return false;
 	}
