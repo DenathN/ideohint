@@ -38,7 +38,7 @@ Radical.prototype.includesSegmentEdge = function (z1, z2, delta) {
 	return false;
 };
 Radical.prototype.includesTetragon = function (s1, s2) {
-	var steps = 32;
+	var steps = 32, val = 0, tot = 0;
 	for (var u = 0; u < s1.length - 1; u++) {
 		for (var v = 0; v < s2.length - 1;v++) {
 			var p = s1[u],q = s1[u + 1];
@@ -51,6 +51,7 @@ Radical.prototype.includesTetragon = function (s1, s2) {
 				var t = r;
 				r = s;s = t;
 			}
+			var checks = 0;
 			for (var j = 1; j < steps; j++) {
 				var m1 = {
 					xori: p.xori + (q.xori - p.xori) * (j / steps),
@@ -60,11 +61,13 @@ Radical.prototype.includesTetragon = function (s1, s2) {
 					xori: r.xori + (s.xori - r.xori) * (j / steps),
 					yori: r.yori + (s.yori - r.yori) * (j / steps)
 				};
-				if (!this.includesSegment(m1, m2)) return false;
+				if (this.includesSegment(m1, m2)) {checks += 1;}
 			}
+			val += (q.xori - p.xori) * (s.xori - r.xori) * checks / (steps - 1);
+			tot += (q.xori - p.xori) * (s.xori - r.xori);
 		}
 	}
-	return true;
+	return val >= tot * 0.9;
 };
 function transitiveReduce(g) {
 	// Floyd-warshall transitive reduction
