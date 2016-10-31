@@ -39,25 +39,30 @@ Radical.prototype.includesSegmentEdge = function (z1, z2, delta) {
 };
 Radical.prototype.includesTetragon = function (s1, s2) {
 	var steps = 32;
-	for (var j = 1; j < steps; j++) {
-		var m1 = {
-			xori: s1[0].xori + (s1[s1.length - 1].xori - s1[0].xori) * (j / steps),
-			yori: s1[0].yori + (s1[s1.length - 1].yori - s1[0].yori) * (j / steps)
-		};
-		var m2 = {
-			xori: s2[0].xori + (s2[s2.length - 1].xori - s2[0].xori) * (j / steps),
-			yori: s2[0].yori + (s2[s2.length - 1].yori - s2[0].yori) * (j / steps)
-		};
-		if (!this.includesSegment(m1, m2)) return false;
-		var m1 = {
-			xori: s1[0].xori + (s1[s1.length - 1].xori - s1[0].xori) * (j / steps),
-			yori: s1[0].yori + (s1[s1.length - 1].yori - s1[0].yori) * (j / steps)
-		};
-		var m2 = {
-			xori: s2[0].xori + (s2[s2.length - 1].xori - s2[0].xori) * (1 - j / steps),
-			yori: s2[0].yori + (s2[s2.length - 1].yori - s2[0].yori) * (1 - j / steps)
-		};
-		if (!this.includesSegment(m1, m2)) return false;
+	for (var u = 0; u < s1.length - 1; u++) {
+		for (var v = 0; v < s2.length - 1;v++) {
+			var p = s1[u],q = s1[u + 1];
+			var r = s2[v],s = s2[v + 1];
+			if (p.xori > q.xori) {
+				var t = p;
+				p = q; q = t;
+			}
+			if (r.xori > s.xori) {
+				var t = r;
+				r = s;s = t;
+			}
+			for (var j = 1; j < steps; j++) {
+				var m1 = {
+					xori: p.xori + (q.xori - p.xori) * (j / steps),
+					yori: p.yori + (q.yori - p.yori) * (j / steps)
+				};
+				var m2 = {
+					xori: r.xori + (s.xori - r.xori) * (j / steps),
+					yori: r.yori + (s.yori - r.yori) * (j / steps)
+				};
+				if (!this.includesSegment(m1, m2)) return false;
+			}
+		}
 	}
 	return true;
 };
