@@ -1,4 +1,5 @@
-// /usr/bin/env node
+#!/usr/bin/env node
+
 var yargs = require("yargs")
 	.alias("?", "help")
 	.command(require("../commands/otd2hgl"))
