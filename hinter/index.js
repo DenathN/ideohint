@@ -327,7 +327,8 @@ function hint (glyph, ppem, strategy) {
 				atGlyphBottom: atGlyphBottom(stems[j]),
 				hasGlyphStemAbove: stems[j].hasGlyphStemAbove,
 				hasGlyphStemBelow: stems[j].hasGlyphStemBelow,
-				hasFoldBelow: fold
+				hasFoldBelow: fold,
+				posKeyAtTop: stems[j].posKeyAtTop
 			};
 		}
 		flexCenter(avaliables);
@@ -403,7 +404,7 @@ function hint (glyph, ppem, strategy) {
 	stemPositions = uncollide(stemPositions, env, stems.length > 10 ? 3 : 2, strategy.POPULATION_LIMIT * Math.max(1, stems.length));
 
 	assignWidths(allocateWidth(stemPositions, env));
-	return stemPositionToActions(stems, uppx);
+	return stemPositionToActions(stems, uppx, env);
 }
 
 exports.hint = hint;

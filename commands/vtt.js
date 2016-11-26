@@ -20,11 +20,23 @@ var crypto = require("crypto");
 
 const GREEN = "\x1b[92m";
 const RESTORE = "\x1b[39;49m";
+const ROUNDING_SEGMENTS = 16;
+const ROUNDING_CUTOFF = 1 / 2 - 1 / 32;
 
-function md5 (text) {
+function md5(text) {
 	return crypto.createHash("md5").update(text).digest("hex");
 }
-function sanityDelta (z, d) {
+function formatdelta(delta) {
+	let u = Math.round(delta * ROUNDING_SEGMENTS);
+	let d = ROUNDING_SEGMENTS;
+	while(!(u % 2) && !(d % 2) && d > 1){u /= 2, d /= 2;}
+	if (d > 1) {
+		return u + "/" + d;
+	} else {
+		return "" + u;
+	}
+}
+function sanityDelta(z, d) {
 	var deltas = d.filter((x) => x.delta);
 	if (!deltas.length) return "";
 	let buf = [];
@@ -34,24 +46,41 @@ function sanityDelta (z, d) {
 		if (x.ppem === ppemend + 1 && x.delta === curdelta) {
 			ppemend += 1;
 		} else {
-			if (curdelta) buf.push(curdelta + "@" + (ppemend > ppemstart ? ppemstart + ".." + ppemend : ppemstart));
+			if (curdelta) buf.push(formatdelta(curdelta) + "@" + (ppemend > ppemstart ? ppemstart + ".." + ppemend : ppemstart));
 			ppemstart = ppemend = x.ppem;
 			curdelta = x.delta;
 		}
 	}
-	if (curdelta) buf.push(curdelta + "@" + (ppemend > ppemstart ? ppemstart + ".." + ppemend : ppemstart));
+	if (curdelta) buf.push(formatdelta(curdelta) + "@" + (ppemend > ppemstart ? ppemstart + ".." + ppemend : ppemstart));
 	return `YDelta(${z},${buf.join(',')})`;
 }
-function decideDelta (source, dest, upm, ppem) {
+function decideDelta(source, dest, upm, ppem) {
+	let delta = Math.round(ROUNDING_SEGMENTS * (dest - source) / (upm / ppem));
 	return {
 		ppem: ppem,
-		delta: Math.round((dest - source) / (upm / ppem))
+		delta: delta / ROUNDING_SEGMENTS
 	};
 }
-function talk (si, sd, strategy, cvt, padding, gid) {
+function decideDeltaShift(base, sign, source, dest, isStrict, isStacked, upm, ppem) {
+	const y1 = base + sign * source;
+	const y2 = base + sign * dest;
+	const rounding = (sign > 0) === (source < dest) ? Math.floor : Math.ceil;
+	let delta = rounding(ROUNDING_SEGMENTS * (y2 - y1) / (upm / ppem));
+	while(!(isStrict || source < dest && dest <= 1.25 * upm / ppem && !isStacked) && delta){
+		const delta1 = (delta > 0 ? delta - 1 : delta + 1);
+		const y2a = y1 + delta1 * (upm / ppem / ROUNDING_SEGMENTS);
+		if (roundings.rtg(y2, upm, ppem) !== roundings.rtg(y2a, upm, ppem) || Math.abs(y2a - roundings.rtg(y2, upm, ppem)) > ROUNDING_CUTOFF * (upm / ppem)) break;
+		delta = (delta > 0 ? delta - 1 : delta + 1);
+	}
+	return {
+		ppem: ppem,
+		delta: delta / ROUNDING_SEGMENTS
+	};
+}
+function talk(si, sd, strategy, cvt, padding, gid) {
 	const upm = strategy.UPM;
 	let buf = "";
-	function talk (s) {buf += s + "\n";}
+	function talk(s) { buf += s + "\n"; }
 	// bottom
 	for (let z of si.bottomBluePoints) {
 		talk(`YAnchor(${z},${padding + 2})`);
@@ -76,26 +105,37 @@ function talk (si, sd, strategy, cvt, padding, gid) {
 
 		for (let ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
 			if (!sd[ppem]) continue;
-			const [ytouch, wtouch] = sd[ppem][sid];
+			const [ytouch, wtouch, isStrict, isStacked] = sd[ppem][sid];
 			if (s.posKeyAtTop) {
 				const psrc = roundings.rtg(s.y0, upm, ppem);
 				const pdst = roundings.rtg(ytouch * (upm / ppem), upm, ppem);
-				deltaPos.push(decideDelta(psrc, pdst, upm, ppem));
-				const wsrc = pdst - roundings.rtg1(s.w0, upm, ppem);
-				const wdst = pdst - roundings.rtg1(wtouch * (upm / ppem), upm, ppem);
-				deltaADv.push(decideDelta(wsrc, wdst, upm, ppem));
+				const posdelta = decideDelta(psrc, pdst, upm, ppem);
+				deltaPos.push(posdelta);
+				const wsrc = s.w0;
+				const wdst = wtouch * (upm / ppem);
+				deltaADv.push(decideDeltaShift(
+					pdst + posdelta.delta * (upm / ppem), -1,
+					wsrc, wdst,
+					isStrict, isStacked,
+					upm, ppem));
 			} else {
 				const psrc = roundings.rtg(s.y0 - s.w0, upm, ppem);
 				const pdst = roundings.rtg((ytouch - wtouch) * (upm / ppem), upm, ppem);
-				deltaPos.push(decideDelta(psrc, pdst, upm, ppem));
-				const wsrc = pdst + roundings.rtg1(s.w0, upm, ppem);
-				const wdst = pdst + roundings.rtg1(wtouch * (upm / ppem), upm, ppem);
-				deltaADv.push(decideDelta(wsrc, wdst, upm, ppem));
+				const posdelta = decideDelta(psrc, pdst, upm, ppem);
+				deltaPos.push(posdelta);
+				const wsrc = s.w0;
+				const wdst = wtouch * (upm / ppem);
+				deltaADv.push(decideDeltaShift(
+					pdst + posdelta.delta * (upm / ppem), 1,
+					wsrc, wdst,
+					isStrict, isStacked,
+					upm, ppem));
 			}
 		}
 
 		talk(`YAnchor(${s.posKey})`);
 		talk(sanityDelta(s.posKey, deltaPos));
+		talk(`YNoRound(${s.advKey})`);
 		talk(`YDist(${s.posKey},${s.advKey})`);
 		talk(sanityDelta(s.advKey, deltaADv));
 		let pk = s.posKey;
@@ -164,7 +204,7 @@ exports.handler = function (argv) {
 
 	rl.on("close", function () { pass_weaveOTD(activeInstructions); });
 
-	function pass_weaveOTD (activeInstructions) {
+	function pass_weaveOTD(activeInstructions) {
 		var otdPath = argv._[2] ? argv._[2] : argv._[1];
 		process.stderr.write("Weaving OTD " + otdPath + "\n");
 		var instream = fs.createReadStream(otdPath, "utf-8");
@@ -210,7 +250,9 @@ exports.handler = function (argv) {
 					buffer += (`
 						<TTGlyph ID="${gid}">
 							<instructions>
-								<talk>${activeInstructions[hash]}</talk>
+								<talk>
+								${activeInstructions[hash]}
+								</talk>
 							</instructions>
 						</TTGlyph>`);
 					if (buffer.length > 0x20000) {
