@@ -1,12 +1,12 @@
 "use strict";
 
-var rtg = require("../roundings").rtg_raw;
+var roundings = require("../roundings");
 var util = require("util");
 var pushargs = require("./invoke").pushargs;
 var invokesToInstrs = require("./invoke").invokesToInstrs;
 var pushInvokes = require("./invoke").pushInvokes;
 
-function ipsaInvokes (actions) {
+function ipsaInvokes(actions) {
 	if (!actions) return [];
 	var invokes = [];
 	var cur_rp0 = -1;
@@ -42,27 +42,56 @@ function ipsaInvokes (actions) {
 	return invokes;
 }
 
-function instruct (glyph, actions, strategy, cvt, padding) {
+function instruct(glyph, actions, strategy, cvt, padding) {
 	var padding = padding || 0;
 	var upm = strategy.UPM || 1000;
 	var cvtTopID = cvt.indexOf(strategy.BLUEZONE_TOP_CENTER, padding);
 	var cvtBottomID = cvt.indexOf(strategy.BLUEZONE_BOTTOM_CENTER, padding);
 
-	function decideDelta (gear, original, target, upm, ppem) {
-		var rounded = rtg(original, upm, ppem);
-		var d = Math.round(gear * (target - rounded) / (upm / ppem));
-		var roundBias = (original - rounded) / (upm / ppem);
-		if (roundBias >= 0.4375 && roundBias <= 0.5625) {
-			// RTG rounds TK down, but it is close to the middle
-			d -= 1;
-		} else if (roundBias >= -0.5625 && roundBias <= -0.4375) {
-			d += 1;
+	const ROUNDING_CUTOFF = 1 / 2 - 1 / 32;
+	const SDS = 3;
+	const GEAR = 8;
+
+	function encodeDelta(d, ppem) {
+		if (!d) return [];
+		if (d < -8) {
+			return encodeDelta(-8, ppem).concat(encodeDelta(d + 8, ppem));
 		}
-		if (!d) return -1;
-		if (d < -8 || d > 8) return -2;
+		if (d > 8) {
+			return encodeDelta(8, ppem).concat(encodeDelta(d - 8, ppem));
+		}
 		var selector = (d > 0 ? d + 7 : d + 8);
 		var deltappem = (ppem - strategy.PPEM_MIN) % 16;
-		return deltappem * 16 + selector;
+		return [deltappem * 16 + selector];
+	}
+
+	function pushDelta(deltas, id, d) {
+		for (let term of d) {
+			deltas.push({ id: id, delta: term });
+		}
+	}
+
+	function decideDelta(gear, original, target, upm, ppem) {
+		var d = Math.round(gear * (target - original) / (upm / ppem));
+		return encodeDelta(d, ppem);
+	}
+
+	function decideDeltaShift(gear, sign, isStrict, isStacked, base0, dist0, base1, dist1, upm, ppem) {
+		var y1 = base0 + sign * dist0;
+		var y2 = base1 + sign * dist1;
+		var yDesired = base1 + sign * dist0;
+		var deltaStart = Math.round(gear * (y2 - y1) / (upm / ppem));
+		var deltaDesired = Math.round(gear * (yDesired - y1) / (upm / ppem));
+		var delta = deltaStart - deltaDesired;
+		while(!isStrict && !(dist0 < dist1 && dist1 <= 1.25 * upm / ppem && !isStacked) && delta) {
+			const delta1 = (delta > 0 ? delta - 1 : delta + 1);
+			const y2a = y1 + (deltaDesired + delta1) * (upm / ppem) / gear;
+			if (roundings.rtg(y2 - base1, upm, ppem) !== roundings.rtg(y2a - base1, upm, ppem)
+				|| Math.abs(y2a - roundings.rtg(y2, upm, ppem)) > ROUNDING_CUTOFF * (upm / ppem)) break;
+			delta = (delta > 0 ? delta - 1 : delta + 1);
+		}
+		// process.stderr.write(`${delta0} -> ${delta} @ ${ppem}` + "\n");
+		return encodeDelta(delta + deltaDesired, ppem);
 	}
 
 	var STACK_DEPTH = strategy.STACK_DEPTH || 200;
@@ -102,13 +131,13 @@ function instruct (glyph, actions, strategy, cvt, padding) {
 	// cf. http://www.microsoft.com/typography/cleartype/truetypecleartype.aspx#Toc227035721
 	if (glyph.stems.length) {
 		for (var k = 0; k < glyph.stems.length; k++) {
-			invocations.push([[glyph.stems[k].posKey], ["MDAP[0]"]]);
-			invocations.push([[glyph.stems[k].advKey], ["MDAP[0]"]]);
+			invocations.push([[glyph.stems[k].posKey], ["MDAP[rnd]"]]);
+			invocations.push([[glyph.stems[k].advKey], ["MDRP[0]"]]);
 		}
 	}
 
 
-	invocations.push([[1, strategy.PPEM_MIN], ["SDB", "SDS"]]);
+	invocations.push([[SDS, strategy.PPEM_MIN], ["SDB", "SDS"]]);
 	var deltaCalls = [];
 	var mirps = [];
 	if (glyph.stems.length) for (var ppem = 0; ppem < actions.length; ppem++) {
@@ -120,43 +149,27 @@ function instruct (glyph, actions, strategy, cvt, padding) {
 				var args = [];
 				var movements = [];
 				for (var k = 0; k < instrs.length; k++) {
-					var y = instrs[k][0], w = instrs[k][1];
+					var [y, w, isStrict, isStacked] = instrs[k];
 					var stem = glyph.stems[k];
 					var y0 = stem.y0, w0 = stem.w0, orient = stem.posKeyAtTop;
 					if (orient) {
 						var ypos = y * uppx;
-						var ypos0 = y0;
+						var ypos0 = roundings.rtg(y0, upm, ppem);
 					} else {
 						var ypos = (y - w) * uppx;
-						var ypos0 = y0 - w0;
+						var ypos0 = roundings.rtg(y0 - w0, upm, ppem);
 					}
 
-					var d = decideDelta(2, ypos0, ypos, upm, ppem);
-					if (d >= 0) deltas.push({ id: stem.posKey, delta: d });
+					pushDelta(deltas, stem.posKey, decideDelta(GEAR, ypos0, ypos, upm, ppem));
 
-					var originalAdvKeyPosition = ypos0 + (orient ? (-1) : 1) * w0;
-					var targetAdvKeyPosition = ypos + (orient ? (-1) : 1) * w * (upm / ppem);
-					var d = decideDelta(2, originalAdvKeyPosition, targetAdvKeyPosition, upm, ppem);
-
-					if (d >= 0) {
-						deltas.push({ id: stem.advKey, delta: d });
-					} else if (d === -1) {
-						// IGNORE
-					} else if (Math.round(w0 / uppx) === w && Math.abs(w0 / uppx - w) < 0.48) {
-						args.push(stem.advKey, stem.posKey);
-						movements.push("MDRP[rnd,grey]", "SRP0");
-					} else {
-						var cvtwidth = (orient ? (-1) : 1) * Math.round(upm / ppem * w);
-						var cvtj = cvt.indexOf(cvtwidth, padding);
-						if (cvtj >= 0) {
-							args.push(stem.advKey, cvtj, stem.posKey);
-							movements.push("MIRP[0]", "SRP0");
-						} else {
-							var msirpwidth = (orient ? (-1) : 1) * (w * 64);
-							args.push(stem.advKey, msirpwidth, stem.posKey);
-							movements.push("MSIRP[0]", "SRP0");
-						}
-					}
+					var originalAdvKeyPosition = w0;
+					var targetAdvKeyPosition = w * (upm / ppem);
+					pushDelta(deltas, stem.advKey, decideDeltaShift(
+						GEAR, orient ? -1 : 1,
+						isStrict, isStacked,
+						ypos0, originalAdvKeyPosition,
+						ypos, targetAdvKeyPosition,
+						upm, ppem));
 				}
 				if (deltas.length) {
 					var deltapArgs = [];
@@ -204,13 +217,6 @@ function instruct (glyph, actions, strategy, cvt, padding) {
 	}
 	pushInvokes(mirps, largeMdrpInvokes, STACK_DEPTH);
 	mirps.push("EIF");
-
-	if (glyph.stems.length) {
-		for (var k = 0; k < glyph.stems.length; k++) {
-			invocations.push([[glyph.stems[k].posKey], ["MDAP[rnd]"]]);
-			invocations.push([[glyph.stems[k].advKey], ["MDAP[rnd]"]]);
-		}
-	}
 
 	// In-stem alignments
 	var isalInvocations = [];
