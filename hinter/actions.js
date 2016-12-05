@@ -15,8 +15,7 @@ function stemPositionToActions(stems, uppx, env) {
 				stacked = true;
 			}
 			if (stems[j].width < stems[j].touchwidth) continue;
-			if (stems[j].ytouch - w - stems[k].ytouch <= 1.05 * uppx &&
-				(stems[j].posKeyAtTop && !stems[k].posKeyAtTop && stems[k].touchwidth < stems[k].width)) {
+			if (stems[j].ytouch - w - stems[k].ytouch <= 1.05 * uppx && stems[j].posKeyAtTop) {
 				strict = true;
 			}
 		}
