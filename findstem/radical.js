@@ -27,13 +27,18 @@ Radical.prototype.includesSegment = function (z1, z2) {
 	return true;
 };
 Radical.prototype.includesSegmentEdge = function (z1, z2, delta) {
+	if (this.includesSegment(z1, z2)) {
+		return true;
+	}
 	for (let u1 = -1; u1 <= 1; u1++)
 		for (let u2 = -1; u2 <= 1; u2++)
 			for (let u3 = -1; u3 <= 1; u3++)
 				for (let u4 = -1; u4 <= 1; u4++) {
 					let z1a = {xori: z1.xori + u1 * delta, yori: z1.yori + u2 * delta};
 					let z2a = {xori: z2.xori + u3 * delta, yori: z2.yori + u4 * delta};
-					if (this.includesSegment(z1a, z2a))return true;
+					if (this.includesSegment(z1a, z2a)) {
+						return true;
+					}
 	}
 	return false;
 };
@@ -61,13 +66,16 @@ Radical.prototype.includesTetragon = function (s1, s2) {
 					xori: r.xori + (s.xori - r.xori) * (j / steps),
 					yori: r.yori + (s.yori - r.yori) * (j / steps)
 				};
-				if (this.includesSegment(m1, m2)) {checks += 1;}
+				if (this.includesSegmentEdge(m1, m2, 1)) {checks += 1;}
+				else if (j / steps > 1 / 5 && j / steps < 4 / 5) {
+					return false;
+				}
 			}
 			val += (q.xori - p.xori) * (s.xori - r.xori) * checks / (steps - 1);
 			tot += (q.xori - p.xori) * (s.xori - r.xori);
 		}
 	}
-	return val >= tot * 0.9;
+	return val >= tot * 0.95;
 };
 function transitiveReduce(g) {
 	// Floyd-warshall transitive reduction

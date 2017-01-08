@@ -15,7 +15,10 @@ function segmentJoinable(pivot, segment, radical) {
 	return false;
 }
 
-function isVertical(u, v) {
+function isStrictlyHorizontal(u) {
+	return u[0][0].yori === u[u.length - 1][u[u.length - 1].length - 1].yori;
+}
+function isVertical(radical, u, v) {
 	var d1 = minmaxOfSeg(u);
 	var d2 = minmaxOfSeg(v);
 	return Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min) < Math.abs(u[0][0].yori - v[0][0].yori) * 0.9;
@@ -67,7 +70,7 @@ function udMatchable(sj, sk, radical, strategy) {
 	return radical.includesTetragon(sj, sk);
 }
 
-function identifyStem(used, segs, candidates, graph, up, j, strategy) {
+function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
 	var candidate = {
 		high: [],
 		low: []
@@ -136,7 +139,7 @@ function identifyStem(used, segs, candidates, graph, up, j, strategy) {
 			var segOverlap = overlapInfo(highEdge, lowEdge, strategy);
 			var hasEnoughOverlap = (segOverlap.len / segOverlap.la >= strategy.COLLISION_MIN_OVERLAP_RATIO
 				|| segOverlap.len / segOverlap.lb >= strategy.COLLISION_MIN_OVERLAP_RATIO);
-			if (!isVertical(highEdge, lowEdge) && hasEnoughOverlap) {
+			if (hasEnoughOverlap && !isVertical(radical, highEdge, lowEdge)) {
 				succeed = true;
 				candidates.push({
 					high: highEdge,
@@ -196,7 +199,7 @@ function pairSegmentsForRadical(radical, r, strategy) {
 	var candidates = [];
 	var used = [];
 	for (var j = 0; j < segs.length; j++)if (!used[j]) {
-			identifyStem(used, segs, candidates, graph, up, j, strategy);
+			identifyStem(radical, used, segs, candidates, graph, up, j, strategy);
 	}
 	return candidates.map(function (s) {
 		return {
