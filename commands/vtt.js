@@ -66,10 +66,12 @@ function decideDeltaShift(base, sign, source, dest, isStrict, isStacked, upm, pp
 	const y2 = base + sign * dest;
 	const rounding = (sign > 0) === (source < dest) ? Math.floor : Math.ceil;
 	let delta = rounding(ROUNDING_SEGMENTS * (y2 - y1) / (upm / ppem));
-	while(!(isStrict || source < dest && dest <= 1.25 * upm / ppem && !isStacked) && delta){
+	while(!(source < dest && dest <= (1 + 1 / 16) * (upm / ppem) && !isStacked) && delta){
 		const delta1 = (delta > 0 ? delta - 1 : delta + 1);
 		const y2a = y1 + delta1 * (upm / ppem / ROUNDING_SEGMENTS);
-		if (roundings.rtg(y2, upm, ppem) !== roundings.rtg(y2a, upm, ppem) || Math.abs(y2a - roundings.rtg(y2, upm, ppem)) > ROUNDING_CUTOFF * (upm / ppem)) break;
+		if (roundings.rtg(y2, upm, ppem) !== roundings.rtg(y2a, upm, ppem)
+			|| Math.abs(y2a - roundings.rtg(y2, upm, ppem)) > ROUNDING_CUTOFF * (upm / ppem)
+			|| (isStrict && (Math.abs(y2 - base - (y2a - base)) > (upm / ppem) * (3 / 16)))) break;
 		delta = (delta > 0 ? delta - 1 : delta + 1);
 	}
 	return {

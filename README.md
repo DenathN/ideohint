@@ -151,7 +151,7 @@ With the help with [GNU Parallel](https://gnu.org/s/parallel/) or `make`, it wil
 For strategy parameters, you can adjust them using the `visual` sub-command:
 
 ``` bash
-ideohint visual hans.sfd -w "<test characters>" [<strategy parameters>]
+ideohint visual hans.hgl -w "<test characters>" [<parameters>]
 ```
 
 It will provide an interactive parameter adjustment utility accessable from `localhost:9527`.
