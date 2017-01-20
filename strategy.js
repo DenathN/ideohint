@@ -1,7 +1,7 @@
-"use strict"
+"use strict";
 
-var toml = require('toml');
-var fs = require('fs');
+var toml = require("toml");
+var fs = require("fs");
 
 var DefaultStrategy = function () {
 	return {
@@ -51,7 +51,7 @@ var DefaultStrategy = function () {
 		BLUEZONE_TOP_DOTBAR_SMALL: 793,
 		BLUEZONE_TOP_DOTBAR_MIDDLE: 793,
 		BLUEZONE_TOP_DOTBAR_LARGE: 793,
-		
+
 		BLUEZONE_WIDTH: 15,
 		COEFF_A_MULTIPLIER: 10,
 		COEFF_A_SAME_RADICAL: 4,
@@ -74,7 +74,7 @@ var DefaultStrategy = function () {
 		Y_FUZZ: 7,
 		WIDTH_ALLOCATION_PASSES: 5,
 		STACK_DEPTH: 200
-	}
+	};
 };
 exports.defaultStrategy = DefaultStrategy();
 exports.from = function (argv, parameterFile) {
@@ -88,7 +88,7 @@ exports.from = function (argv, parameterFile) {
 			if (argv[prop]) {
 				strategy[prop] = isFinite(argv[prop] - 0) ? argv[prop] : strategy[prop];
 			}
-		};
+		}
 	}
 	return strategy;
-}
+};

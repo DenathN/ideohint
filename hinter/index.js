@@ -12,12 +12,12 @@ var earlyAdjust = require("./early");
 var allocateWidth = require("./allocate-width");
 var stemPositionToActions = require("./actions");
 
-function xclamp (low, x, high) { return x < low ? low : x > high ? high : x; }
-function lerp (x, x1, x2, y1, y2) {
+function xclamp(low, x, high) { return x < low ? low : x > high ? high : x; }
+function lerp(x, x1, x2, y1, y2) {
 	return (x - x1) / (x2 - x1) * (y2 - y1) + y1;
 }
 
-function xlerp (x, x1, x2, x3, y1, y2, y3) {
+function xlerp(x, x1, x2, x3, y1, y2, y3) {
 	if (x <= x2) {
 		return (x - x1) / (x2 - x1) * (y2 - y1) + y1;
 	} else {
@@ -25,7 +25,7 @@ function xlerp (x, x1, x2, x3, y1, y2, y3) {
 	}
 }
 
-function hint (glyph, ppem, strategy) {
+function hint(glyph, ppem, strategy) {
 	var stems = glyph.stems;
 	if (!stems.length) return [];
 
@@ -89,7 +89,7 @@ function hint (glyph, ppem, strategy) {
 	var oPixelTop = round(BLUEZONE_TOP_CENTER);
 	var glyphTop = glyphBottom + round(BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER);
 
-	function atRadicalTop (stem) {
+	function atRadicalTop(stem) {
 		return !stem.hasSameRadicalStemAbove
 		&& !(stem.hasRadicalPointAbove && stem.radicalCenterRise > STEM_CENTER_MIN_RISE)
 		&& !(stem.hasRadicalLeftAdjacentPointAbove && stem.radicalLeftAdjacentRise > STEM_SIDE_MIN_RISE)
@@ -97,13 +97,13 @@ function hint (glyph, ppem, strategy) {
 		&& !(stem.hasRadicalLeftDistancedPointAbove && stem.radicalLeftDistancedRise > STEM_SIDE_MIN_DIST_RISE)
 		&& !(stem.hasRadicalRightDistancedPointAbove && stem.radicalRightDistancedRise > STEM_SIDE_MIN_DIST_RISE);
 	}
-	function atGlyphTop (stem) {
+	function atGlyphTop(stem) {
 		return atRadicalTop(stem) && !stem.hasGlyphStemAbove
 		&& !(stem.hasGlyphPointAbove && stem.glyphCenterRise > STEM_CENTER_MIN_RISE)
 		&& !(stem.hasGlyphLeftAdjacentPointAbove && stem.glyphLeftAdjacentRise > STEM_SIDE_MIN_RISE)
 		&& !(stem.hasGlyphRightAdjacentPointAbove && stem.glyphRightAdjacentRise > STEM_SIDE_MIN_RISE);
 	}
-	function atRadicalBottom (stem) {
+	function atRadicalBottom(stem) {
 		return !stem.hasSameRadicalStemBelow
 		&& !(stem.hasRadicalPointBelow && stem.radicalCenterDescent > STEM_CENTER_MIN_DESCENT)
 		&& !(stem.hasRadicalLeftAdjacentPointBelow && stem.radicalLeftAdjacentDescent > STEM_SIDE_MIN_DESCENT)
@@ -111,7 +111,7 @@ function hint (glyph, ppem, strategy) {
 		&& !(stem.hasRadicalLeftDistancedPointBelow && stem.radicalLeftDistancedDescent > STEM_SIDE_MIN_DIST_DESCENT)
 		&& !(stem.hasRadicalRightDistancedPointBelow && stem.radicalRightDistancedDescent > STEM_SIDE_MIN_DIST_DESCENT);
 	}
-	function atGlyphBottom (stem) {
+	function atGlyphBottom(stem) {
 		return atRadicalBottom(stem) && !stem.hasGlyphStemBelow
 		&& !(stem.hasGlyphPointBelow && stem.glyphCenterDescent > STEM_CENTER_MIN_DESCENT)
 		&& !(stem.hasGlyphLeftAdjacentPointBelow && stem.glyphLeftAdjacentDescent > STEM_SIDE_MIN_DESCENT)
@@ -134,7 +134,7 @@ function hint (glyph, ppem, strategy) {
 	- (round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_BAR))
 	+ Math.max(0, oPixelTop - BLUEZONE_TOP_BAR);
 
-	function cy (y, w0, w, x) {
+	function cy(y, w0, w, x) {
 		// x means this stroke is topmost or bottommost
 		var p = (y - w0 - BLUEZONE_BOTTOM_BAR_REF) / (BLUEZONE_TOP_BAR_REF - BLUEZONE_BOTTOM_BAR_REF - w0);
 		if (x) {
@@ -143,7 +143,7 @@ function hint (glyph, ppem, strategy) {
 			return w + cyb + (cyt - cyb - w) * p;
 		}
 	}
-	function flexMiddleStem (t, m, b) {
+	function flexMiddleStem(t, m, b) {
 		var spaceAboveOri = t.y0 - t.w0 / 2 - m.y0 + m.w0 / 2;
 		var spaceBelowOri = m.y0 - m.w0 / 2 - b.y0 + b.w0 / 2;
 		if (spaceAboveOri + spaceBelowOri > 0) {
@@ -153,7 +153,7 @@ function hint (glyph, ppem, strategy) {
 		}
 	}
 
-	function flexCenter (avaliables) {
+	function flexCenter(avaliables) {
 		// fix top and bottom stems
 		for (var j = 0; j < stems.length; j++) {
 			if (!stems[j].hasGlyphStemBelow) {
@@ -175,7 +175,7 @@ function hint (glyph, ppem, strategy) {
 		}
 	}
 
-	function calculateWidth (w, coordinate) {
+	function calculateWidth(w, coordinate) {
 		if (coordinate) {
 			var pixels = w / CANONICAL_STEM_WIDTH * WIDTH_GEAR_PROPER;
 		} else {
@@ -195,7 +195,7 @@ function hint (glyph, ppem, strategy) {
 		return Math.round(pixels);
 	}
 
-	function decideWidths (stems, priority, tws) {
+	function decideWidths(stems, priority, tws) {
 		var tws = [];
 		var areaLost = 0;
 		var totalWidth = 0;
@@ -385,7 +385,7 @@ function hint (glyph, ppem, strategy) {
 
 	// Pass 4 : Width allocation
 
-	function assignWidths (res) {
+	function assignWidths(res) {
 		for (var j = 0; j < stems.length; j++) {
 			stems[j].touchwidth = res.w[j] * uppx;
 			stems[j].ytouch = res.y[j] * uppx;

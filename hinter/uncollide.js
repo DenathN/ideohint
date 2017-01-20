@@ -1,10 +1,10 @@
-"use strict"
+"use strict";
 
-var evolve = require('./evolve');
-var Individual = require('./individual');
+var evolve = require("./evolve");
+var Individual = require("./individual");
 var balance = require("./balance");
 
-function xclamp(low, x, high) { return x < low ? low : x > high ? high : x }
+function xclamp(low, x, high) { return x < low ? low : x > high ? high : x; }
 
 function uncollide(yInit, env, terminalStrictness, scale) {
 	if (!yInit.length) return yInit;
@@ -20,17 +20,17 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 	// Extereme
 	for (var j = 0; j < n; j++) {
 		for (var k = avaliables[j].low; k <= avaliables[j].high; k++) if (k !== y0[j]) {
-			var y1 = y0.slice(0);
-			y1[j] = k;
-			population.push(new Individual(balance(y1, env), env));
-		};
-	};
+				var y1 = y0.slice(0);
+				y1[j] = k;
+				population.push(new Individual(balance(y1, env), env));
+		}
+	}
 	// Y-mutant
 	population.push(new Individual(balance(y0.map(function (y, j) {
-		return xclamp(avaliables[j].low, y - 1, avaliables[j].high)
+		return xclamp(avaliables[j].low, y - 1, avaliables[j].high);
 	}), env), env));
 	population.push(new Individual(balance(y0.map(function (y, j) {
-		return xclamp(avaliables[j].low, y + 1, avaliables[j].high)
+		return xclamp(avaliables[j].low, y + 1, avaliables[j].high);
 	}), env), env));
 	// Random
 	for (var c = population.length; c < scale; c++) {
@@ -45,7 +45,7 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 	// Hall of fame
 	var best = population[0];
 	for (var j = 1; j < population.length; j++) if (population[j].fitness > best.fitness) {
-		best = population[j];
+			best = population[j];
 	}
 	// "no-improvement" generations
 	var steadyStages = 0;
@@ -57,17 +57,17 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 		population = evolve(p, q, !(s % 2), env);
 		var elite = population[0];
 		for (var j = 1; j < population.length; j++) if (population[j].fitness > elite.fitness) {
-			elite = population[j];
+				elite = population[j];
 		}
 		if (elite.fitness <= best.fitness) {
-			steadyStages += 1
+			steadyStages += 1;
 		} else {
 			steadyStages = 0;
 			best = elite;
 		}
 		if (steadyStages > terminalStrictness) break;
-	};
+	}
 	return best.gene;
-};
+}
 
 module.exports = uncollide;

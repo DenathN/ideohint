@@ -1,4 +1,4 @@
-"use strict"
+"use strict";
 
 function collidePotential(y, env) {
 	var A = env.A, C = env.C, S = env.S, P = env.P, avaliables = env.avaliables, sym = env.symmetry;
@@ -7,7 +7,7 @@ function collidePotential(y, env) {
 		for (var k = 0; k < j; k++) {
 			if (y[j] === y[k]) {
 				// Alignment
-				p += A[j][k]
+				p += A[j][k];
 			}
 			else if (y[j] <= y[k] + env.avaliables[j].properWidth) {
 				// collide
@@ -16,21 +16,21 @@ function collidePotential(y, env) {
 			if (j !== k && sym[j][k]) {
 				if (y[j] !== y[k]) {
 					// symmetry break
-					p += S[j][k]
+					p += S[j][k];
 				}
 			} else {
 				if (y[j] < y[k]) {
-					//swap
+					// swap
 					p += S[j][k];
 				}
 			}
-		};
-	};
+		}
+	}
 	return p;
-};
+}
 function ablationPotential(y, env) {
 	var avaliables = env.avaliables, triplets = env.triplets;
-	var blueFuzz = env.strategy.BLUEZONE_WIDTH
+	var blueFuzz = env.strategy.BLUEZONE_WIDTH;
 	var p = 0;
 	var n = y.length;
 	var ymin = env.ppem, ymax = -env.ppem;
@@ -43,26 +43,26 @@ function ablationPotential(y, env) {
 	for (var j = 0; j < y.length; j++) {
 		p += avaliables[j].ablationCoeff * Math.abs(y[j] - avaliables[j].center) * env.uppx;
 		p += env.strategy.COEFF_PORPORTION_DISTORTION * Math.abs(y[j] - (ymin + avaliables[j].proportion * (ymax - ymin))) * env.uppx;
-	};
+	}
 	for (var t = 0; t < triplets.length; t++) {
 		var j = triplets[t][0], k = triplets[t][1], w = triplets[t][2], d = triplets[t][3];
+		if (!(y[j] > y[k] && y[k] > y[w]))continue;
 		var spacejk = y[j] - y[k] - avaliables[j].properWidth;
 		var spacekw = y[k] - y[w] - avaliables[k].properWidth;
-		if (y[j] > y[k] && y[k] > y[w] && (
-			d >= blueFuzz && spacejk < spacekw
+		if (d >= blueFuzz && spacejk < spacekw
 			|| d <= -blueFuzz && spacejk > spacekw
-			|| d < blueFuzz && d > -blueFuzz && (spacejk - spacekw > 1 || spacejk - spacekw < -1))) {
+			|| d < blueFuzz && d > -blueFuzz && (spacejk - spacekw > 1 || spacejk - spacekw < -1)) {
 			p += (env.C[j][k] + env.C[k][w]) * env.strategy.COEFF_DISTORT;
 		}
-	};
+	}
 	return p;
-};
+}
 
 function Individual(y, env) {
 	this.gene = y;
 	this.collidePotential = collidePotential(y, env);
 	this.ablationPotential = env.noAblation ? 0 : ablationPotential(y, env);
-	this.fitness = 1 / (1 + Math.max(0, this.collidePotential * 8 + this.ablationPotential / 16))
-};
+	this.fitness = 1 / (1 + Math.max(0, this.collidePotential * 8 + this.ablationPotential / 16));
+}
 
 module.exports = Individual;
