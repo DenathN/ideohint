@@ -1,25 +1,26 @@
-"use strict"
+"use strict";
 
-var analyzeStems = require('./coupler');
-var analyzeStemSpatialRelationships = require('./stem-relationship').analyzeStemSpatialRelationships;
-var analyzePointBetweenStems = require('./stem-relationship').analyzePointBetweenStems;
-var calculateCollisionMatrices = require('./collide-matrix');
-var findRadicals = require('./radical');
+var analyzeStems = require("./coupler");
+var analyzeStemSpatialRelationships = require("./stem-relationship").analyzeStemSpatialRelationships;
+var analyzePointBetweenStems = require("./stem-relationship").analyzePointBetweenStems;
+var analyzeEntireContorBetweenStems = require("./stem-relationship").analyzeEntireContorBetweenStems;
+var calculateCollisionMatrices = require("./collide-matrix");
+var findRadicals = require("./radical");
 
-var overlapInfo = require('./overlap').overlapInfo;
-var overlapRatio = require('./overlap').overlapRatio;
-var stemOverlapRatio = require('./overlap').stemOverlapRatio;
-var stemOverlapLength = require('./overlap').stemOverlapLength;
+var overlapInfo = require("./overlap").overlapInfo;
+var overlapRatio = require("./overlap").overlapRatio;
+var stemOverlapRatio = require("./overlap").stemOverlapRatio;
+var stemOverlapLength = require("./overlap").stemOverlapLength;
 
 function OverlapMatrix(stems, fn) {
 	var transitions = [];
 	for (var j = 0; j < stems.length; j++) {
-		transitions[j] = []
+		transitions[j] = [];
 		for (var k = 0; k < stems.length; k++) {
-			transitions[j][k] = fn(stems[j], stems[k])
+			transitions[j][k] = fn(stems[j], stems[k]);
 		}
-	};
-	return transitions
+	}
+	return transitions;
 }
 
 function findStems(glyph, strategy) {
@@ -37,8 +38,9 @@ function findStems(glyph, strategy) {
 	});
 	analyzeStemSpatialRelationships(stems, radicals, glyph.stemOverlaps, strategy);
 	var pointBetweenStems = analyzePointBetweenStems(stems, radicals, strategy);
+	var ecbs = analyzeEntireContorBetweenStems(glyph, stems);
 	glyph.radicals = radicals;
-	glyph.collisionMatrices = calculateCollisionMatrices(strategy, stems, glyph.stemOverlaps, glyph.stemOverlapLengths, pointBetweenStems);
+	glyph.collisionMatrices = calculateCollisionMatrices(strategy, stems, glyph.stemOverlaps, glyph.stemOverlapLengths, pointBetweenStems, ecbs);
 	glyph.stems = stems;
 	return glyph;
 }
