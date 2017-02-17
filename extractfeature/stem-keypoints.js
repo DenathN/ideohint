@@ -2,38 +2,52 @@
 
 var slopeOf = require("../types").slopeOf;
 
+function keyptPriority(incoming, current) {
+	if (current.on && !incoming.on) return false
+	if (incoming.on && !current.on) return true
+	return current.xori > incoming.xori
+}
+
 module.exports = function (glyph, strategy) {
 	// Stem Keypoints
 	for (var js = 0; js < glyph.stems.length; js++) {
 		var s = glyph.stems[js];
+		// b : a bottom stem?
+		var b = s.yori <= (strategy.BLUEZONE_TOP_CENTER + strategy.BLUEZONE_BOTTOM_CENTER) / 2;
+		/*
 		var b = !s.hasSameRadicalStemBelow
 			&& !(s.hasRadicalPointBelow && s.radicalCenterDescent > strategy.STEM_CENTER_MIN_DESCENT)
 			&& !(s.hasRadicalLeftAdjacentPointBelow && s.radicalLeftAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT)
 			&& !(s.hasRadicalRightAdjacentPointBelow && s.radicalRightAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT)
-			&& !s.hasGlyphStemBelow;
+			&& !s.hasGlyphStemBelow
+			&& s.yori <= (strategy.BLUEZONE_TOP_CENTER + strategy.BLUEZONE_BOTTOM_CENTER) / 2;
+		*/
 		var slope = (slopeOf(s.high) + slopeOf(s.low)) / 2;
 		// get highkey and lowkey
 		var highkey = s.high[0][0], lowkey = s.low[0][0], highnonkey = [], lownonkey = [];
-		var jHigh = 0, jLow = 0;
+		var jHigh = 0, jLow = 0, kHigh = 0, kLow = 0;
 		for (var j = 0; j < s.high.length; j++) {
 			for (var k = 0; k < s.high[j].length; k++) {
-				if (s.high[j][k].id >= 0 && s.high[j][k].xori < highkey.xori) {
+				if (s.high[j][k].id >= 0 && keyptPriority(s.high[j][k], highkey)) {
 					highkey = s.high[j][k];
 					jHigh = j;
+					kHigh = k;
 				}
 			}
 		}
 		for (var j = 0; j < s.low.length; j++) {
 			for (var k = 0; k < s.low[j].length; k++) {
-				if (s.low[j][k].id >= 0 && s.low[j][k].xori < lowkey.xori) {
+				if (s.low[j][k].id >= 0 && keyptPriority(s.low[j][k], lowkey)) {
 					lowkey = s.low[j][k];
 					jLow = j;
+					kLow = k;
 				}
 			}
 		}
 		highkey.touched = lowkey.touched = true;
 		for (var j = 0; j < s.high.length; j++) {
 			for (var k = 0; k < s.high[j].length; k++) {
+				if (s.high[j][k] === highkey) continue;
 				if (j !== jHigh) {
 					if (k === 0) {
 						highnonkey.push(s.high[j][k]);
@@ -49,6 +63,7 @@ module.exports = function (glyph, strategy) {
 		}
 		for (var j = 0; j < s.low.length; j++) {
 			for (var k = 0; k < s.low[j].length; k++) {
+				if (s.low[j][k] === lowkey) continue;
 				if (j !== jLow) {
 					if (k === s.low[j].length - 1) {
 						lownonkey.push(s.low[j][k]);

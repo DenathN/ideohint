@@ -31,3 +31,4 @@ test/
 preview/
 .vscode/
 *.packed.js
+*.tgz

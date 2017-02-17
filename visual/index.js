@@ -238,7 +238,7 @@ function render() {
 		hPreview.fillStyle = 'white';
 		hPreview.fillRect(0, y, 128 + glyphs.length * DPI * ppem, y + DPI * ppem)
 		// render 
-		setTimeout(function (y, ppem) { return function () { RenderPreviewForPPEM(hPreview, 128, y, ppem) } } (y, ppem), 0);
+		setTimeout(function (y, ppem) { return function () { RenderPreviewForPPEM(hPreview, 128, y, ppem) } }(y, ppem), 0);
 		hPreview.fillStyle = 'black';
 		hPreview.fillText(ppem + '', 0, y + ppem * (strategy.BLUEZONE_TOP_CENTER / strategy.UPM) * DPI)
 		y += Math.round(ppem * 1.2) * DPI
@@ -265,7 +265,7 @@ window.testInstruct = function (m) {
 }
 
 var strategyControlGroups = [
-	['UPM','BLUEZONE_WIDTH','PPEM_INCREASE_GLYPH_LIMIT'],
+	['UPM', 'BLUEZONE_WIDTH', 'PPEM_INCREASE_GLYPH_LIMIT'],
 	[
 		'BLUEZONE_TOP_CENTER',
 		'BLUEZONE_TOP_LIMIT',
@@ -291,7 +291,7 @@ var strategyControlGroups = [
 		'BLUEZONE_BOTTOM_DOTBAR_LARGE'
 	],
 	['CANONICAL_STEM_WIDTH', 'CANONICAL_STEM_WIDTH_SMALL', 'CANONICAL_STEM_WIDTH_DENSE', 'CANONICAL_STEM_WIDTH_LARGE_ADJ'],
-	[ 'ABSORPTION_LIMIT', 'STEM_SIDE_MIN_RISE', 'STEM_SIDE_MIN_DESCENT', 'STEM_CENTER_MIN_RISE', 'STEM_CENTER_MIN_DESCENT', 'STEM_SIDE_MIN_DIST_RISE', 'STEM_SIDE_MIN_DIST_DESCENT', 'SLOPE_FUZZ', 'Y_FUZZ']
+	['ABSORPTION_LIMIT', 'STEM_SIDE_MIN_RISE', 'STEM_SIDE_MIN_DESCENT', 'STEM_CENTER_MIN_RISE', 'STEM_CENTER_MIN_DESCENT', 'STEM_SIDE_MIN_DIST_RISE', 'STEM_SIDE_MIN_DIST_DESCENT', 'SLOPE_FUZZ', 'Y_FUZZ']
 ]
 
 function createAdjusters() {

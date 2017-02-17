@@ -5,16 +5,30 @@ var segmentsPromixity = require("./seg").segmentsPromixity;
 
 function atRadicalTop(stem, strategy) {
 	return !stem.hasSameRadicalStemAbove
-	&& !(stem.hasRadicalPointAbove && stem.radicalCenterRise > strategy.STEM_CENTER_MIN_RISE)
-	&& !(stem.hasRadicalLeftAdjacentPointAbove && stem.radicalLeftAdjacentRise > strategy.STEM_SIDE_MIN_RISE)
-	&& !(stem.hasRadicalRightAdjacentPointAbove && stem.radicalRightAdjacentRise > strategy.STEM_SIDE_MIN_RISE);
+		&& !(stem.hasRadicalPointAbove && stem.radicalCenterRise > strategy.STEM_CENTER_MIN_RISE)
+		&& !(stem.hasRadicalLeftAdjacentPointAbove && stem.radicalLeftAdjacentRise > strategy.STEM_SIDE_MIN_RISE)
+		&& !(stem.hasRadicalRightAdjacentPointAbove && stem.radicalRightAdjacentRise > strategy.STEM_SIDE_MIN_RISE);
 }
 function atRadicalBottom(stem, strategy) {
 	return !stem.hasSameRadicalStemBelow
-	&& !(stem.hasRadicalPointBelow && stem.radicalCenterDescent > strategy.STEM_CENTER_MIN_DESCENT)
-	&& !(stem.hasRadicalLeftAdjacentPointBelow && stem.radicalLeftAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT)
-	&& !(stem.hasRadicalRightAdjacentPointBelow && stem.radicalRightAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT);
+		&& !(stem.hasRadicalPointBelow && stem.radicalCenterDescent > strategy.STEM_CENTER_MIN_DESCENT)
+		&& !(stem.hasRadicalLeftAdjacentPointBelow && stem.radicalLeftAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT)
+		&& !(stem.hasRadicalRightAdjacentPointBelow && stem.radicalRightAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT);
 }
+
+function atGlyphTop(stem, strategy) {
+	return atRadicalTop(stem, strategy) && !stem.hasGlyphStemAbove
+		&& !(stem.hasGlyphPointAbove && stem.glyphCenterRise > strategy.STEM_CENTER_MIN_RISE)
+		&& !(stem.hasGlyphLeftAdjacentPointAbove && stem.glyphLeftAdjacentRise > strategy.STEM_SIDE_MIN_RISE)
+		&& !(stem.hasGlyphRightAdjacentPointAbove && stem.glyphRightAdjacentRise > strategy.STEM_SIDE_MIN_RISE);
+}
+function atGlyphBottom(stem, strategy) {
+	return atRadicalBottom(stem, strategy) && !stem.hasGlyphStemBelow
+		&& !(stem.hasGlyphPointBelow && stem.glyphCenterDescent > strategy.STEM_CENTER_MIN_DESCENT)
+		&& !(stem.hasGlyphLeftAdjacentPointBelow && stem.glyphLeftAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT)
+		&& !(stem.hasGlyphRightAdjacentPointBelow && stem.glyphRightAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT);
+}
+
 
 module.exports = function calculateCollisionMatrices(strategy, stems, overlapRatios, overlapLengths, pbs, ecbs) {
 	// A : Alignment operator
@@ -42,15 +56,32 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlapRat
 
 			var slopesCoeff = !pbs[j][k] && stems[j].belongRadical === stems[k].belongRadical ? Math.max(0.25, 1 - Math.abs(slopes[j] - slopes[k]) * 20) : 1;
 			var promixity = segmentsPromixity(stems[j].low, stems[k].high) + segmentsPromixity(stems[j].high, stems[k].low) + segmentsPromixity(stems[j].low, stems[k].low) + segmentsPromixity(stems[j].high, stems[k].high);
-			if ((pbs[j][k] || ecbs[j][k]) && promixity < 3) {
-				promixity = 3;
+
+			// PBS
+			if ((pbs[j][k] || ecbs[j][k] || atGlyphTop(stems[j], strategy) || atGlyphBottom(stems[k], strategy)) && promixity < strategy.COEFF_PBS_MIN_PROMIX) {
+				promixity = strategy.COEFF_PBS_MIN_PROMIX;
 			}
+			// ECBS
 			promixity *= (ecbs[j][k] + 1);
+			// Top/bottom
+			if (atGlyphTop(stems[j], strategy) || atGlyphBottom(stems[k], strategy)) {
+				promixity *= strategy.COEFF_STRICT_TOP_BOT_PROMIX
+			} else if (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow) {
+				promixity *= strategy.COEFF_TOP_BOT_PROMIX
+			}
+
 			var promixityCoeff = (1 + (promixity > 2 ? strategy.COEFF_C_MULTIPLIER / strategy.COEFF_A_MULTIPLIER : 1) * promixity);
 			// Alignment coefficients
 			var coeffA = 1;
 			if (pbs[j][k]) {
+				// ECBS is not considered here
 				coeffA = strategy.COEFF_A_FEATURE_LOSS;
+			} else if (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow) {
+				if (stems[j].belongRadical === stems[k].belongRadical) {
+					coeffA = strategy.COEFF_A_TOPBOT_MERGED_SR;
+				} else {
+					coeffA = strategy.COEFF_A_TOPBOT_MERGED;
+				}
 			} else if (stems[j].belongRadical === stems[k].belongRadical) {
 				if (!stems[j].hasSameRadicalStemAbove || !stems[k].hasSameRadicalStemBelow) {
 					coeffA = strategy.COEFF_A_SHAPE_LOST;

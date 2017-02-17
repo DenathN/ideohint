@@ -14,15 +14,14 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 	for (var j = 0; j < n; j++) {
 		y0[j] = xclamp(avaliables[j].low, Math.round(yInit[j]), avaliables[j].high);
 	}
-
 	var population = [new Individual(balance(y0, env), env)];
 	// Generate initial population
 	// Extereme
 	for (var j = 0; j < n; j++) {
 		for (var k = avaliables[j].low; k <= avaliables[j].high; k++) if (k !== y0[j]) {
-				var y1 = y0.slice(0);
-				y1[j] = k;
-				population.push(new Individual(balance(y1, env), env));
+			var y1 = y0.slice(0);
+			y1[j] = k;
+			population.push(new Individual(balance(y1, env), env));
 		}
 	}
 	// Y-mutant
@@ -45,7 +44,7 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 	// Hall of fame
 	var best = population[0];
 	for (var j = 1; j < population.length; j++) if (population[j].fitness > best.fitness) {
-			best = population[j];
+		best = population[j];
 	}
 	// "no-improvement" generations
 	var steadyStages = 0;
@@ -57,7 +56,7 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 		population = evolve(p, q, !(s % 2), env);
 		var elite = population[0];
 		for (var j = 1; j < population.length; j++) if (population[j].fitness > elite.fitness) {
-				elite = population[j];
+			elite = population[j];
 		}
 		if (elite.fitness <= best.fitness) {
 			steadyStages += 1;

@@ -2,3 +2,4 @@ test/
 .vscode/
 node_modules
 *.packed.js
+*.tgz

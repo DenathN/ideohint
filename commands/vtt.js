@@ -22,6 +22,7 @@ const GREEN = "\x1b[92m";
 const RESTORE = "\x1b[39;49m";
 const ROUNDING_SEGMENTS = 16;
 const ROUNDING_CUTOFF = 1 / 2 - 1 / 32;
+const HALF_PIXEL_PPEM = 20;
 
 function md5(text) {
 	return crypto.createHash("md5").update(text).digest("hex");
@@ -29,7 +30,7 @@ function md5(text) {
 function formatdelta(delta) {
 	let u = Math.round(delta * ROUNDING_SEGMENTS);
 	let d = ROUNDING_SEGMENTS;
-	while(!(u % 2) && !(d % 2) && d > 1){u /= 2, d /= 2;}
+	while (!(u % 2) && !(d % 2) && d > 1) { u /= 2, d /= 2; }
 	if (d > 1) {
 		return u + "/" + d;
 	} else {
@@ -40,7 +41,7 @@ function sanityDelta(z, d) {
 	var deltas = d.filter((x) => x.delta);
 	if (!deltas.length) return "";
 	let buf = [];
-	let ppemstart = 0,ppemend = 0;
+	let ppemstart = 0, ppemend = 0;
 	let curdelta = 0;
 	for (let x of deltas) {
 		if (x.ppem === ppemend + 1 && x.delta === curdelta) {
@@ -62,21 +63,29 @@ function decideDelta(source, dest, upm, ppem) {
 	};
 }
 function decideDeltaShift(base, sign, source, dest, isStrict, isStacked, upm, ppem) {
+	// source : original stroke width
+	// dest : desired stroke width
 	const y1 = base + sign * source;
 	const y2 = base + sign * dest;
 	const rounding = (sign > 0) === (source < dest) ? Math.floor : Math.ceil;
-	let delta = rounding(ROUNDING_SEGMENTS * (y2 - y1) / (upm / ppem));
-	while(!(source < dest && dest <= (1 + 1 / 16) * (upm / ppem) && !isStacked) && delta){
+	// delta needed for rounding
+	let actualDelta = rounding(ROUNDING_SEGMENTS * (y2 - y1) / (upm / ppem));
+	// We will try to shrink collided strokes to zero
+	let shrunkDelta = isStacked ? rounding(ROUNDING_SEGMENTS * (base - y1) / (upm / ppem)) : 0;
+	let delta = actualDelta - shrunkDelta;
+	while (!(source < dest && dest <= (1 + 1 / 16) * (upm / ppem) && !isStacked) && delta) {
 		const delta1 = (delta > 0 ? delta - 1 : delta + 1);
-		const y2a = y1 + delta1 * (upm / ppem / ROUNDING_SEGMENTS);
+		const y2a = y1 + (delta1 + shrunkDelta) * (upm / ppem / ROUNDING_SEGMENTS);
 		if (roundings.rtg(y2, upm, ppem) !== roundings.rtg(y2a, upm, ppem)
 			|| Math.abs(y2a - roundings.rtg(y2, upm, ppem)) > ROUNDING_CUTOFF * (upm / ppem)
+			|| (source > dest)
+			&& Math.abs(y2a - roundings.rtg(y2, upm, ppem)) > (1 / 2) * (upm / ppem) * (ppem / HALF_PIXEL_PPEM)
 			|| (isStrict && (Math.abs(y2 - base - (y2a - base)) > (upm / ppem) * (3 / 16)))) break;
-		delta = (delta > 0 ? delta - 1 : delta + 1);
+		delta = delta1;
 	}
 	return {
 		ppem: ppem,
-		delta: delta / ROUNDING_SEGMENTS
+		delta: (shrunkDelta + delta) / ROUNDING_SEGMENTS
 	};
 }
 function talk(si, sd, strategy, cvt, padding, gid) {
@@ -94,7 +103,7 @@ function talk(si, sd, strategy, cvt, padding, gid) {
 		for (let ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
 			let source = roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem);
 			let vtop = roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
-			+ roundings.rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem);
+				+ roundings.rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem);
 			deltas.push(decideDelta(source, vtop, upm, ppem));
 		}
 		talk(sanityDelta(z, deltas));
@@ -164,7 +173,7 @@ function talk(si, sd, strategy, cvt, padding, gid) {
 		}
 	}
 	for (let c of si.ipsacalls) {
-		if (!c)continue;
+		if (!c) continue;
 		if (c.length >= 3) { // ip
 			if (c[0] !== c[1]) talk(`YInterpolate(${c[0]},${c.slice(2).join(',')},${c[1]})`);
 		} else {
@@ -228,7 +237,7 @@ exports.handler = function (argv) {
 				if (glyph.contours && glyph.contours.length) {
 					var hash = hashContours(glyph.contours);
 					if (activeInstructions[hash]) {
-						arr.push({gid, hash});
+						arr.push({ gid, hash });
 					}
 				}
 				glyph.instructions = [];

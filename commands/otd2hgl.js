@@ -8,7 +8,7 @@ exports.command = "otd2hgl";
 exports.describe = "Prepare HGL file from OpenType Dump.";
 exports.builder = function (yargs) {
 	yargs.alias("o", "output-into")
-		.boolean(["ideo-only"]);
+		.boolean(["all", "ideo-only"]);
 };
 
 exports.handler = function (argv) {
@@ -16,14 +16,19 @@ exports.handler = function (argv) {
 
 	if (!argv._[1]) return;
 
-	var onlyhan = false;
+	var hasCmap = false;
 	var keep = {};
+	var selects = argv.select ? argv.select.split('').map(c => c.charCodeAt(0)) : null;
+
 	getCMAPInfo();
+
+
+
 	function getCMAPInfo() {
 		var sParseCmap = JSONStream.parse(["cmap"]);
 		var instream = fs.createReadStream(argv._[1], "utf-8");
 		sParseCmap.on("data", function (cmap) {
-			onlyhan = true;
+			hasCmap = true;
 			for (var k in cmap) {
 				var code;
 				if (k[0] == "U" && k[1] == "+") {
@@ -32,7 +37,14 @@ exports.handler = function (argv) {
 				} else {
 					code = parseInt(k, 10);
 				}
-				if (code >= 0x2E80 && code <= 0x2FFF
+
+				if (selects) {
+					if (selects.indexOf(code) >= 0) {
+						keep[cmap[k]] = true;
+					}
+				} else if (argv['all']) {
+					keep[cmap[k]] = true;
+				} else if (code >= 0x2E80 && code <= 0x2FFF
 					|| code >= 0x3192 && code <= 0x319F
 					|| code >= 0x3300 && code <= 0x9FFF
 					|| code >= 0xF900 && code <= 0xfa6F
@@ -51,7 +63,7 @@ exports.handler = function (argv) {
 		var instream = fs.createReadStream(argv._[1], "utf-8");
 		sParseGlyf.on("data", function (data) {
 			var k = data.key, glyph = data.value;
-			if (!glyph.contours || !glyph.contours.length || (onlyhan && !keep[k])) return;
+			if (!glyph.contours || !glyph.contours.length || (hasCmap && !keep[k])) return;
 			var h = hashContours(glyph.contours);
 			outstream.write(JSON.stringify([k, h, glyph.contours]) + "\n");
 		});
