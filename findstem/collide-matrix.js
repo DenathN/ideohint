@@ -55,22 +55,32 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlapRat
 			if (ovr < strategy.SIDETOUCH_LIMIT && isSideTouch) { ovr = 0; }
 
 			var slopesCoeff = !pbs[j][k] && stems[j].belongRadical === stems[k].belongRadical ? Math.max(0.25, 1 - Math.abs(slopes[j] - slopes[k]) * 20) : 1;
-			var promixity = segmentsPromixity(stems[j].low, stems[k].high) + segmentsPromixity(stems[j].high, stems[k].low) + segmentsPromixity(stems[j].low, stems[k].low) + segmentsPromixity(stems[j].high, stems[k].high);
+
+			var structuralPromixity = segmentsPromixity(stems[j].low, stems[k].high)
+				+ segmentsPromixity(stems[j].high, stems[k].low)
+				+ segmentsPromixity(stems[j].low, stems[k].low)
+				+ segmentsPromixity(stems[j].high, stems[k].high);
+			var spatialPromixity = structuralPromixity;
 
 			// PBS
-			if ((pbs[j][k] || ecbs[j][k] || atGlyphTop(stems[j], strategy) || atGlyphBottom(stems[k], strategy)) && promixity < strategy.COEFF_PBS_MIN_PROMIX) {
-				promixity = strategy.COEFF_PBS_MIN_PROMIX;
+			if ((pbs[j][k] || ecbs[j][k] || atGlyphTop(stems[j], strategy) || atGlyphBottom(stems[k], strategy))
+				&& spatialPromixity < strategy.COEFF_PBS_MIN_PROMIX) {
+				spatialPromixity = strategy.COEFF_PBS_MIN_PROMIX;
 			}
-			// ECBS
-			promixity *= (ecbs[j][k] + 1);
+			if ((pbs[j][k] || ecbs[j][k]) && spatialPromixity < strategy.COEFF_PBS_MIN_PROMIX) {
+				structuralPromixity = strategy.COEFF_PBS_MIN_PROMIX;
+			}
+			// ECBS : entire-contour-between-stems
+			spatialPromixity *= (ecbs[j][k] + 1);
+			structuralPromixity *= (ecbs[j][k] + 1);
 			// Top/bottom
 			if (atGlyphTop(stems[j], strategy) || atGlyphBottom(stems[k], strategy)) {
-				promixity *= strategy.COEFF_STRICT_TOP_BOT_PROMIX
+				spatialPromixity *= strategy.COEFF_STRICT_TOP_BOT_PROMIX
 			} else if (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow) {
-				promixity *= strategy.COEFF_TOP_BOT_PROMIX
+				spatialPromixity *= strategy.COEFF_TOP_BOT_PROMIX
 			}
 
-			var promixityCoeff = (1 + (promixity > 2 ? strategy.COEFF_C_MULTIPLIER / strategy.COEFF_A_MULTIPLIER : 1) * promixity);
+			var promixityCoeff = (1 + (spatialPromixity > 2 ? strategy.COEFF_C_MULTIPLIER / strategy.COEFF_A_MULTIPLIER : 1) * spatialPromixity);
 			// Alignment coefficients
 			var coeffA = 1;
 			if (pbs[j][k]) {
@@ -107,7 +117,7 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlapRat
 			C[j][k] = strategy.COEFF_C_MULTIPLIER * (1 + ovr * coeffC * slopesCoeff * symmetryCoeff) * promixityCoeff;
 
 			S[j][k] = strategy.COEFF_S;
-			P[j][k] = promixity + (pbs[j][k] ? 1 : 0);
+			P[j][k] = structuralPromixity + (pbs[j][k] ? 1 : 0);
 		}
 	}
 	for (var j = 0; j < n; j++) {

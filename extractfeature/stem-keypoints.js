@@ -8,20 +8,30 @@ function keyptPriority(incoming, current) {
 	return current.xori > incoming.xori
 }
 
-module.exports = function (glyph, strategy) {
+function atRadicalBottom(s, strategy) {
+	return !s.hasSameRadicalStemBelow
+		&& !(s.hasRadicalPointBelow && s.radicalCenterDescent > strategy.STEM_CENTER_MIN_DESCENT)
+		&& !(s.hasRadicalLeftAdjacentPointBelow && s.radicalLeftAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT)
+		&& !(s.hasRadicalRightAdjacentPointBelow && s.radicalRightAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT)
+}
+
+function hasGreaterUpperPromixity(stems, js, dov, P) {
+	var promUp = 0;
+	var promDown = 0;
+	for (let j = 0; j < stems.length; j++) {
+		if (dov[j][js]) promUp += P[j][js];
+		if (dov[js][j]) promDown += P[js][j];
+	}
+	return promUp > promDown && promDown > 0
+}
+
+module.exports = function (glyph, strategy, dov, P) {
 	// Stem Keypoints
 	for (var js = 0; js < glyph.stems.length; js++) {
 		var s = glyph.stems[js];
 		// b : a bottom stem?
-		var b = s.yori <= (strategy.BLUEZONE_TOP_CENTER + strategy.BLUEZONE_BOTTOM_CENTER) / 2;
-		/*
-		var b = !s.hasSameRadicalStemBelow
-			&& !(s.hasRadicalPointBelow && s.radicalCenterDescent > strategy.STEM_CENTER_MIN_DESCENT)
-			&& !(s.hasRadicalLeftAdjacentPointBelow && s.radicalLeftAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT)
-			&& !(s.hasRadicalRightAdjacentPointBelow && s.radicalRightAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT)
-			&& !s.hasGlyphStemBelow
-			&& s.yori <= (strategy.BLUEZONE_TOP_CENTER + strategy.BLUEZONE_BOTTOM_CENTER) / 2;
-		*/
+		var b = atRadicalBottom(s, strategy) && !s.hasGlyphStemBelow
+			|| hasGreaterUpperPromixity(glyph.stems, js, dov, P)
 		var slope = (slopeOf(s.high) + slopeOf(s.low)) / 2;
 		// get highkey and lowkey
 		var highkey = s.high[0][0], lowkey = s.low[0][0], highnonkey = [], lownonkey = [];

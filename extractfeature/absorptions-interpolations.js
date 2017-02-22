@@ -27,16 +27,16 @@ function interpolateByKeys(interpolations, strategy, pts, keys, inSameRadical, p
 		var upperK = null, upperdist = 0xFFFF;
 		var lowerK = null, lowerdist = 0xFFFF;
 		for (var m = keys.length - 1; m >= 0; m--) if (keys[m].yori < pt.yori - strategy.Y_FUZZ) {
-				if (!lowerK || Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori)) < lowerdist) {
-					lowerK = keys[m];
-					lowerdist = Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori));
-				}
+			if (!lowerK || Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori)) < lowerdist) {
+				lowerK = keys[m];
+				lowerdist = Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori));
+			}
 		}
 		for (var m = keys.length - 1; m >= 0; m--) if (keys[m].yori > pt.yori + strategy.Y_FUZZ) {
-				if (!upperK || Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori)) < upperdist) {
-					upperK = keys[m];
-					upperdist = Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori));
-				}
+			if (!upperK || Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori)) < upperdist) {
+				upperK = keys[m];
+				upperdist = Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori));
+			}
 		}
 		if (lowerK && upperK) {
 			if (upperK.linkedKey) upperK = upperK.linkedKey;
@@ -51,22 +51,22 @@ function linkRadicalSolePointsToOneStem(shortAbsorptions, strategy, radical, rad
 	var lowpts = [].concat.apply([], stem.low);
 	var keyPoints = highpts.concat(lowpts);
 	for (var j = 0; j < keyPoints.length; j++) for (var k = 0; k < radicalPoints.length; k++) {
-			var isHigh = j < highpts.length;
-			var zkey = keyPoints[j];
-			var z = radicalPoints[k];
-			if (z.touched || z.donttouch || zkey.id === z.id) continue;
-			// detect whether this sole point is attached to the stem edge.
-			// in most cases, absorbing a lower point should be stricter due to the topology of ideographs
-			// so we use asymmetric condition for "above" and "below" cases.
-			var yDifference = z.yori - (zkey.yori + (z.xori - zkey.xori) * (zkey.slope || 0));
-			if (!(yDifference > 0 ? yDifference < strategy.Y_FUZZ * 2 : -yDifference < strategy.Y_FUZZ)) continue;
+		var isHigh = j < highpts.length;
+		var zkey = keyPoints[j];
+		var z = radicalPoints[k];
+		if (z.touched || z.donttouch || zkey.id === z.id) continue;
+		// detect whether this sole point is attached to the stem edge.
+		// in most cases, absorbing a lower point should be stricter due to the topology of ideographs
+		// so we use asymmetric condition for "above" and "below" cases.
+		var yDifference = z.yori - (zkey.yori + (z.xori - zkey.xori) * (zkey.slope || 0));
+		if (!(yDifference > 0 ? yDifference < strategy.Y_FUZZ * 2 : -yDifference < strategy.Y_FUZZ)) continue;
 
-			// And it should have at least one segment in the glyph's outline.'
-			if (radical.includesSegmentEdge(z, zkey, strategy.Y_FUZZ * 0.752)) {
-				var key = isHigh ? stem.highkey : stem.lowkey;
-				shortAbsorptions.push([key.id, z.id, priority + (z.yExtrema ? 1 : 0)]);
-				z.touched = true;
-			}
+		// And it should have at least one segment in the glyph's outline.'
+		if (radical.includesSegmentEdge(z, zkey, 1, strategy.Y_FUZZ * 0.752)) {
+			var key = isHigh ? stem.highkey : stem.lowkey;
+			shortAbsorptions.push([key.id, z.id, priority + (z.yExtrema ? 1 : 0)]);
+			z.touched = true;
+		}
 	}
 }
 function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalStems, priority) {
@@ -90,8 +90,8 @@ module.exports = function (glyph, strategy) {
 	var contours = glyph.contours;
 	var glyphKeypoints = [];
 	for (var j = 0; j < contours.length; j++) for (var k = 0; k < contours[j].points.length; k++) {
-			var z = contours[j].points[k];
-			if (z.touched && z.keypoint || z.linkedKey) { glyphKeypoints.push(z); }
+		var z = contours[j].points[k];
+		if (z.touched && z.keypoint || z.linkedKey) { glyphKeypoints.push(z); }
 	}
 	// phantom points
 	for (var s = 0; s < glyph.stems.length; s++) {

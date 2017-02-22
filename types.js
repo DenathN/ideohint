@@ -56,7 +56,7 @@ Contour.prototype.orient = function () {
 	// Findout PYmin
 	var jm = 0, ym = this.points[0].yori;
 	for (var j = 0; j < this.points.length - 1; j++) if (this.points[j].yori < ym) {
-			jm = j; ym = this.points[j].yori;
+		jm = j; ym = this.points[j].yori;
 	}
 	var p0 = this.points[(jm ? jm - 1 : this.points.length - 2)], p1 = this.points[jm], p2 = this.points[jm + 1];
 	var x = ((p0.xori - p1.xori) * (p2.yori - p1.yori) - (p0.yori - p1.yori) * (p2.xori - p1.xori));
@@ -65,8 +65,8 @@ Contour.prototype.orient = function () {
 	// Adjacency
 	var pt = this.points[0];
 	for (var j = 0; j < this.points.length - 1; j++) if (this.points[j].on) {
-			setHidden(this.points[j], "prev", pt);
-			pt = this.points[j];
+		setHidden(this.points[j], "prev", pt);
+		pt = this.points[j];
 	}
 	setHidden(this.points[0], "prev", pt);
 };
@@ -80,11 +80,11 @@ var inPoly = function (point, vs) {
 	for (var i = 0, j = vs.length - 2; i < vs.length - 1; j = i++) {
 		var xi = vs[i].xori, yi = vs[i].yori;
 		var xj = vs[j].xori, yj = vs[j].yori;
-		if (xi == x && yi == y)return true;
+		if (xi == x && yi == y) return true;
 		var intersect = ((yi > y) !== (yj > y))
-		&& (yj > yi ?
-			(x - xi) * (yj - yi) < (xj - xi) * (y - yi) :
-			(x - xi) * (yj - yi) > (xj - xi) * (y - yi));
+			&& (yj > yi ?
+				(x - xi) * (yj - yi) < (xj - xi) * (y - yi) :
+				(x - xi) * (yj - yi) > (xj - xi) * (y - yi));
 		if (intersect) {
 			if (yi > yj) inside += 1;
 			else inside -= 1;
@@ -102,9 +102,13 @@ Contour.prototype.includes = function (that) {
 	}
 	return true;
 };
+
+
 function Glyph(contours) {
 	this.contours = contours || [];
 	this.stems = [];
+	this.nPoints = 0;
+	this.indexedPoints = [];
 }
 Glyph.prototype.containsPoint = function (x, y) {
 	var nCW = 0, nCCW = 0;
@@ -116,7 +120,16 @@ Glyph.prototype.containsPoint = function (x, y) {
 	}
 	return nCCW != nCW;
 };
-
+Glyph.prototype.unifyZ = function () {
+	for (var j = 0; j < this.contours.length; j++) {
+		var pts = this.contours[j].points
+		for (var k = 0; k < pts.length; k++) {
+			if (this.indexedPoints[pts[k].id]) {
+				pts[k] = this.indexedPoints[pts[k].id]
+			}
+		}
+	}
+}
 exports.Glyph = Glyph;
 exports.Contour = Contour;
 exports.Point = Point;
@@ -126,15 +139,15 @@ exports.Point = Point;
 function slopeOf(segs) {
 	var sy = 0, sx = 0, n = 0;
 	for (var j = 0; j < segs.length; j++) for (var k = 0; k < segs[j].length; k++) {
-			sy += segs[j][k].yori;
-			sx += segs[j][k].xori;
-			n += 1;
+		sy += segs[j][k].yori;
+		sx += segs[j][k].xori;
+		n += 1;
 	}
 	var ax = sx / n, ay = sy / n;
 	var b1num = 0, b1den = 0;
 	for (var j = 0; j < segs.length; j++) for (var k = 0; k < segs[j].length; k++) {
-			b1num += (segs[j][k].xori - ax) * (segs[j][k].yori - ay);
-			b1den += (segs[j][k].xori - ax) * (segs[j][k].xori - ax);
+		b1num += (segs[j][k].xori - ax) * (segs[j][k].yori - ay);
+		b1den += (segs[j][k].xori - ax) * (segs[j][k].xori - ax);
 	}
 	return b1num / b1den;
 }

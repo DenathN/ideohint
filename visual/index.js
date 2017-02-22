@@ -261,7 +261,9 @@ window.testInstruct = function (m) {
 		}
 		stemActions[ppem] = actions;
 	}
-	console.log(instruct(glyph, stemActions, strategy, cvt, 0, nMDRPnr > nMDRPr))
+	var ix = instruct(glyph, stemActions, strategy, cvt, 0, nMDRPnr > nMDRPr)
+	console.log(ix)
+	return ix;
 }
 
 var strategyControlGroups = [

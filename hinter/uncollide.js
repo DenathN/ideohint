@@ -14,7 +14,10 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 	for (var j = 0; j < n; j++) {
 		y0[j] = xclamp(avaliables[j].low, Math.round(yInit[j]), avaliables[j].high);
 	}
-	var population = [new Individual(balance(y0, env), env)];
+	var initIdv = new Individual(balance(y0, env), env);
+	var unbalIdv = new Individual(y0, env);
+	var population = [initIdv];
+	if (unbalIdv.collidePotential < initIdv.collidePotential) { population.push(unbalIdv); }
 	// Generate initial population
 	// Extereme
 	for (var j = 0; j < n; j++) {

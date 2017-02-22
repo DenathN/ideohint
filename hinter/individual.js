@@ -1,28 +1,17 @@
 "use strict";
 
 function collidePotential(y, env) {
-	var A = env.A, C = env.C, S = env.S, P = env.P, avaliables = env.avaliables, sym = env.symmetry;
+	var A = env.A, C = env.C, S = env.S, P = env.P
+	var avaliables = env.avaliables, sym = env.symmetry;
 	var p = 0, n = y.length;
 	for (var j = 0; j < n; j++) {
 		for (var k = 0; k < j; k++) {
-			if (y[j] === y[k]) {
-				// Alignment
-				p += A[j][k];
-			}
-			else if (y[j] <= y[k] + env.avaliables[j].properWidth) {
-				// collide
-				p += C[j][k];
-			}
+			if (y[j] === y[k]) { p += A[j][k]; } // Alignment
+			else if (y[j] <= y[k] + env.avaliables[j].properWidth) { p += C[j][k]; } // Collide
 			if (j !== k && sym[j][k]) {
-				if (y[j] !== y[k]) {
-					// symmetry break
-					p += S[j][k];
-				}
+				if (y[j] !== y[k]) { p += S[j][k]; } // Symmetry break
 			} else {
-				if (y[j] < y[k]) {
-					// swap
-					p += S[j][k];
-				}
+				if (y[j] < y[k]) { p += S[j][k]; } // Swap
 			}
 		}
 	}
@@ -33,18 +22,8 @@ function ablationPotential(y, env) {
 	var blueFuzz = env.strategy.BLUEZONE_WIDTH;
 	var p = 0;
 	var n = y.length;
-	var ymin = env.ppem, ymax = -env.ppem;
-	for (var j = 0; j < n; j++) {
-		if (y[j] > ymax) ymax = y[j];
-		if (y[j] < ymin) ymin = y[j];
-	}
-	var ymaxt = Math.max(ymax, env.glyphTop);
-	var ymint = Math.min(ymin, env.glyphBottom);
 	for (var j = 0; j < y.length; j++) {
-		p += avaliables[j].ablationCoeff * env.uppx
-			* Math.abs(y[j] - avaliables[j].center);
-		p += env.strategy.COEFF_PORPORTION_DISTORTION * env.uppx
-			* Math.abs(y[j] - (ymin + avaliables[j].proportion * (ymax - ymin)));
+		p += avaliables[j].ablationCoeff * env.uppx * Math.abs(y[j] - avaliables[j].center);
 		if (y[j] > avaliables[j].softHigh) {
 			p += env.strategy.COEFF_PORPORTION_DISTORTION * env.uppx * Math.min(1, y[j] - avaliables[j].softHigh)
 		}

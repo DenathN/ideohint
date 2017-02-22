@@ -4,7 +4,7 @@ function spare(y, w, p, q) { return y[p] - y[q] > w[p]; }
 function veryspare(y, w, p, q) { return y[p] - y[q] > w[p] + 1; }
 function edgetouch(s, t) {
 	return (s.xmin < t.xmin && t.xmin < s.xmax && s.xmax < t.xmax && (s.xmax - t.xmin) / (s.xmax - s.xmin) <= 0.26)
-	|| (t.xmin < s.xmin && s.xmin < t.xmax && t.xmax < s.xmax && (t.xmax - s.xmin) / (s.xmax - s.xmin) <= 0.26);
+		|| (t.xmin < s.xmin && s.xmin < t.xmax && t.xmax < s.xmax && (t.xmax - s.xmin) / (s.xmax - s.xmin) <= 0.26);
 }
 function cover(s, t) {
 	return (t.xmin > mix(s.xmin, s.xmax, 0.05) && t.xmax < mix(s.xmin, s.xmax, 0.95));
@@ -63,13 +63,14 @@ function allocateWidth(y0, env) {
 	}
 	function tripletSatisifiesPattern(j, k, m, w1, w2, w3, j1, j2, j3) {
 		return (!w1 || w[j] === w1 && relationSat(w[j], properWidths[j], j1))
-		&& (!w2 || w[k] === w2 && relationSat(w[k], properWidths[k], j2))
-		&& (!w3 || w[m] === w3 && relationSat(w[m], properWidths[m], j3));
+			&& (!w2 || w[k] === w2 && relationSat(w[k], properWidths[k], j2))
+			&& (!w3 || w[m] === w3 && relationSat(w[m], properWidths[m], j3));
 	}
 
 	for (var allocPass = 0; allocPass < 5; allocPass++) {
 		// Allocate top and bottom stems
-		for (var j = 0; j < N; j++) if ((avaliables[j].atGlyphTop || avaliables[j].atGlyphBottom) && !allocated[j]) { allocateDown(j); }
+		for (var j = 0; j < N; j++)
+			if ((avaliables[j].atGlyphTop || avaliables[j].atGlyphBottom) && !allocated[j]) { allocateDown(j); }
 		for (var subpass = 0; subpass < env.strategy.WIDTH_ALLOCATION_PASSES; subpass++) {
 			for (var j = 0; j < N; j++) if (!allocated[j]) { allocateDown(j); }
 		}
@@ -86,20 +87,20 @@ function allocateWidth(y0, env) {
 				var able = true;
 				// We search for strokes below,
 				for (var k = 0; k < j; k++) if (strictOverlaps[j][k] && y[j] - w[j] - y[k] <= 1
-						// with one pixel space, and see do the lower-adjustment, unless...
-						&& ( // there is no stem below satisifies:
+					// with one pixel space, and see do the lower-adjustment, unless...
+					&& ( // there is no stem below satisifies:
 						y[k] <= avaliables[k].low // It is already low enough, or
 						|| y[k] <= pixelBottom + w[k] // There is no space, or
 						|| w[k] < 2 // It is already thin enough, or 
-						) // It is a dominator, and it has only one or two pixels
-					) {
-						able = false;
+					) // It is a dominator, and it has only one or two pixels
+				) {
+					able = false;
 				}
 
 				if (able) {
 					for (var k = 0; k < j; k++) if (strictOverlaps[j][k] && y[j] - w[j] - y[k] <= 1) {
-							y[k] -= 1;
-							w[k] -= 1;
+						y[k] -= 1;
+						w[k] -= 1;
 					}
 					w[j] += 1;
 				}
@@ -109,18 +110,18 @@ function allocateWidth(y0, env) {
 				var able = true;
 				// We search for strokes above,
 				for (var k = j + 1; k < N; k++) if (strictOverlaps[k][j] && y[k] - w[k] - y[j] <= 1
-						// with one pixel space, and prevent upward adjustment, if
-						&& ( // there is no stem below satisifies:
+					// with one pixel space, and prevent upward adjustment, if
+					&& ( // there is no stem below satisifies:
 						!cover(avaliables[j], avaliables[k]) // it is not dominated with stroke J
 						|| w[k] < properWidths[k] // or it is thin enough
 						|| w[k] < 2) // or it is thin enough
-					) {
-						able = false;
+				) {
+					able = false;
 				}
 
 				if (able) {
 					for (var k = j + 1; k < N; k++) if (strictOverlaps[k][j] && y[k] - w[k] - y[j] <= 1) {
-							w[k] -= 1;
+						w[k] -= 1;
 					}
 					y[j] += 1;
 					w[j] += 1;
@@ -129,38 +130,46 @@ function allocateWidth(y0, env) {
 		}
 		// Doublet balancing
 		for (var j = N - 1; j >= 0; j--) for (var k = j - 1; k >= 0; k--) if (strictOverlaps[j][k]) {
-					var y1 = y.slice(0), w1 = w.slice(0);
-					// [1][2] -> [1] 1 [1]
-					if (w[j] === 1 && w[k] === 2 && w[k] === properWidths[k] && y[j] - y[k] === 1) {
-						w[k] -= 1, y[k] -= 1;
-					}
-					// [2][1] -> [1] 1 [1]
-					else if (w[j] === 2 && w[k] === 1 && w[j] === properWidths[j] && y[j] - y[k] === 2) {
-						w[j] -= 1;
-					}
-					// [2][2] -> [1] 1 [2]
-					else if (w[j] === 2 && w[k] === 2 && w[k] === properWidths[k] && y[j] - y[k] === 2) {
-						if (pass % 2) {
-							w[j] -= 1;
-						} else {
-							w[k] -= 1; y[k] -= 1;
-						}
-					}
-					if (spaceBelow(env, y, w, j, pixelBottom - 2) < 1
-						|| spaceAbove(env, y, w, k, pixelTop + 2) < 1
-						|| y[k] < avaliables[k].lowW || y[k] > avaliables[k].highW) {
-						y = y1; w = w1;
-					}
+			var y1 = y.slice(0), w1 = w.slice(0);
+			// [1][2] -> [1] 1 [1]
+			if (w[j] === 1 && w[k] === 2 && w[k] >= properWidths[k] && y[j] - y[k] === w[j]) {
+				w[k] -= 1, y[k] -= 1;
+			}
+			// [2][1] -> [1] 1 [1]
+			else if (w[j] === 2 && w[k] === 1 && w[j] >= properWidths[j] && y[j] - y[k] === w[j]) {
+				w[j] -= 1;
+			}
+			// [2][2] -> [1] 1 [2]
+			else if (w[j] === 2 && w[k] === 2 && w[k] >= properWidths[k] && y[j] - y[k] === w[j]) {
+				if (pass % 2) {
+					w[j] -= 1;
+				} else {
+					w[k] -= 1; y[k] -= 1;
+				}
+			}
+			if (spaceBelow(env, y, w, j, pixelBottom - 2) < 1
+				|| spaceAbove(env, y, w, k, pixelTop + 2) < 1
+				|| j < N - 1 && y[j] > y[j + 1] || j > 0 && y[j] < y[j - 1]
+				|| k < N - 1 && y[k] > y[k + 1] || k > 0 && y[k] < y[k - 1]
+				|| y[k] < avaliables[k].lowW || y[k] > avaliables[k].highW) {
+				y = y1; w = w1;
+			}
 		}
 
 		// Triplet balancing
 		for (var t = 0; t < strictTriplets.length; t++) {
 			var j = strictTriplets[t][0], k = strictTriplets[t][1], m = strictTriplets[t][2];
 			var y1 = y.slice(0), w1 = w.slice(0);
-
-			// [>] 2 [>] 1 [<] -> [>] 1 [>] 2 [<]
-			if (y[j] - w[j] - y[k] >= 2 && y[k] - w[k] - y[m] <= 1 && avaliables[j].posKeyAtTop && avaliables[k].posKeyAtTop && !avaliables[m].posKeyAtTop && w[m] * env.uppx < avaliables[m].w0) {
-				y[k] += 1;
+			if (tripletSatisifiesPattern(j, k, m, 1, 1, 2, ANY, ANY, ANY)
+				&& y[j] - w[j] - y[k] < 1
+				&& y[k] - w[k] - y[m] >= 1) {
+				y[k] -= 1, y[m] -= 1, w[m] -= 1;
+			}
+			// [2] 1 [1] 0 [1] -> [1] 1 [1] 1 [1]
+			else if (tripletSatisifiesPattern(j, k, m, 2, 1, 1, ANY, ANY, ANY)
+				&& y[j] - w[j] - y[k] >= 1
+				&& y[k] - w[k] - w[m] < 1) {
+				w[j] -= 1; y[k] += 1;
 			}
 			// [3] 2 [3] 1 [2] -> [3] 1 [3] 1 [3]
 			else if (tripletSatisifiesPattern(j, k, m, 3, 3, 2, SUFF, SUFF, LESS) && y[j] - w[j] - y[k] >= 2) {
@@ -240,6 +249,9 @@ function allocateWidth(y0, env) {
 				|| spaceAbove(env, y, w, k, pixelTop + 1) < 1
 				|| spaceAbove(env, y, w, m, pixelTop + 1) < 1
 				|| spaceBelow(env, y, w, k, pixelBottom - 1) < 1
+				|| j < N - 1 && y[j] > y[j + 1] || j > 0 && y[j] < y[j - 1]
+				|| k < N - 1 && y[k] > y[k + 1] || k > 0 && y[k] < y[k - 1]
+				|| m < N - 1 && y[m] > y[m + 1] || m > 0 && y[m] < y[m - 1]
 				|| y[k] < avaliables[k].lowW || y[k] > avaliables[k].highW
 				|| y[m] < avaliables[m].lowW || y[m] > avaliables[m].highW) {
 				y = y1; w = w1;
@@ -251,7 +263,7 @@ function allocateWidth(y0, env) {
 			if (w[j] <= 1 && y[j] > pixelBottom + 2) {
 				var able = true;
 				for (var k = 0; k < j; k++) if (strictOverlaps[j][k] && !edgetouch(avaliables[j], avaliables[k])) {
-						able = false;
+					able = false;
 				}
 				if (able) {
 					w[j] += 1;
@@ -283,7 +295,9 @@ function allocateWidth(y0, env) {
 			var o1 = avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0;
 			var o2 = avaliables[k].y0 - avaliables[k].w0 - avaliables[m].y0;
 			var o1o2 = o1 / o2;
-			if (su > 1 && (sb < 1 || d1 >= d2 * 1.66) && y[k] < avaliables[k].highW && o1o2 <= 1.25 && env.P[j][k] <= env.P[k][m]) {
+			if (su > 1 && (sb < 1 || d1 >= d2 * 1.66)
+				&& y[k] < avaliables[k].highW && (k === N + 1 || y[k] + 1 <= y[k + 1])
+				&& o1o2 <= 1.25 && env.P[j][k] <= env.P[k][m]) {
 				// A distorted triplet space, but we can adjust this stem up.
 				y[k] += 1;
 				if (properWidths[k] > w[k] && Math.abs((d1 - 1) / (d2 + 1) - o1o2) > Math.abs((d1 - 1) / d2 - o1o2)) {
@@ -293,7 +307,9 @@ function allocateWidth(y0, env) {
 				if (w[k] < properWidths[k]) {
 					// A distorted triplet space, but we increase the middle stem’s weight
 					w[k] += 1;
-				} else if (y[k] > avaliables[k].lowW && !(d2 < 3 && avaliables[j].posKeyAtTop && avaliables[k].posKeyAtTop && !avaliables[m].posKeyAtTop)) {
+				} else if (y[k] > avaliables[k].lowW && (k === 0 || y[k] - 1 >= y[k - 1])
+					&& !(d2 < 3 && avaliables[j].posKeyAtTop
+						&& avaliables[k].posKeyAtTop && !avaliables[m].posKeyAtTop)) {
 					// A distorted triplet space, but we can adjust this stem down.
 					y[k] -= 1;
 					if (w[j] < properWidths[j]

@@ -36,15 +36,15 @@ function findHorizontalSegments(radicals, strategy) {
 			var segment = [lastPoint];
 			segment.radical = r;
 			for (var k = 1; k < contour.points.length - 1; k++) if (!contour.points[k].interpolated) {
-					if (Math.abs((contour.points[k].yori - lastPoint.yori) / (contour.points[k].xori - lastPoint.xori)) <= strategy.SLOPE_FUZZ) {
-						segment.push(contour.points[k]);
-						lastPoint = contour.points[k];
-					} else {
-						if (segment.length > 1) segments.push(segment);
-						lastPoint = contour.points[k];
-						segment = [lastPoint];
-						segment.radical = r;
-					}
+				if (Math.abs((contour.points[k].yori - lastPoint.yori) / (contour.points[k].xori - lastPoint.xori)) <= strategy.SLOPE_FUZZ) {
+					segment.push(contour.points[k]);
+					lastPoint = contour.points[k];
+				} else {
+					if (segment.length > 1) segments.push(segment);
+					lastPoint = contour.points[k];
+					segment = [lastPoint];
+					segment.radical = r;
+				}
 			}
 			if (Math.abs((contour.points[0].yori - lastPoint.yori) / (contour.points[0].xori - lastPoint.xori)) <= strategy.SLOPE_FUZZ) {
 				segment.push(contour.points[0]);
@@ -58,8 +58,8 @@ function findHorizontalSegments(radicals, strategy) {
 
 	// Join segments
 	for (var j = 0; j < segments.length; j++) if (segments[j]) {
-			var pivotRadical = segments[j].radical;
-			radicals[pivotRadical].segments.push(segments[j]);
+		var pivotRadical = segments[j].radical;
+		radicals[pivotRadical].segments.push(segments[j]);
 	}
 }
 
@@ -99,41 +99,41 @@ function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
 				expandingU = false;
 			}
 			for (var k = 0; k < segs.length; k++) if (!used[k] && (up[k] !== up[j]) === (!!(pass % 2))) {
-					var sameSide, otherSide;
-					if (up[k]) {
-						sameSide = candidate.high;
-						otherSide = candidate.low;
+				var sameSide, otherSide;
+				if (up[k]) {
+					sameSide = candidate.high;
+					otherSide = candidate.low;
+				} else {
+					sameSide = candidate.low;
+					otherSide = candidate.high;
+				}
+				var matchD = true;
+				var matchU = !sameSide.length;
+				for (var s = 0; s < sameSide.length; s++) {
+					var hj = sameSide[s];
+					if (graph[k][hj] === 1 || graph[hj][k] === 1) matchU = true;
+				}
+				for (var s = 0; s < otherSide.length; s++) {
+					var hj = otherSide[s];
+					if (graph[k][hj] !== 2 && graph[hj][k] !== 2) matchD = false;
+				}
+				if (matchU && matchD) {
+					sameSide.push(k);
+					if (pass % 2) {
+						expandingD = true;
 					} else {
-						sameSide = candidate.low;
-						otherSide = candidate.high;
+						expandingU = true;
 					}
-					var matchD = true;
-					var matchU = !sameSide.length;
-					for (var s = 0; s < sameSide.length; s++) {
-						var hj = sameSide[s];
-						if (graph[k][hj] === 1 || graph[hj][k] === 1) matchU = true;
-					}
-					for (var s = 0; s < otherSide.length; s++) {
-						var hj = otherSide[s];
-						if (graph[k][hj] !== 2 && graph[hj][k] !== 2) matchD = false;
-					}
-					if (matchU && matchD) {
-						sameSide.push(k);
-						if (pass % 2) {
-							expandingD = true;
-						} else {
-							expandingU = true;
-						}
-						used[k] = true;
-					}
+					used[k] = true;
+				}
 			}
 		}
 		if (candidate.high.length && candidate.low.length) {
 			foundMatch = true;
 			var highEdge = [];
 			var lowEdge = [];
-			for (var m = 0; m < candidate.high.length; m++) { highEdge[m] = segs[candidate.high[m]];}
-			for (var m = 0; m < candidate.low.length; m++) { lowEdge[m] = segs[candidate.low[m]];}
+			for (var m = 0; m < candidate.high.length; m++) { highEdge[m] = segs[candidate.high[m]]; }
+			for (var m = 0; m < candidate.low.length; m++) { lowEdge[m] = segs[candidate.low[m]]; }
 			highEdge = highEdge.sort(by_xori);
 			lowEdge = lowEdge.sort(by_xori).reverse();
 			var segOverlap = overlapInfo(highEdge, lowEdge, strategy);
@@ -199,7 +199,7 @@ function pairSegmentsForRadical(radical, r, strategy) {
 	var candidates = [];
 	var used = [];
 	for (var j = 0; j < segs.length; j++)if (!used[j]) {
-			identifyStem(radical, used, segs, candidates, graph, up, j, strategy);
+		identifyStem(radical, used, segs, candidates, graph, up, j, strategy);
 	}
 	return candidates.map(function (s) {
 		return {
@@ -227,19 +227,19 @@ function pairSymmetricStems(stems, strategy) {
 	var res = [];
 	for (var j = 0; j < stems.length; j++) {
 		for (var k = j + 1; k < stems.length; k++) if (stems[j] && stems[k]) {
-				var delta1 = stems[j].belongRadical === stems[k].belongRadical ? 0.002 : 0.005;
-				var delta2 = stems[j].belongRadical === stems[k].belongRadical ? 0.001 : 0.003;
-				if (
-					Math.abs(stems[j].yori - stems[j].width / 2 - stems[k].yori + stems[k].width / 2) <= strategy.UPM * delta1 && Math.abs(stems[j].width - stems[k].width) <= strategy.UPM * delta1
-				) {
-					stems[j].high = stems[j].high.concat(stems[k].high);
-					stems[j].low = stems[j].low.concat(stems[k].low);
-					stems[k] = null;
-				}
+			var delta1 = stems[j].belongRadical === stems[k].belongRadical ? 0.002 : 0.005;
+			var delta2 = stems[j].belongRadical === stems[k].belongRadical ? 0.001 : 0.003;
+			if (
+				Math.abs(stems[j].yori - stems[j].width / 2 - stems[k].yori + stems[k].width / 2) <= strategy.UPM * delta1 && Math.abs(stems[j].width - stems[k].width) <= strategy.UPM * delta1
+			) {
+				stems[j].high = stems[j].high.concat(stems[k].high);
+				stems[j].low = stems[j].low.concat(stems[k].low);
+				stems[k] = null;
+			}
 		}
 	}
 	for (var j = 0; j < stems.length; j++) if (stems[j]) {
-			res.push(stems[j]);
+		res.push(stems[j]);
 	}
 	return res;
 }

@@ -45,6 +45,7 @@ function parseOTD(input) {
 	var glyph = new Glyph(contours);
 	glyph.nPoints = ptindex - 1;
 	glyph.indexedPoints = indexedPoints;
+	glyph.unifyZ();
 	return glyph;
 }
 

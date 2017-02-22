@@ -130,13 +130,22 @@ function hint(glyph, ppem, strategy) {
 	var cytx = glyphTop - (round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_BAR))
 		+ Math.max(0, oPixelTop - BLUEZONE_TOP_BAR);
 
-	function cy(y, w0, w, x) {
+	function cy(y, w0, w, x, att) {
 		// x means this stroke is topmost or bottommost
-		var p = (y - w0 - BLUEZONE_BOTTOM_BAR_REF) / (BLUEZONE_TOP_BAR_REF - BLUEZONE_BOTTOM_BAR_REF - w0);
-		if (x) {
-			return w + cybx + (cytx - cybx - w) * p;
+		if (att) {
+			var p = (y - BLUEZONE_BOTTOM_BAR_REF) / (BLUEZONE_TOP_BAR_REF - BLUEZONE_BOTTOM_BAR_REF);
+			if (x) {
+				return cybx + (cytx - cybx) * p;
+			} else {
+				return cyb + (cyt - cyb) * p;
+			}
 		} else {
-			return w + cyb + (cyt - cyb - w) * p;
+			var p = (y - w0 - BLUEZONE_BOTTOM_BAR_REF) / (BLUEZONE_TOP_BAR_REF - BLUEZONE_BOTTOM_BAR_REF);
+			if (x) {
+				return w + cybx + (cytx - cybx) * p;
+			} else {
+				return w + cyb + (cyt - cyb) * p;
+			}
 		}
 	}
 	function flexMiddleStem(t, m, b) {
@@ -289,20 +298,18 @@ function hint(glyph, ppem, strategy) {
 				highlimit = Math.min(glyphTop - 2 * uppx, highlimit);
 			}
 
-			var looseRoundingLow = ppem > PPEM_INCREASE_GLYPH_LIMIT && !(stems[j].hasGlyphFoldBelow && !stems[j].hasGlyphStemBelow || stems[j].hasGlyphSideFoldBelow && !stems[j].hasGlyphStemBelow);
-			var looseRoundingHigh = ppem > PPEM_INCREASE_GLYPH_LIMIT;
-
-			var center0 = cy(y0, w0, w, atGlyphTop(stems[j]) || atGlyphBottom(stems[j]));
-			var low = xclamp(lowlimit, round(center0) - uppx, highlimit);
-			var high = xclamp(lowlimit, round(center0) + uppx, highlimit);
+			var center0 = cy(y0, w0, w, atGlyphTop(stems[j]) || atGlyphBottom(stems[j]), stems[j].posKeyAtTop);
+			var maxshift = xclamp(1, ppem / 16, 2);
+			var low = xclamp(lowlimit, round(center0 - maxshift * uppx), highlimit);
+			var high = xclamp(lowlimit, round(center0 + maxshift * uppx), highlimit);
 
 			var lowlimitW = tws[j] > 1 ? lowlimit - uppx : lowlimit;
-			var maxShift = ppem < 20 ? 1 : 2;
 
-			var lowW = xclamp(lowlimitW, looseRoundingLow ? round(center0 - maxShift * uppx) : round(center0) - uppx, highlimit);
-			var highW = xclamp(lowlimitW, looseRoundingHigh ? round(center0 + maxShift * uppx) : round(center0) + uppx, highlimit);
+			var lowW = xclamp(lowlimitW, round(center0 - 2 * uppx), highlimit);
+			var highW = xclamp(lowlimitW, round(center0 + 2 * uppx), highlimit);
 			var semiFlatLHS = false;
-			if (ppem > 12 && center0 > glyphTop - uppx * 1.1 && center0 / uppx > y0 / uppx - 0.5
+			if (center0 > glyphTop - uppx * 1.1 && center0 / uppx > y0 / uppx - 0.5
+				&& center0 - uppx * 0.5 >= glyphTop - 1.5 * uppx
 				&& stems[j].hasRadicalRightDistancedPointAbove && stems[j].slope > 0) {
 				center0 -= uppx * 0.5;
 				semiFlatLHS = true;
@@ -419,7 +426,7 @@ function hint(glyph, ppem, strategy) {
 		stemPositions[j] = avaliables[j].center;
 	}
 	stemPositions = uncollide(stemPositions, env,
-		stems.length > 10 ? 3 : 2, // stages
+		xclamp(2, Math.round(stems.length / strategy.STEADY_STAGES_X), 5), // stages
 		strategy.POPULATION_LIMIT * Math.max(1, stems.length) // population
 	);
 

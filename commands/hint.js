@@ -22,8 +22,8 @@ exports.builder = function (yargs) {
 		.describe("parameters", "Specify parameter file (in TOML).");
 };
 
-function by_rp (a, b) { return a[0] - b[0] || a[1] - b[1];}
-function getIpsaCalls (glyph) {
+function by_rp(a, b) { return a[0] - b[0] || a[1] - b[1]; }
+function getIpsaCalls(glyph) {
 	var ip = [];
 	var sa = [];
 	for (var j = 0; j < glyph.interpolations.length; j++) {
@@ -43,7 +43,7 @@ function getIpsaCalls (glyph) {
 	}
 	return ipsacalls;
 }
-function slicelast (x) { return x.slice(0, -1); }
+function slicelast(x) { return x.slice(0, -1); }
 
 exports.handler = function (argv) {
 	if (argv.help) { yargs.showHelp(); process.exit(0); }
@@ -59,12 +59,12 @@ exports.handler = function (argv) {
 	var divide = argv.d || 1;
 	var modulo = argv.m || 0;
 
-	function pad (s, p, n) {
+	function pad(s, p, n) {
 		s = "" + s;
 		while (s.length < n) s = p + s;
 		return s;
 	}
-	function progressbar (u, len) {
+	function progressbar(u, len) {
 		var buf = "";
 		for (var j = 1; j <= len; j++) {
 			buf += (j > u * len) ? " " : "#";
@@ -76,7 +76,7 @@ exports.handler = function (argv) {
 	var pendings = [];
 	var PROGRESS_LENGTH = 30;
 
-	function showProgressBar (currentProgress, j, n) {
+	function showProgressBar(currentProgress, j, n) {
 		var pb = progressbar(j / n, PROGRESS_LENGTH);
 		if (pb !== currentProgress) {
 			process.stderr.write("HGFHINT: Hinting [" + pb + "](#" + pad(j, " ", 5) + "/" + pad(n, " ", 5) + ")" + " of " + (argv._[1] || "(stdin)") + " " + pad(modulo, "0", 3) + "d" + pad(divide, "0", 3) + "\n");
@@ -84,7 +84,7 @@ exports.handler = function (argv) {
 		return pb;
 	}
 
-	function finish () {
+	function finish() {
 		if (finished) return;
 		finished = true;
 		var currentProgress = progressbar(0, PROGRESS_LENGTH);

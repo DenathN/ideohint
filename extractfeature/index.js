@@ -15,11 +15,11 @@ var analyzeDominance = require('./dominance');
 function byyori(a, b) { return a.yori - b.yori }
 
 exports.extractFeature = function (glyph, strategy) {
-	analyzeStemKeyPoints(glyph, strategy);
-	var blueZonePoints = analyzeBlueZonePoints(glyph, strategy);
-	var iss = analyzeInterpolations(glyph, strategy);
 	var directOverlaps = analyzeDirectOverlaps(glyph, strategy, true);
 	var strictOverlaps = analyzeDirectOverlaps(glyph, strategy, false);
+	analyzeStemKeyPoints(glyph, strategy, directOverlaps, glyph.collisionMatrices.promixity);
+	var blueZonePoints = analyzeBlueZonePoints(glyph, strategy);
+	var iss = analyzeInterpolations(glyph, strategy);
 	var edgeTouches = analyzeEdgeTouches(glyph.stems, glyph.stemOverlaps);
 	var overlaps = transitionClosure(directOverlaps);
 	var blanks = analyzeBlanks(glyph.stems, directOverlaps);

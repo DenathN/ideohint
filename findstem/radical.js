@@ -26,61 +26,59 @@ Radical.prototype.includesSegment = function (z1, z2) {
 	}
 	return true;
 };
-Radical.prototype.includesSegmentEdge = function (z1, z2, delta) {
+Radical.prototype.includesSegmentEdge = function (z1, z2, um, delta) {
 	if (this.includesSegment(z1, z2)) {
 		return true;
 	}
-	for (let u1 = -1; u1 <= 1; u1++)
-		for (let u2 = -1; u2 <= 1; u2++)
-			for (let u3 = -1; u3 <= 1; u3++)
-				for (let u4 = -1; u4 <= 1; u4++) {
-					let z1a = {xori: z1.xori + u1 * delta, yori: z1.yori + u2 * delta};
-					let z2a = {xori: z2.xori + u3 * delta, yori: z2.yori + u4 * delta};
-					if (this.includesSegment(z1a, z2a)) {
-						return true;
-					}
-	}
+	for (var u1 = -um; u1 <= um; u1++) for (var u2 = -um; u2 <= um; u2++)
+		for (var u3 = -um; u3 <= um; u3++) for (var u4 = -um; u4 <= um; u4++) {
+			var z1a = { xori: z1.xori + u1 * delta, yori: z1.yori + u2 * delta };
+			var z2a = { xori: z2.xori + u3 * delta, yori: z2.yori + u4 * delta };
+			if (this.includesSegment(z1a, z2a)) {
+				return true;
+			}
+		}
 	return false;
 };
+
+function mixz(p, q, x) {
+	return { xori: p.xori + (q.xori - p.xori) * x, yori: p.yori + (q.yori - p.yori) * x }
+}
+
 Radical.prototype.includesTetragon = function (s1, s2) {
 	var steps = 32, val = 0, tot = 0;
+
 	for (var u = 0; u < s1.length - 1; u++) {
-		for (var v = 0; v < s2.length - 1;v++) {
-			var p = s1[u],q = s1[u + 1];
-			var r = s2[v],s = s2[v + 1];
+		for (var v = 0; v < s2.length - 1; v++) {
+			var p = s1[u], q = s1[u + 1];
+			var r = s2[v], s = s2[v + 1];
 			if (p.xori > q.xori) {
 				var t = p;
 				p = q; q = t;
 			}
 			if (r.xori > s.xori) {
 				var t = r;
-				r = s;s = t;
+				r = s; s = t;
 			}
-			var checks = 0;
-			for (var j = 1; j < steps; j++) {
-				var m1 = {
-					xori: p.xori + (q.xori - p.xori) * (j / steps),
-					yori: p.yori + (q.yori - p.yori) * (j / steps)
-				};
-				var m2 = {
-					xori: r.xori + (s.xori - r.xori) * (j / steps),
-					yori: r.yori + (s.yori - r.yori) * (j / steps)
-				};
-				if (this.includesSegmentEdge(m1, m2, 1)) {checks += 1;}
-				else if (j / steps > 1 / 5 && j / steps < 4 / 5) {
-					return false;
-				}
+			if (
+				!this.includesSegmentEdge(mixz(p, q, 1 / 5), mixz(r, s, 1 / 5), 1, 1)
+				|| !this.includesSegmentEdge(mixz(p, q, 1 / 2), mixz(r, s, 1 / 2), 1, 1)
+				|| !this.includesSegmentEdge(mixz(p, q, 4 / 5), mixz(r, s, 4 / 5), 1, 1)
+				|| !this.includesSegmentEdge(p, s, 2, 1)
+				|| !this.includesSegmentEdge(q, r, 2, 1)
+				|| !this.includesSegmentEdge(p, r, 2, 5)
+				|| !this.includesSegmentEdge(q, s, 2, 5)
+			) {
+				return false;
 			}
-			val += (q.xori - p.xori) * (s.xori - r.xori) * checks / (steps - 1);
-			tot += (q.xori - p.xori) * (s.xori - r.xori);
 		}
 	}
-	return val >= tot * 0.95;
+	return true;
 };
 function transitiveReduce(g) {
 	// Floyd-warshall transitive reduction
 	for (var x = 0; x < g.length; x++) for (var y = 0; y < g.length; y++) for (var z = 0; z < g.length; z++) {
-				if (g[x][y] && g[y][z]) g[x][z] = false;
+		if (g[x][y] && g[y][z]) g[x][z] = false;
 	}
 }
 
@@ -91,9 +89,9 @@ function inclusionToRadicals(inclusions, contours, j, orient) {
 		// find out radicals inside it
 		radicals = [];
 		for (var k = 0; k < contours.length; k++) if (inclusions[j][k]) {
-				if (contours[k].ccw !== orient) {
-					radicals = radicals.concat(inclusionToRadicals(inclusions, contours, k, !orient));
-				}
+			if (contours[k].ccw !== orient) {
+				radicals = radicals.concat(inclusionToRadicals(inclusions, contours, k, !orient));
+			}
 		}
 		return radicals;
 	} else {
@@ -102,12 +100,12 @@ function inclusionToRadicals(inclusions, contours, j, orient) {
 		var radical = new Radical(contours[j]);
 		radicals = [radical];
 		for (var k = 0; k < contours.length; k++) if (inclusions[j][k]) {
-				if (contours[k].ccw !== orient) {
-					radical.holes.push(contours[k]);
-					var inner = inclusionToRadicals(inclusions, contours, k, !orient);
-					radical.subs = inner;
-					radicals = radicals.concat(inner);
-				}
+			if (contours[k].ccw !== orient) {
+				radical.holes.push(contours[k]);
+				var inner = inclusionToRadicals(inclusions, contours, k, !orient);
+				radical.subs = inner;
+				radicals = radicals.concat(inner);
+			}
 		}
 		return radicals;
 	}
@@ -133,7 +131,7 @@ module.exports = function findRadicals(contours) {
 	transitiveReduce(inclusions);
 	// Figure out radicals
 	for (var j = 0; j < contours.length; j++) if (contours[j].outline) {
-			radicals = radicals.concat(inclusionToRadicals(inclusions, contours, j, contours[j].ccw));
+		radicals = radicals.concat(inclusionToRadicals(inclusions, contours, j, contours[j].ccw));
 	}
 	return radicals;
 };
