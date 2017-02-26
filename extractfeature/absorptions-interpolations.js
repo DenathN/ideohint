@@ -19,20 +19,20 @@ function shortAbsorptionByKeys(shortAbsorptions, strategy, pts, keys, inSameRadi
 		shortAbsorptionPointByKeys(shortAbsorptions, strategy, pts[k], keys, inSameRadical, priority);
 	}
 }
-var COEFF_EXT = 1 / 2;
-function interpolateByKeys(interpolations, strategy, pts, keys, inSameRadical, priority) {
+var COEFF_EXT = 1;
+function interpolateByKeys(interpolations, shortAbsorptions, strategy, pts, keys, inSameRadical, priority) {
 	for (var k = 0; k < pts.length; k++) {
 		var pt = pts[k];
 		if (pt.touched || pt.donttouch) continue;
 		var upperK = null, upperdist = 0xFFFF;
 		var lowerK = null, lowerdist = 0xFFFF;
-		for (var m = keys.length - 1; m >= 0; m--) if (keys[m].yori < pt.yori - strategy.Y_FUZZ) {
+		for (var m = keys.length - 1; m >= 0; m--) if (keys[m].yori <= pt.yori) {
 			if (!lowerK || Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori)) < lowerdist) {
 				lowerK = keys[m];
 				lowerdist = Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori));
 			}
 		}
-		for (var m = keys.length - 1; m >= 0; m--) if (keys[m].yori > pt.yori + strategy.Y_FUZZ) {
+		for (var m = keys.length - 1; m >= 0; m--) if (keys[m].yori >= pt.yori) {
 			if (!upperK || Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori)) < upperdist) {
 				upperK = keys[m];
 				upperdist = Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori));
@@ -41,7 +41,13 @@ function interpolateByKeys(interpolations, strategy, pts, keys, inSameRadical, p
 		if (lowerK && upperK) {
 			if (upperK.linkedKey) upperK = upperK.linkedKey;
 			if (lowerK.linkedKey) lowerK = lowerK.linkedKey;
-			if (!upperK.phantom && !lowerK.phantom) interpolations.push([upperK.id, lowerK.id, pt.id, priority]);
+			if (!upperK.phantom && !lowerK.phantom) {
+				if (upperK.yori > lowerK.yori + strategy.Y_FUZZ) {
+					interpolations.push([upperK.id, lowerK.id, pt.id, priority]);
+				} else {
+					shortAbsorptions.push([upperK.id, pt.id, priority]);
+				}
+			}
 			pt.touched = true;
 		}
 	}
@@ -178,14 +184,16 @@ module.exports = function (glyph, strategy) {
 	linkSoleStemPoints(shortAbsorptions, strategy, glyph, 7);
 	var b = [];
 	for (var j = 0; j < contours.length; j++) {
-		interpolateByKeys(interpolations, strategy, records[j].topbot, glyphKeypoints, false, 5);
+		interpolateByKeys(interpolations, shortAbsorptions, strategy, records[j].topbot, glyphKeypoints, false, 5);
 		b = b.concat(records[j].topbot.filter(function () { return z.touched; }));
 	}
 	glyphKeypoints = glyphKeypoints.concat(b).sort(BY_YORI);
 	for (var j = 0; j < contours.length; j++) {
-		interpolateByKeys(interpolations, strategy, records[j].midex, glyphKeypoints, false, 3);
+		interpolateByKeys(interpolations, shortAbsorptions, strategy, records[j].midex, glyphKeypoints, false, 3);
 	}
-	interpolations = interpolations.sort(function (u, v) { return glyph.indexedPoints[u[2]].xori - glyph.indexedPoints[v[2]].xori; });
+	interpolations = interpolations.sort(function (u, v) {
+		return glyph.indexedPoints[u[2]].xori - glyph.indexedPoints[v[2]].xori;
+	});
 	for (var j = 0; j < interpolations.length; j++) {
 		if (!interpolations[j]) continue;
 		for (var k = j + 1; k < interpolations.length; k++) {
@@ -204,7 +212,7 @@ module.exports = function (glyph, strategy) {
 		}
 	}
 	return {
-		interpolations: interpolations.filter(function (x) { return x; }),
+		interpolations: interpolations.filter(x => x),
 		shortAbsorptions: shortAbsorptions
 	};
 };

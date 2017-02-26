@@ -15,7 +15,7 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 		y0[j] = xclamp(avaliables[j].low, Math.round(yInit[j]), avaliables[j].high);
 	}
 	var initIdv = new Individual(balance(y0, env), env);
-	var unbalIdv = new Individual(y0, env);
+	var unbalIdv = new Individual(y0, env, true);
 	var population = [initIdv];
 	if (unbalIdv.collidePotential < initIdv.collidePotential) { population.push(unbalIdv); }
 	// Generate initial population
@@ -24,7 +24,10 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 		for (var k = avaliables[j].low; k <= avaliables[j].high; k++) if (k !== y0[j]) {
 			var y1 = y0.slice(0);
 			y1[j] = k;
-			population.push(new Individual(balance(y1, env), env));
+			let idvBal = new Individual(balance(y1, env), env);
+			let idvUnbal = new Individual(y1, env, true);
+			population.push(idvBal);
+			if (idvUnbal.collidePotential < idvBal.collidePotential) { population.push(idvUnbal) }
 		}
 	}
 	// Y-mutant
@@ -41,7 +44,10 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 		for (var j = 0; j < n; j++) {
 			ry[j] = xclamp(avaliables[j].low, Math.floor(avaliables[j].low + Math.random() * (avaliables[j].high - avaliables[j].low + 1)), avaliables[j].high);
 		}
-		population.push(new Individual(balance(ry, env), env));
+		let idvBal = new Individual(balance(ry, env), env);
+		let idvUnbal = new Individual(ry, env, true);
+		population.push(idvBal);
+		if (idvUnbal.collidePotential < idvBal.collidePotential) { population.push(idvUnbal) }
 	}
 
 	// Hall of fame
@@ -69,7 +75,11 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 		}
 		if (steadyStages > terminalStrictness) break;
 	}
-	return best.gene;
+	if (best.unbalanced) {
+		return balance(best.gene, env);
+	} else {
+		return best.gene;
+	}
 }
 
 module.exports = uncollide;

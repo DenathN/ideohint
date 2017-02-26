@@ -98,10 +98,15 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlapRat
 				} else {
 					coeffA = strategy.COEFF_A_SAME_RADICAL;
 				}
+			} else if (
+				(atRadicalBottom(stems[j], strategy) && atRadicalBottom(stems[k], strategy)
+					|| atRadicalTop(stems[j], strategy) && atRadicalTop(stems[k], strategy))
+				&& !(atRadicalBottom(stems[j], strategy) && atRadicalTop(stems[j], strategy))
+				&& !(atRadicalBottom(stems[k], strategy) && atRadicalTop(stems[k], strategy))) {
+				coeffA = strategy.COEFF_A_SHAPE_LOST_XR;
 			} else if (atRadicalBottom(stems[j], strategy) && atRadicalTop(stems[k], strategy)) {
 				coeffA = strategy.COEFF_A_RADICAL_MERGE;
 			}
-			A[j][k] = strategy.COEFF_A_MULTIPLIER * ovr * coeffA * promixityCoeff * slopesCoeff;
 
 			// Collision coefficients
 			var coeffC = 1;
@@ -114,10 +119,11 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlapRat
 			if (Math.abs(stems[j].xmax - stems[k].xmax) <= strategy.BLUEZONE_WIDTH) {
 				symmetryCoeff += 2;
 			}
-			C[j][k] = strategy.COEFF_C_MULTIPLIER * (1 + ovr * coeffC * slopesCoeff * symmetryCoeff) * promixityCoeff;
 
-			S[j][k] = strategy.COEFF_S;
-			P[j][k] = structuralPromixity + (pbs[j][k] ? 1 : 0);
+			A[j][k] = Math.round(strategy.COEFF_A_MULTIPLIER * ovr * coeffA * promixityCoeff * slopesCoeff);
+			C[j][k] = Math.round(strategy.COEFF_C_MULTIPLIER * (1 + ovr * coeffC * slopesCoeff * symmetryCoeff) * promixityCoeff);
+			S[j][k] = Math.round(strategy.COEFF_S);
+			P[j][k] = Math.round(structuralPromixity + (pbs[j][k] ? 1 : 0));
 		}
 	}
 	for (var j = 0; j < n; j++) {

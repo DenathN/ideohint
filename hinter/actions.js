@@ -32,6 +32,10 @@ function stemPositionToActions(stems, uppx, env) {
 				&& !(stem.xmax + w / 2 > stems[k].xmax && stem.xmin - w / 2 < stems[k].xmin)) {
 				stacked = true;
 			}
+			if (stem.width < stem.touchwidth) continue;
+			if (stems[k].ytouch - stems[k].touchwidth - stem.ytouch <= 1.05 * uppx && !stem.posKeyAtTop) {
+				strict = true;
+			}
 		}
 		actions.push([
 			Math.round(stem.ytouch / uppx),

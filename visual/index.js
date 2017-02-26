@@ -167,7 +167,7 @@ function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 			// Layer 1 : Control outline
 			hTemp.moveTo(txp(contour.points[0].xtouch + m * strategy.UPM), typ(contour.points[0].ytouch))
 			for (var k = 1; k < contour.points.length; k++) {
-				if (contour.points[k].on) {
+				if (contour.points[k].on || !contour.points[k + 1]) {
 					hTemp.lineTo(txp(contour.points[k].xtouch + m * strategy.UPM), typ(contour.points[k].ytouch))
 				} else {
 					hTemp.quadraticCurveTo(txp(contour.points[k].xtouch + m * strategy.UPM), typ(contour.points[k].ytouch), txp(contour.points[k + 1].xtouch + m * strategy.UPM), typ(contour.points[k + 1].ytouch))

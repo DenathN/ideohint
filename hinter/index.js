@@ -337,6 +337,7 @@ function hint(glyph, ppem, strategy) {
 				// original position and width
 				y0: y0,
 				w0: w0,
+				w0px: w0 / uppx,
 				xmin: stems[j].xmin,
 				xmax: stems[j].xmax,
 				length: stems[j].xmax - stems[j].xmin,

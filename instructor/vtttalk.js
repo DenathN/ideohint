@@ -33,40 +33,7 @@ function sanityDelta(z, d) {
 	if (curdelta) buf.push(formatdelta(curdelta) + "@" + (ppemend > ppemstart ? ppemstart + ".." + ppemend : ppemstart));
 	return `YDelta(${z},${buf.join(',')})`;
 }
-/*
-function decideDelta(source, dest, upm, ppem) {
-	let delta = Math.round(ROUNDING_SEGMENTS * (dest - source) / (upm / ppem));
-	return {
-		ppem: ppem,
-		delta: delta / ROUNDING_SEGMENTS
-	};
-}
-function decideDeltaShift(base, sign, source, dest, isStrict, isStacked, upm, ppem) {
-	// source : original stroke width
-	// dest : desired stroke width
-	const y1 = base + sign * source;
-	const y2 = base + sign * dest;
-	const rounding = (sign > 0) === (source < dest) ? Math.floor : Math.ceil;
-	// delta needed for rounding
-	let actualDelta = rounding(ROUNDING_SEGMENTS * (y2 - y1) / (upm / ppem));
-	// We will try to shrink collided strokes to zero
-	let shrunkDelta = isStacked ? rounding(ROUNDING_SEGMENTS * (base - y1) / (upm / ppem)) : 0;
-	let delta = actualDelta - shrunkDelta;
-	while (!(source < dest && dest <= (1 + 1 / 16) * (upm / ppem) && !isStacked) && delta) {
-		const delta1 = (delta > 0 ? delta - 1 : delta + 1);
-		const y2a = y1 + (delta1 + shrunkDelta) * (upm / ppem / ROUNDING_SEGMENTS);
-		if (roundings.rtg(y2, upm, ppem) !== roundings.rtg(y2a, upm, ppem)
-			|| Math.abs(y2a - roundings.rtg(y2, upm, ppem)) > ROUNDING_CUTOFF * (upm / ppem)
-			|| (source > dest) && !isStacked && ((y2a - y2) / sign) > (1 / 2) * (upm / ppem) * (ppem / HALF_PIXEL_PPEM)
-			|| (isStrict && !isStacked && (Math.abs(y2 - base - (y2a - base)) > (upm / ppem) * (3 / 16)))) break;
-		delta = delta1;
-	}
-	return {
-		ppem: ppem,
-		delta: (shrunkDelta + delta) / ROUNDING_SEGMENTS
-	};
-}
-*/
+
 // si : size-inpendent actions
 // sd : size-dependent actions
 // strategy : strategy object
@@ -76,24 +43,33 @@ function produceVTTTalk(si, sd, strategy, padding) {
 	let buf = "";
 	function talk(s) { buf += s + "\n"; }
 	// bottom
-	for (let z of si.bottomBluePoints) {
-		talk(`YAnchor(${z},${padding + 2})`);
+	for (let j = 0; j < si.bottomBluePoints.length; j++) {
+		const z = si.bottomBluePoints[j];
+		if (j === 0) {
+			talk(`YAnchor(${z},${padding + 2})`);
+		} else {
+			talk(`YDist(${si.bottomBluePoints[0]},${z}, &lt;)`)
+		}
 	}
 	// top
-	for (let z of si.topBluePoints) {
-		talk(`YAnchor(${z},${padding + 1})`);
-		let deltas = [];
-		for (let ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
-			let source = roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem);
-			let vtop = roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
-				+ roundings.rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem);
-			deltas.push({
-				ppem,
-				delta: decideDelta(ROUNDING_SEGMENTS, source, vtop, upm, ppem) / ROUNDING_SEGMENTS
-			})
-			// deltas.push(decideDelta(source, vtop, upm, ppem));
+	for (let j = 0; j < si.topBluePoints.length; j++) {
+		const z = si.topBluePoints[j];
+		if (j === 0) {
+			talk(`YAnchor(${z},${padding + 1})`);
+			let deltas = [];
+			for (let ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
+				let source = roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem);
+				let vtop = roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
+					+ roundings.rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem);
+				deltas.push({
+					ppem,
+					delta: decideDelta(ROUNDING_SEGMENTS, source, vtop, upm, ppem) / ROUNDING_SEGMENTS
+				})
+			}
+			talk(sanityDelta(z, deltas));
+		} else {
+			talk(`YDist(${si.topBluePoints[0]},${z}, &lt;)`)
 		}
-		talk(sanityDelta(z, deltas));
 	}
 	for (var sid = 0; sid < si.stems.length; sid++) {
 		let s = si.stems[sid];
@@ -147,8 +123,12 @@ function produceVTTTalk(si, sd, strategy, padding) {
 
 		talk(`YAnchor(${s.posKey})`);
 		talk(sanityDelta(s.posKey, deltaPos));
-		talk(`YNoRound(${s.advKey})`);
-		talk(`YDist(${s.posKey},${s.advKey})`);
+		if (strategy.SIGNIFICANT_LINK_ARROW) {
+			talk(`YNoRound(${s.advKey})`);
+			talk(`YDist(${s.posKey},${s.advKey})`);
+		} else {
+			talk(`YShift(${s.posKey},${s.advKey}) /* !IMPORTANT */`);
+		}
 		talk(sanityDelta(s.advKey, deltaADv));
 		let pk = s.posKey;
 		for (let zp of s.posAlign) {
