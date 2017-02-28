@@ -101,8 +101,8 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlapRat
 			} else if (
 				(atRadicalBottom(stems[j], strategy) && atRadicalBottom(stems[k], strategy)
 					|| atRadicalTop(stems[j], strategy) && atRadicalTop(stems[k], strategy))
-				&& !(atRadicalBottom(stems[j], strategy) && atRadicalTop(stems[j], strategy))
-				&& !(atRadicalBottom(stems[k], strategy) && atRadicalTop(stems[k], strategy))) {
+				&& stems[j].xmin >= stems[k].xmin
+				&& stems[j].xmax <= stems[k].xmax) {
 				coeffA = strategy.COEFF_A_SHAPE_LOST_XR;
 			} else if (atRadicalBottom(stems[j], strategy) && atRadicalTop(stems[k], strategy)) {
 				coeffA = strategy.COEFF_A_RADICAL_MERGE;

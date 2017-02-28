@@ -92,8 +92,9 @@ exports.handler = function (argv) {
 			var data = pendings[glyphIndex];
 			var glyph = data[2];
 			var stemActions = [];
-			for (var ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
-				var actions = hint(glyph, ppem, strategy);
+			for (var ppem = strategy.PPEM_MAX; ppem >= strategy.PPEM_MIN; ppem--) {
+				const uppx = strategy.UPM / ppem;
+				const actions = hint(glyph, ppem, strategy);
 				stemActions[ppem] = actions;
 			}
 			currentProgress = showProgressBar(currentProgress, glyphIndex, pendings.length);
@@ -114,7 +115,7 @@ exports.handler = function (argv) {
 					};
 				})
 			};
-			var recordLine = [data[0], data[1], { si: sideIndependent, sd: stemActions }];
+			var recordLine = [data[0], data[1], { si: sideIndependent, sd: stemActions, pmin: strategy.PPEM_MIN, pmax: strategy.PPEM_MAX }];
 			outStream.write(JSON.stringify(recordLine) + "\n");
 		}
 		currentProgress = showProgressBar(currentProgress, glyphIndex, pendings.length);

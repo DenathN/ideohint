@@ -29,65 +29,63 @@ function hint(glyph, ppem, strategy) {
 	var stems = glyph.stems;
 	if (!stems.length) return [];
 
-	var upm = strategy.UPM || 1000;
-	var uppx = upm / ppem;
-	var STEM_SIDE_MIN_RISE = strategy.STEM_SIDE_MIN_RISE;
-	var STEM_SIDE_MIN_DIST_RISE = strategy.STEM_SIDE_MIN_DIST_RISE;
-	var STEM_CENTER_MIN_RISE = strategy.STEM_CENTER_MIN_RISE;
-	var STEM_SIDE_MIN_DESCENT = strategy.STEM_SIDE_MIN_DESCENT;
-	var STEM_SIDE_MIN_DIST_DESCENT = strategy.STEM_SIDE_MIN_DIST_DESCENT;
-	var STEM_CENTER_MIN_DESCENT = strategy.STEM_CENTER_MIN_DESCENT;
+	const upm = strategy.UPM || 1000;
+	const uppx = upm / ppem;
+	const STEM_SIDE_MIN_RISE = strategy.STEM_SIDE_MIN_RISE;
+	const STEM_SIDE_MIN_DIST_RISE = strategy.STEM_SIDE_MIN_DIST_RISE;
+	const STEM_CENTER_MIN_RISE = strategy.STEM_CENTER_MIN_RISE;
+	const STEM_SIDE_MIN_DESCENT = strategy.STEM_SIDE_MIN_DESCENT;
+	const STEM_SIDE_MIN_DIST_DESCENT = strategy.STEM_SIDE_MIN_DIST_DESCENT;
+	const STEM_CENTER_MIN_DESCENT = strategy.STEM_CENTER_MIN_DESCENT;
 
-	var PPEM_INCREASE_GLYPH_LIMIT = strategy.PPEM_INCREASE_GLYPH_LIMIT;
+	const PPEM_INCREASE_GLYPH_LIMIT = strategy.PPEM_INCREASE_GLYPH_LIMIT;
 
-	var CANONICAL_STEM_WIDTH = (ppem <= PPEM_INCREASE_GLYPH_LIMIT
+	const CANONICAL_STEM_WIDTH = (ppem <= PPEM_INCREASE_GLYPH_LIMIT
 		? strategy.CANONICAL_STEM_WIDTH_SMALL
 		: strategy.CANONICAL_STEM_WIDTH +
 		lerp(ppem, PPEM_INCREASE_GLYPH_LIMIT, strategy.PPEM_MAX,
 			0, strategy.CANONICAL_STEM_WIDTH_LARGE_ADJ));
-	var CANONICAL_STEM_WIDTH_DENSE = strategy.CANONICAL_STEM_WIDTH_DENSE;
-	if (ppem > PPEM_INCREASE_GLYPH_LIMIT) {
-		CANONICAL_STEM_WIDTH_DENSE += lerp(ppem, PPEM_INCREASE_GLYPH_LIMIT, strategy.PPEM_MAX,
-			0, strategy.CANONICAL_STEM_WIDTH_LARGE_ADJ);
-	}
+	const CANONICAL_STEM_WIDTH_DENSE = strategy.CANONICAL_STEM_WIDTH_DENSE
+		+ (ppem <= PPEM_INCREASE_GLYPH_LIMIT ? 0
+			: lerp(ppem, PPEM_INCREASE_GLYPH_LIMIT, strategy.PPEM_MAX, 0, strategy.CANONICAL_STEM_WIDTH_LARGE_ADJ));
 
-	var WIDTH_GEAR_PROPER = Math.round(CANONICAL_STEM_WIDTH / uppx);
-	var WIDTH_GEAR_MIN = Math.round(CANONICAL_STEM_WIDTH_DENSE / uppx);
-	if (WIDTH_GEAR_MIN > WIDTH_GEAR_PROPER) WIDTH_GEAR_MIN = WIDTH_GEAR_PROPER;
+	const WIDTH_GEAR_PROPER = Math.round(CANONICAL_STEM_WIDTH / uppx);
+	const WIDTH_GEAR_MIN = Math.min(WIDTH_GEAR_PROPER, Math.round(CANONICAL_STEM_WIDTH_DENSE / uppx));
+	const SHRINK_THERSHOLD = strategy.SHRINK_THERSHOLD || 0.75;
 
-	var ABLATION_IN_RADICAL = strategy.ABLATION_IN_RADICAL;
-	var ABLATION_RADICAL_EDGE = strategy.ABLATION_RADICAL_EDGE;
-	var ABLATION_GLYPH_EDGE = strategy.ABLATION_GLYPH_EDGE;
-	var ABLATION_GLYPH_HARD_EDGE = strategy.ABLATION_GLYPH_HARD_EDGE;
+	const ABLATION_IN_RADICAL = strategy.ABLATION_IN_RADICAL;
+	const ABLATION_RADICAL_EDGE = strategy.ABLATION_RADICAL_EDGE;
+	const ABLATION_GLYPH_EDGE = strategy.ABLATION_GLYPH_EDGE;
+	const ABLATION_GLYPH_HARD_EDGE = strategy.ABLATION_GLYPH_HARD_EDGE;
 
-	var COEFF_PORPORTION_DISTORTION = strategy.COEFF_PORPORTION_DISTORTION;
+	const COEFF_PORPORTION_DISTORTION = strategy.COEFF_PORPORTION_DISTORTION;
 
-	var BLUEZONE_BOTTOM_CENTER = strategy.BLUEZONE_BOTTOM_CENTER;
-	var BLUEZONE_BOTTOM_BAR_REF = strategy.BLUEZONE_BOTTOM_BAR_REF;
-	var BLUEZONE_BOTTOM_BAR = xlerp(ppem,
+	const BLUEZONE_BOTTOM_CENTER = strategy.BLUEZONE_BOTTOM_CENTER;
+	const BLUEZONE_BOTTOM_BAR_REF = strategy.BLUEZONE_BOTTOM_BAR_REF;
+	const BLUEZONE_BOTTOM_BAR = xlerp(ppem,
 		strategy.PPEM_MIN, strategy.BLUEZONE_BOTTOM_BAR_MIDDLE_SIZE, strategy.PPEM_MAX,
 		strategy.BLUEZONE_BOTTOM_BAR_SMALL, strategy.BLUEZONE_BOTTOM_BAR_MIDDLE, strategy.BLUEZONE_BOTTOM_BAR_LARGE);
-	var BLUEZONE_BOTTOM_DOTBAR = xlerp(ppem,
+	const BLUEZONE_BOTTOM_DOTBAR = xlerp(ppem,
 		strategy.PPEM_MIN, strategy.BLUEZONE_BOTTOM_BAR_MIDDLE_SIZE, strategy.PPEM_MAX,
 		strategy.BLUEZONE_BOTTOM_DOTBAR_SMALL, strategy.BLUEZONE_BOTTOM_DOTBAR_MIDDLE, strategy.BLUEZONE_BOTTOM_DOTBAR_LARGE);
 
-	var BLUEZONE_TOP_CENTER = strategy.BLUEZONE_TOP_CENTER;
-	var BLUEZONE_TOP_BAR_REF = strategy.BLUEZONE_TOP_BAR_REF;
-	var BLUEZONE_TOP_DOTBAR = xlerp(ppem,
+	const BLUEZONE_TOP_CENTER = strategy.BLUEZONE_TOP_CENTER;
+	const BLUEZONE_TOP_BAR_REF = strategy.BLUEZONE_TOP_BAR_REF;
+	const BLUEZONE_TOP_DOTBAR = xlerp(ppem,
 		strategy.PPEM_MIN, strategy.BLUEZONE_TOP_BAR_MIDDLE_SIZE, strategy.PPEM_MAX,
 		strategy.BLUEZONE_TOP_DOTBAR_SMALL, strategy.BLUEZONE_TOP_DOTBAR_MIDDLE, strategy.BLUEZONE_TOP_DOTBAR_LARGE);
-	var BLUEZONE_TOP_BAR = xlerp(ppem,
+	const BLUEZONE_TOP_BAR = xlerp(ppem,
 		strategy.PPEM_MIN, strategy.BLUEZONE_TOP_BAR_MIDDLE_SIZE, strategy.PPEM_MAX,
 		strategy.BLUEZONE_TOP_BAR_SMALL, strategy.BLUEZONE_TOP_BAR_MIDDLE, strategy.BLUEZONE_TOP_BAR_LARGE);
 
-	var round = roundings.Rtg(upm, ppem);
-	var roundDown = roundings.Rdtg(upm, ppem);
-	var roundUp = roundings.Rutg(upm, ppem);
+	const round = roundings.Rtg(upm, ppem);
+	const roundDown = roundings.Rdtg(upm, ppem);
+	const roundUp = roundings.Rutg(upm, ppem);
 
 
-	var glyphBottom = round(BLUEZONE_BOTTOM_CENTER);
-	var oPixelTop = round(BLUEZONE_TOP_CENTER);
-	var glyphTop = glyphBottom + round(BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER);
+	const glyphBottom = round(BLUEZONE_BOTTOM_CENTER);
+	const oPixelTop = round(BLUEZONE_TOP_CENTER);
+	const glyphTop = glyphBottom + round(BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER);
 
 	function atRadicalTop(stem) {
 		return !stem.hasSameRadicalStemAbove
@@ -118,29 +116,29 @@ function hint(glyph, ppem, strategy) {
 			&& !(stem.hasGlyphRightAdjacentPointBelow && stem.glyphRightAdjacentDescent > STEM_SIDE_MIN_DESCENT);
 	}
 
-	var directOverlaps = glyph.directOverlaps;
-	var overlaps = glyph.overlaps;
-	var triplets = glyph.triplets;
-	var flexes = glyph.flexes;
+	const directOverlaps = glyph.directOverlaps;
+	const overlaps = glyph.overlaps;
+	const triplets = glyph.triplets;
+	const flexes = glyph.flexes;
 
-	var cyb = glyphBottom + (round(BLUEZONE_BOTTOM_DOTBAR - BLUEZONE_BOTTOM_CENTER));
-	var cyt = glyphTop - (round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_DOTBAR));
-	var cybx = glyphBottom + (round(BLUEZONE_BOTTOM_BAR - BLUEZONE_BOTTOM_CENTER))
+	const cyb = glyphBottom + (round(BLUEZONE_BOTTOM_DOTBAR - BLUEZONE_BOTTOM_CENTER));
+	const cyt = glyphTop - (round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_DOTBAR));
+	const cybx = glyphBottom + (round(BLUEZONE_BOTTOM_BAR - BLUEZONE_BOTTOM_CENTER))
 		+ Math.min(0, glyphBottom - BLUEZONE_BOTTOM_BAR);
-	var cytx = glyphTop - (round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_BAR))
+	const cytx = glyphTop - (round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_BAR))
 		+ Math.max(0, oPixelTop - BLUEZONE_TOP_BAR);
 
 	function cy(y, w0, w, x, att) {
 		// x means this stroke is topmost or bottommost
 		if (att) {
-			var p = (y - BLUEZONE_BOTTOM_BAR_REF) / (BLUEZONE_TOP_BAR_REF - BLUEZONE_BOTTOM_BAR_REF);
+			const p = (y - BLUEZONE_BOTTOM_BAR_REF) / (BLUEZONE_TOP_BAR_REF - BLUEZONE_BOTTOM_BAR_REF);
 			if (x) {
 				return cybx + (cytx - cybx) * p;
 			} else {
 				return cyb + (cyt - cyb) * p;
 			}
 		} else {
-			var p = (y - w0 - BLUEZONE_BOTTOM_BAR_REF) / (BLUEZONE_TOP_BAR_REF - BLUEZONE_BOTTOM_BAR_REF);
+			const p = (y - w0 - BLUEZONE_BOTTOM_BAR_REF) / (BLUEZONE_TOP_BAR_REF - BLUEZONE_BOTTOM_BAR_REF);
 			if (x) {
 				return w + cybx + (cytx - cybx) * p;
 			} else {
@@ -149,11 +147,11 @@ function hint(glyph, ppem, strategy) {
 		}
 	}
 	function flexMiddleStem(t, m, b) {
-		var spaceAboveOri = t.y0 - t.w0 / 2 - m.y0 + m.w0 / 2;
-		var spaceBelowOri = m.y0 - m.w0 / 2 - b.y0 + b.w0 / 2;
+		const spaceAboveOri = t.y0 - t.w0 / 2 - m.y0 + m.w0 / 2;
+		const spaceBelowOri = m.y0 - m.w0 / 2 - b.y0 + b.w0 / 2;
 		if (spaceAboveOri + spaceBelowOri > 0) {
-			var totalSpaceFlexed = t.center - t.properWidth / 2 - b.center + b.properWidth / 2;
-			var y = m.properWidth / 2 + b.center - b.properWidth / 2 + totalSpaceFlexed * (spaceBelowOri / (spaceBelowOri + spaceAboveOri));
+			const totalSpaceFlexed = t.center - t.properWidth / 2 - b.center + b.properWidth / 2;
+			const y = m.properWidth / 2 + b.center - b.properWidth / 2 + totalSpaceFlexed * (spaceBelowOri / (spaceBelowOri + spaceAboveOri));
 			m.center = xclamp(m.low, y, m.high);
 		}
 	}
@@ -184,6 +182,7 @@ function hint(glyph, ppem, strategy) {
 	}
 
 	function calculateWidth(w, coordinate) {
+		var pixels0 = w / uppx;
 		if (coordinate) {
 			var pixels = w / CANONICAL_STEM_WIDTH * WIDTH_GEAR_PROPER;
 		} else {
@@ -200,7 +199,11 @@ function hint(glyph, ppem, strategy) {
 				pixels = WIDTH_GEAR_MIN;
 			}
 		}
-		return Math.round(pixels);
+		let rpx = Math.round(pixels);
+		if (rpx > WIDTH_GEAR_MIN && rpx - pixels0 > SHRINK_THERSHOLD) {
+			rpx -= 1;
+		}
+		return rpx;
 	}
 
 	function decideWidths(stems, priority, tws) {
@@ -305,8 +308,8 @@ function hint(glyph, ppem, strategy) {
 
 			var lowlimitW = tws[j] > 1 ? lowlimit - uppx : lowlimit;
 
-			var lowW = xclamp(lowlimitW, round(center0 - 2 * uppx), highlimit);
-			var highW = xclamp(lowlimitW, round(center0 + 2 * uppx), highlimit);
+			var lowW = xclamp(lowlimitW, round(center0 - maxshift * uppx), highlimit);
+			var highW = xclamp(lowlimitW, round(center0 + maxshift * uppx), highlimit);
 			var semiFlatLHS = false;
 			if (center0 > glyphTop - uppx * 1.1 && center0 / uppx > y0 / uppx - 0.5
 				&& center0 - uppx * 0.5 >= glyphTop - 1.5 * uppx
@@ -427,7 +430,7 @@ function hint(glyph, ppem, strategy) {
 		stemPositions[j] = avaliables[j].center;
 	}
 	stemPositions = uncollide(stemPositions, env,
-		xclamp(2, Math.round(stems.length / strategy.STEADY_STAGES_X), 5), // stages
+		xclamp(2, Math.round(stems.length / strategy.STEADY_STAGES_X), strategy.STEADY_STAGES_MAX), // stages
 		strategy.POPULATION_LIMIT * Math.max(1, stems.length) // population
 	);
 

@@ -80,11 +80,16 @@ const GEAR = 16;
 const SDS_COARSE = 2;
 const GEAR_COARSE = 4;
 
-function instruct(glyph, actions, strategy, cvt, padding) {
+function instruct(record, strategy, padding) {
+	const glyph = record.si;
+	const actions = record.sd;
+	const pmin = record.pmin;
+	const pmax = record.pmax;
+
 	var padding = padding || 0;
 	var upm = strategy.UPM || 1000;
-	var cvtTopID = cvt.indexOf(strategy.BLUEZONE_TOP_CENTER, padding);
-	var cvtBottomID = cvt.indexOf(strategy.BLUEZONE_BOTTOM_CENTER, padding);
+	var cvtTopID = padding + 1;
+	var cvtBottomID = padding + 2;
 
 
 	function encodeDeltaVal(d, ppem) {
@@ -96,7 +101,7 @@ function instruct(glyph, actions, strategy, cvt, padding) {
 			return encodeDeltaVal(8, ppem).concat(encodeDeltaVal(d - 8, ppem));
 		}
 		var selector = (d > 0 ? d + 7 : d + 8);
-		var deltappem = (ppem - strategy.PPEM_MIN) % 16;
+		var deltappem = (ppem - pmin) % 16;
 		return [deltappem * 16 + selector];
 	}
 
@@ -137,7 +142,7 @@ function instruct(glyph, actions, strategy, cvt, padding) {
 	// Top
 	// Normal cases:
 	// Padding + 3 + ppem is the CVT index of top blue zone center.
-	tt.push("PUSHB_1", strategy.PPEM_MIN, "MPPEM", "LTEQ", "PUSHB_1", strategy.PPEM_MAX, "MPPEM", "GTEQ", "AND", "IF");
+	tt.push("PUSHB_1", pmin, "MPPEM", "LTEQ", "PUSHB_1", pmax, "MPPEM", "GTEQ", "AND", "IF");
 	tt.push("MPPEM");
 	pushargs(tt, padding + 3);
 	tt.push("ADD");
@@ -165,7 +170,7 @@ function instruct(glyph, actions, strategy, cvt, padding) {
 	}
 
 
-	invocations.push([[strategy.PPEM_MIN], ["SDB"]]);
+	invocations.push([[pmin], ["SDB"]]);
 	var deltaCalls = {
 		coarse: [],
 		fine: []
@@ -210,7 +215,7 @@ function instruct(glyph, actions, strategy, cvt, padding) {
 		if (!deltas.length) continue;
 		for (var j = 0; j < deltas.length; j++) {
 			let {deltas: {coarse, fine}, id} = deltas[j];
-			let instr = "DELTAP" + (1 + Math.floor((ppem - strategy.PPEM_MIN) / 16));
+			let instr = "DELTAP" + (1 + Math.floor((ppem - pmin) / 16));
 			for (let d of coarse) {
 				deltaCalls.coarse.push({
 					arg: [d, id],
@@ -231,7 +236,7 @@ function instruct(glyph, actions, strategy, cvt, padding) {
 	invocations.push([[SDS], ["SDS"]]);
 	pushDeltaCalls(deltaCalls.fine, invocations, STACK_DEPTH);
 
-	mirps.push("PUSHB_1", strategy.PPEM_MAX, "MPPEM", "LT", "IF");
+	mirps.push("PUSHB_1", pmax, "MPPEM", "LT", "IF");
 	var largeMdrpInvokes = [];
 	if (glyph.stems.length) {
 		for (var k = 0; k < glyph.stems.length; k++) {

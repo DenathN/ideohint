@@ -29,13 +29,16 @@ function ablationPotential(y, env) {
 		}
 	}
 
-	const dlimit = env.uppx / 2;
+	const dlimit = env.uppx / 3;
+	const dlimitx = 2 * env.uppx / 3;
 	for (var t = 0; t < triplets.length; t++) {
 		var j = triplets[t][0], k = triplets[t][1], w = triplets[t][2], d = triplets[t][3];
 		if (!(y[j] > y[k] && y[k] > y[w])) continue;
 		var spacejk = y[j] - y[k] - avaliables[j].properWidth;
 		var spacekw = y[k] - y[w] - avaliables[k].properWidth;
-		if (d >= dlimit && spacejk < spacekw
+		if (d >= dlimitx && spacejk <= spacekw
+			|| d >= dlimit && spacejk < spacekw
+			|| d <= -dlimitx && spacejk >= spacekw
 			|| d <= -dlimit && spacejk > spacekw
 			|| d < dlimit && d > -dlimit && (spacejk - spacekw > 1 || spacejk - spacekw < -1)) {
 			p += (env.C[j][k] + env.C[k][w]) * env.strategy.COEFF_DISTORT;

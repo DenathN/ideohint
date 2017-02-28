@@ -6,17 +6,16 @@ var stream = require("stream");
 var devnull = require("dev-null");
 var util = require("util");
 var stripBom = require("strip-bom");
-var JSONStream = require("JSONStream");
-var es = require("event-stream");
 var oboe = require("oboe");
 var instruct = require("../instructor").instruct;
-
+var stringifyToStream = require('../stringify-to-stream');
 var cvtlib = require("../instructor/cvt");
+var talk = require('../instructor/vtttalk').talk;
 
 var hashContours = require("../otdParser").hashContours;
 
 var crypto = require("crypto");
-function md5 (text) {
+function md5(text) {
 	return crypto.createHash("md5").update(text).digest("hex");
 }
 
@@ -42,16 +41,17 @@ exports.handler = function (argv) {
 	var linkCvt = cvtlib.createCvt([], strategy, cvtPadding);
 
 	var activeInstructions = {};
+	var tsi = {};
+	var glyfcor = {};
 
 	rl.on("line", function (line) {
 		if (!line) return;
 		var data = JSON.parse(line.trim());
-		activeInstructions[data[1]] = instruct(data[2].si, data[2].sd, strategy, linkCvt, cvtPadding);
+		activeInstructions[data[1]] = data[2];
 	});
 	rl.on("close", function () { pass_weaveOTD(activeInstructions); });
 
-
-	function pass_weaveOTD (activeInstructions) {
+	function pass_weaveOTD(activeInstructions) {
 		var otdPath = argv._[2] ? argv._[2] : argv._[1];
 		process.stderr.write("Weaving OTD " + otdPath + "\n");
 		var instream = fs.createReadStream(otdPath, "utf-8");
@@ -72,22 +72,38 @@ exports.handler = function (argv) {
 				if (!glyph.contours || !glyph.contours.length) return glyph;
 				var hash = hashContours(glyph.contours);
 				if (!argv.just_modify_cvt && activeInstructions[hash]) {
-					glyph.instructions = activeInstructions[hash];
+					let data = activeInstructions[hash];
+					glyph.instructions = instruct(data, strategy, cvtPadding);
+					glyfcor[path[path.length - 1]] = hash;
 				}
 				return glyph;
 			})
+			.on('node', "TSI_01.glyphs.*", function () { return "" })
 			.on("done", function (otd) {
 				if (!foundCVT) {
 					otd.cvt_ = cvtlib.createCvt([], strategy, cvtPadding);
 				}
-				var outStream = argv.o ? fs.createWriteStream(argv.o, { encoding: "utf-8" }) : process.stdout;
-				es.readable(function (count, next) {
-					for (var k in otd) {
-						this.emit("data", [k, otd[k]]);
+				if (otd.TSI_23 && otd.TSI_23.glyphs) {
+					if (!otd.TSI_23.glyphs) otd.TSI_23.glyphs = {};
+					for (let k in otd.TSI_23.glyphs) {
+						if (!otd.glyf[k] || !otd.glyf[k].contours || !glyfcor[k]) continue;
+						let data = activeInstructions[glyfcor[k]];
+						otd.TSI_23.glyphs[k] = talk(data, strategy, cvtPadding, false).replace(/\n/g, '\r'); // VTT uses single CR, very strange.
 					}
-					this.emit("end");
-					next();
-				}).pipe(JSONStream.stringifyObject()).pipe(outStream);
+				}
+				if (otd.TSI_01 && otd.TSI_01.extra && otd.TSI_01.extra.cvt) {
+					otd.TSI_01.extra.cvt = otd.TSI_01.extra.cvt
+						.replace(new RegExp(`${cvtPadding + 1}` + '\\s*:\\s*-?\\d+'), '')
+						.replace(new RegExp(`${cvtPadding + 2}` + '\\s*:\\s*-?\\d+'), '')
+						+ `${cvtPadding + 1} : ${strategy.BLUEZONE_TOP_CENTER}`
+						+ '\n'
+						+ `${cvtPadding + 2} : ${strategy.BLUEZONE_BOTTOM_CENTER}`
+				}
+				var outStream = argv.o ? fs.createWriteStream(argv.o, { encoding: "utf-8" }) : process.stdout;
+				stringifyToStream(otd, outStream, outStream === process.stdout)();
+			})
+			.on("fail", function (e) {
+				console.log(e)
 			});
 	}
 };

@@ -38,7 +38,11 @@ function sanityDelta(z, d) {
 // sd : size-dependent actions
 // strategy : strategy object
 // padding : CVT padding value, padding + 1 -> bottom anchor; padding + 2 -> top anchor
-function produceVTTTalk(si, sd, strategy, padding) {
+function produceVTTTalk(record, strategy, padding, isXML) {
+	const sd = record.sd;
+	const si = record.si;
+	const pmin = record.pmin;
+	const pmax = record.pmax;
 	const upm = strategy.UPM;
 	let buf = "";
 	function talk(s) { buf += s + "\n"; }
@@ -48,7 +52,7 @@ function produceVTTTalk(si, sd, strategy, padding) {
 		if (j === 0) {
 			talk(`YAnchor(${z},${padding + 2})`);
 		} else {
-			talk(`YDist(${si.bottomBluePoints[0]},${z}, &lt;)`)
+			talk(`YDist(${si.bottomBluePoints[0]}, ${z}, ${isXML ? '&lt;' : '<'})`)
 		}
 	}
 	// top
@@ -57,7 +61,7 @@ function produceVTTTalk(si, sd, strategy, padding) {
 		if (j === 0) {
 			talk(`YAnchor(${z},${padding + 1})`);
 			let deltas = [];
-			for (let ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
+			for (let ppem = pmin; ppem <= pmax; ppem++) {
 				let source = roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem);
 				let vtop = roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
 					+ roundings.rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem);
@@ -68,7 +72,7 @@ function produceVTTTalk(si, sd, strategy, padding) {
 			}
 			talk(sanityDelta(z, deltas));
 		} else {
-			talk(`YDist(${si.topBluePoints[0]},${z}, &lt;)`)
+			talk(`YDist(${si.topBluePoints[0]}, ${z}, ${isXML ? '&lt;' : '<'})`)
 		}
 	}
 	for (var sid = 0; sid < si.stems.length; sid++) {
@@ -77,7 +81,7 @@ function produceVTTTalk(si, sd, strategy, padding) {
 		let deltaPos = [];
 		let deltaADv = [];
 
-		for (let ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
+		for (let ppem = pmin; ppem <= pmax; ppem++) {
 			if (!sd[ppem]) continue;
 			const [ytouch, wtouch, isStrict, isStacked] = sd[ppem][sid];
 			if (s.posKeyAtTop) {
@@ -141,8 +145,8 @@ function produceVTTTalk(si, sd, strategy, padding) {
 	}
 	var l = 0;
 	for (let j = 1; j < si.ipsacalls.length; j++) {
-		if (
-			si.ipsacalls[l].length > 2
+		if (si.ipsacalls[l] && si.ipsacalls[j]
+			&& si.ipsacalls[l].length > 2
 			&& si.ipsacalls[l].length < 16
 			&& si.ipsacalls[j].length > 2
 			&& si.ipsacalls[l][0] === si.ipsacalls[j][0]
