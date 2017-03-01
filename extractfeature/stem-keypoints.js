@@ -5,7 +5,7 @@ var slopeOf = require("../types").slopeOf;
 function keyptPriority(incoming, current) {
 	if (current.on && !incoming.on) return false
 	if (incoming.on && !current.on) return true
-	return current.xori > incoming.xori
+	return current.xori < incoming.xori
 }
 
 function atRadicalBottom(s, strategy) {

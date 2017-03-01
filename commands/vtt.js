@@ -44,7 +44,7 @@ exports.handler = function (argv) {
 		if (!line) return;
 		gid += 1;
 		var data = JSON.parse(line.trim());
-		activeInstructions[data[1]] = talk(data[2].si, data[2].sd, strategy, cvtPadding, true);
+		activeInstructions[data[1]] = talk(data[2], strategy, cvtPadding, true);
 	});
 
 	rl.on("close", function () { pass_weaveOTD(activeInstructions); });

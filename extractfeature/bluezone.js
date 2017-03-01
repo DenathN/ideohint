@@ -23,18 +23,18 @@ module.exports = function (glyph, strategy) {
 				point.touched = true;
 				point.keypoint = true;
 				point.blued = true;
-				topBluePoints.push(point.id);
+				topBluePoints.push(point);
 			}
 			if (point.ytouch <= strategy.BLUEZONE_BOTTOM_LIMIT && point.yExtrema && !point.touched && !point.donttouch) {
 				point.touched = true;
 				point.keypoint = true;
 				point.blued = true;
-				bottomBluePoints.push(point.id);
+				bottomBluePoints.push(point);
 			}
 		}
 	}
 	return {
-		top: topBluePoints,
-		bottom: bottomBluePoints
+		top: topBluePoints.sort((a, b) => b.yori - a.yori).map(p => p.id),
+		bottom: bottomBluePoints.sort((a, b) => a.yori - b.yori).map(p => p.id)
 	}
 }
