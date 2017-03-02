@@ -80,7 +80,8 @@ exports.handler = function (argv) {
 						<TTGlyph ID="${gid}">
 							<instructions>
 								<talk>
-								${activeInstructions[hash]}
+/* CARYLL IDEOHINT -- GENERATED CODE */
+${activeInstructions[hash]}
 								</talk>
 							</instructions>
 						</TTGlyph>`);

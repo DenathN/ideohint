@@ -54,7 +54,9 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlapRat
 			// For side touches witn low overlap, drop it.
 			if (ovr < strategy.SIDETOUCH_LIMIT && isSideTouch) { ovr = 0; }
 
-			var slopesCoeff = !pbs[j][k] && stems[j].belongRadical === stems[k].belongRadical ? Math.max(0.25, 1 - Math.abs(slopes[j] - slopes[k]) * 20) : 1;
+			var slopesCoeff = !pbs[j][k] && stems[j].belongRadical !== stems[k].belongRadical
+				? Math.max(0, 1 - Math.abs(slopes[j] - slopes[k]) * 10)
+				: 1;
 
 			var structuralPromixity = segmentsPromixity(stems[j].low, stems[k].high)
 				+ segmentsPromixity(stems[j].high, stems[k].low)
@@ -121,7 +123,11 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlapRat
 			}
 
 			A[j][k] = Math.round(strategy.COEFF_A_MULTIPLIER * ovr * coeffA * promixityCoeff * slopesCoeff);
-			C[j][k] = Math.round(strategy.COEFF_C_MULTIPLIER * (1 + ovr * coeffC * slopesCoeff * symmetryCoeff) * promixityCoeff);
+			C[j][k] = Math.round(strategy.COEFF_C_MULTIPLIER * (1 + ovr * coeffC * symmetryCoeff) * slopesCoeff * promixityCoeff);
+			if (stems[j].rid && stems[j].rid === stems[k].rid) {
+				C[j][k] = 0;
+				C[j][k] = 0;
+			}
 			S[j][k] = Math.round(strategy.COEFF_S);
 			P[j][k] = Math.round(structuralPromixity + (pbs[j][k] ? 1 : 0));
 		}

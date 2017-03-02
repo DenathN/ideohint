@@ -6,6 +6,9 @@ var roundings = require('../roundings');
 var instruct = require('../instructor').instruct;
 var createCvt = require('../instructor/cvt').createCvt;
 
+var monoip = require('../hinter/monotonic-interpolate');
+
+
 var defaultStrategy;
 var strategy;
 var input;
@@ -266,35 +269,142 @@ window.testInstruct = function (m) {
 	return ix;
 }
 
+var strategyControlTypes = {
+	'BLUEZONE_TOP_BAR': 'VQ',
+	'BLUEZONE_TOP_DOTBAR': 'VQ',
+	'BLUEZONE_BOTTOM_BAR': 'VQ',
+	'BLUEZONE_BOTTOM_DOTBAR': 'VQ',
+	'CANONICAL_STEM_WIDTH': 'VQ',
+	'CANONICAL_STEM_WIDTH_DENSE': 'VQ',
+	BLUEZONE_TOP_BAR_REF: 'VQ',
+	BLUEZONE_BOTTOM_BAR_REF: 'VQ'
+}
+
 var strategyControlGroups = [
-	['UPM', 'BLUEZONE_WIDTH', 'PPEM_INCREASE_GLYPH_LIMIT'],
+	['UPM', 'BLUEZONE_WIDTH', 'PPEM_INCREASE_GLYPH_LIMIT', 'PPEM_LOCK_BOTTOM'],
 	[
 		'BLUEZONE_TOP_CENTER',
 		'BLUEZONE_TOP_LIMIT',
 		'BLUEZONE_TOP_BAR_REF',
-		'BLUEZONE_TOP_BAR_MIDDLE_SIZE',
-		'BLUEZONE_TOP_BAR_SMALL',
-		'BLUEZONE_TOP_BAR_MIDDLE',
-		'BLUEZONE_TOP_BAR_LARGE',
-		'BLUEZONE_TOP_DOTBAR_SMALL',
-		'BLUEZONE_TOP_DOTBAR_MIDDLE',
-		'BLUEZONE_TOP_DOTBAR_LARGE'
+		'BLUEZONE_TOP_BAR',
+		'BLUEZONE_TOP_DOTBAR'
 	],
 	[
 		'BLUEZONE_BOTTOM_CENTER',
 		'BLUEZONE_BOTTOM_LIMIT',
 		'BLUEZONE_BOTTOM_BAR_REF',
-		'BLUEZONE_BOTTOM_BAR_MIDDLE_SIZE',
-		'BLUEZONE_BOTTOM_BAR_SMALL',
-		'BLUEZONE_BOTTOM_BAR_MIDDLE',
-		'BLUEZONE_BOTTOM_BAR_LARGE',
-		'BLUEZONE_BOTTOM_DOTBAR_SMALL',
-		'BLUEZONE_BOTTOM_DOTBAR_MIDDLE',
-		'BLUEZONE_BOTTOM_DOTBAR_LARGE'
+		'BLUEZONE_BOTTOM_BAR',
+		'BLUEZONE_BOTTOM_DOTBAR'
 	],
-	['CANONICAL_STEM_WIDTH', 'CANONICAL_STEM_WIDTH_SMALL', 'CANONICAL_STEM_WIDTH_DENSE', 'CANONICAL_STEM_WIDTH_LARGE_ADJ'],
+	['CANONICAL_STEM_WIDTH', 'CANONICAL_STEM_WIDTH_DENSE'],
 	['ABSORPTION_LIMIT', 'STEM_SIDE_MIN_RISE', 'STEM_SIDE_MIN_DESCENT', 'STEM_CENTER_MIN_RISE', 'STEM_CENTER_MIN_DESCENT', 'STEM_SIDE_MIN_DIST_RISE', 'STEM_SIDE_MIN_DIST_DESCENT', 'SLOPE_FUZZ', 'Y_FUZZ']
 ]
+
+let controls = {};
+controls.NUMERIC = function (ol, key, strategy, initVal, callback) {
+	var d = document.createElement('li');
+	d.innerHTML += '<span>' + key + '</span>';
+	var input = document.createElement('input');
+	input.value = initVal;
+	input.type = 'number';
+
+	input.onchange = function () {
+		return callback(input.value - 0);
+	};
+	function btn(shift) {
+		var button = document.createElement('button');
+		button.innerHTML = (shift > 0 ? '+' + shift : '-' + (-shift));
+		button.onclick = function () {
+			input.value = (input.value - 0) + shift;
+			return callback(input.value - 0);
+		}
+		d.appendChild(button)
+	};
+	btn(-100), btn(-50), btn(-10), btn(-5), btn(-1), btn(-0.1);
+	d.appendChild(input);
+	btn(0.1), btn(1), btn(5), btn(10), btn(50), btn(100);
+	ol.appendChild(d);
+}
+controls.VQ = function (ol, key, strategy, initVal, callback) {
+	var d = document.createElement('li');
+	d.className = "VQ";
+	d.innerHTML += '<span>' + key + '</span>';
+
+	let vqModel = [], panels = [];
+	for (let j = strategy.PPEM_MIN; j <= strategy.PPEM_MAX; j++) {
+		vqModel[j] = {
+			focus: false,
+			val: 0
+		}
+		let panel = document.createElement('div');
+		panel.className = "vq-panel"
+		panel.innerHTML += j;
+		let input = document.createElement('input');
+		input.value = vqModel[j].val;
+		input.setAttribute('size', 1);
+		input.onfocus = function (e) {
+			input.value = '';
+		}
+		input.onchange = function () {
+			vqModel[j].val = (input.value - 0) || 0;
+			vqModel[j].focus = true;
+			update();
+		}
+		panel.oncontextmenu = function (e) {
+			vqModel[j].focus = !vqModel[j].focus;
+			e.stopPropagation();
+			e.preventDefault();
+			update();
+		}
+		panel.onwheel = function (e) {
+			if (e.deltaY > 0) {
+				vqModel[j].val = ((input.value - 0) || 0) - 1;
+				vqModel[j].focus = true;
+				update();
+			} else if (e.deltaY < 0) {
+				vqModel[j].val = ((input.value - 0) || 0) + 1;
+				vqModel[j].focus = true;
+				update();
+			}
+			e.stopPropagation();
+			e.preventDefault();
+		}
+		panels[j] = {
+			panel: panel,
+			input: input
+		}
+		panel.appendChild(input);
+		d.appendChild(panel);
+	}
+
+	if (initVal && initVal instanceof Array) {
+		for (let k of initVal) {
+			vqModel[k[0]].focus = true;
+			vqModel[k[0]].val = k[1];
+		}
+	} else if (typeof initVal === 'number') {
+		vqModel[strategy.PPEM_MAX].focus = true;
+		vqModel[strategy.PPEM_MAX].val = initVal;
+	}
+
+
+	function update(nocb) {
+		let a = [];
+		for (let j = strategy.PPEM_MIN; j <= strategy.PPEM_MAX; j++) {
+			if (vqModel[j].focus) {
+				a.push([j, vqModel[j].val || 0]);
+			}
+			panels[j].input.className = vqModel[j].focus ? "focus" : "interpolated"
+		}
+		let f = monoip(a);
+		for (let j = strategy.PPEM_MIN; j <= strategy.PPEM_MAX; j++) {
+			panels[j].input.value = vqModel[j].val = Math.round(f(j));
+		}
+		if (!nocb) setTimeout(function () { callback(a) }, 0);
+	}
+	ol.appendChild(d);
+	update(true);
+};
 
 function createAdjusters() {
 	var container = document.getElementById('adjusters');
@@ -313,49 +423,25 @@ function createAdjusters() {
 	for (var g = 0; g < strategyControlGroups.length; g++) {
 		var ol = document.createElement('ol')
 		for (var j = 0; j < strategyControlGroups[g].length; j++) {
-			var key = strategyControlGroups[g][j];
-			if (typeof strategy[key] === 'number') (function (key) {
-				var d = document.createElement('li');
-				d.innerHTML += '<span>' + key + '</span>';
-				var input = document.createElement('input');
-				input.value = strategy[key];
-				input.type = 'number';
-
-				input.onchange = function () {
-					strategy[key] = input.value - 0;
-					update();
-				};
-				function btn(shift) {
-					var button = document.createElement('button');
-					button.innerHTML = (shift > 0 ? '+' + shift : '-' + (-shift));
-					button.onclick = function () {
-						strategy[key] += shift;
-						input.value = strategy[key]
-						update();
-					}
-					d.appendChild(button)
-				};
-				btn(-100)
-				btn(-50)
-				btn(-10)
-				btn(-5)
-				btn(-1)
-				btn(-0.1)
-				d.appendChild(input);
-				btn(0.1)
-				btn(1)
-				btn(5)
-				btn(10)
-				btn(50)
-				btn(100)
-				ol.appendChild(d);
-			})(key)
+			const key = strategyControlGroups[g][j];
+			const keyType = strategyControlTypes[key] || 'NUMERIC';
+			controls[keyType](ol, key, strategy, strategy[key], function (x) {
+				strategy[key] = x;
+				update();
+			});
 		}
 		container.appendChild(ol);
 	};
-
+	var save = document.createElement('button');
+	save.innerHTML = 'Save';
+	save.onclick = function (e) {
+		$.post('/save', { content: resultPanel.innerText }, function () { });
+		e.preventDefault();
+		e.stopPropagation();
+	}
 	// Result panel
 	var resultPanel = document.createElement("pre");
+	container.appendChild(save);
 	container.appendChild(resultPanel);
 
 	setTimeout(update, 0);
@@ -365,6 +451,34 @@ $.getJSON("/characters.json", function (data) {
 		console.log(strg);
 		defaultStrategy = strg.default;
 		strategy = strg.start;
+		if (!strategy.BLUEZONE_TOP_BAR && strategy.BLUEZONE_TOP_BAR_MIDDLE_SIZE) {
+			strategy.BLUEZONE_TOP_BAR = [
+				[strategy.PPEM_MIN, strategy.BLUEZONE_TOP_BAR_SMALL],
+				[strategy.BLUEZONE_TOP_BAR_MIDDLE_SIZE, strategy.BLUEZONE_TOP_BAR_MIDDLE],
+				[strategy.PPEM_MAX, strategy.BLUEZONE_TOP_BAR_LARGE]
+			]
+		}
+		if (!strategy.BLUEZONE_TOP_DOTBAR && strategy.BLUEZONE_TOP_BAR_MIDDLE_SIZE) {
+			strategy.BLUEZONE_TOP_DOTBAR = [
+				[strategy.PPEM_MIN, strategy.BLUEZONE_TOP_DOTBAR_SMALL],
+				[strategy.BLUEZONE_TOP_BAR_MIDDLE_SIZE, strategy.BLUEZONE_TOP_DOTBAR_MIDDLE],
+				[strategy.PPEM_MAX, strategy.BLUEZONE_TOP_DOTBAR_LARGE]
+			]
+		}
+		if (!strategy.BLUEZONE_BOTTOM_BAR && strategy.BLUEZONE_BOTTOM_BAR_MIDDLE_SIZE) {
+			strategy.BLUEZONE_BOTTOM_BAR = [
+				[strategy.PPEM_MIN, strategy.BLUEZONE_BOTTOM_BAR_SMALL],
+				[strategy.BLUEZONE_BOTTOM_BAR_MIDDLE_SIZE, strategy.BLUEZONE_BOTTOM_BAR_MIDDLE],
+				[strategy.PPEM_MAX, strategy.BLUEZONE_BOTTOM_BAR_LARGE]
+			]
+		}
+		if (!strategy.BLUEZONE_BOTTOM_DOTBAR && strategy.BLUEZONE_BOTTOM_BAR_MIDDLE_SIZE) {
+			strategy.BLUEZONE_BOTTOM_DOTBAR = [
+				[strategy.PPEM_MIN, strategy.BLUEZONE_BOTTOM_DOTBAR_SMALL],
+				[strategy.BLUEZONE_BOTTOM_BAR_MIDDLE_SIZE, strategy.BLUEZONE_BOTTOM_DOTBAR_MIDDLE],
+				[strategy.PPEM_MAX, strategy.BLUEZONE_BOTTOM_DOTBAR_LARGE]
+			]
+		}
 		input = data;
 		createAdjusters();
 	});

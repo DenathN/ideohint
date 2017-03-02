@@ -1,48 +1,61 @@
 "use strict";
 
-function stemPositionToActions(stems, uppx, env) {
+const Y = 0;
+const W = 1;
+const STRICT = 2;
+const STACKED = 3;
+
+const BELOW = 1;
+const ABOVE = 2;
+
+function stemPositionToActions(y, w, stems, uppx, env) {
 	let actions = [];
+	let stackrel = []
 	for (let j = 0; j < stems.length; j++) {
-		let stem = stems[j], w = stem.touchwidth;
-		let strict = stem.posKeyAtTop
-			? (stem.hasGlyphPointBelow ? stem.ytouch - w - env.glyphBottom <= 1.05 * uppx : false)
-			: (stem.hasGlyphPointAbove ? env.glyphTop - stem.ytouch <= 1.05 * uppx : false);
-		let stacked = false;
+		actions[j] = [y[j], w[j], false, false];
+		stackrel[j] = [];
+	}
+
+	// downward strictness/stackness detection
+	for (let j = 0; j < stems.length; j++) {
+		const sj = stems[j], yj = actions[j][Y], wj = actions[j][W];
 		for (let k = 0; k < j; k++) {
-			if (!env.directOverlaps[j][k]) continue;
-			if (stem.ytouch - w - stems[k].ytouch <= 0.1 * uppx
-				&& stem.touchwidth >= stem.width * 0.5
-				&& stem.xmax <= stems[k].xmax + w / 2
-				&& stem.xmin >= stems[k].xmin - w / 2) {
-				stacked = true;
+			const sk = stems[k], yk = actions[k][Y], wk = actions[k][W];
+			if (yj - wj === yk && wk * uppx * 2 >= sk.width
+				&& sj.xmax >= sk.xmax && sj.xmin <= sk.xmin) {
+				stackrel[k][j] = BELOW;
+				actions[k][STACKED] = true;
 			}
-			if (stem.width < stem.touchwidth) continue;
-			if (stem.ytouch - w - stems[k].ytouch <= 1.05 * uppx && stem.posKeyAtTop
-				|| stem.ytouch - w - stems[k].ytouch <= 2.05 * uppx && stem.posKeyAtTop && !stems[k].posKeyAtTop
-				&& stems[k].touchwidth < stems[k].width - 0.2 * uppx
-				&& stem.touchwidth < stem.width - 0.2 * uppx) {
-				strict = true;
+			if (wk * uppx > sk.width) continue;
+			if (yj - wj - yk === 1 && sj.posKeyAtTop
+				|| yj - wj - yk <= 2.05 && sj.posKeyAtTop && !sk.posKeyAtTop
+				&& wk * uppx < sk.width - 0.2 * uppx
+				&& wj * uppx < sj.width - 0.2 * uppx) {
+				actions[j][STRICT] = true;
 			}
 		}
+	}
+	for (let j = 0; j < stems.length; j++) {
+		const sj = stems[j], yj = actions[j][Y], wj = actions[j][W];
 		for (let k = j + 1; k < stems.length; k++) {
-			if (!env.directOverlaps[k][j]) continue;
-			if (stems[k].ytouch - stems[k].touchwidth - stem.ytouch <= 0.1 * uppx
-				&& stem.touchwidth >= stem.width * 0.5
-				&& stem.xmax < stems[k].xmax + w / 2 && stem.xmin > stems[k].xmin - w / 2
-				&& !(stem.xmax + w / 2 > stems[k].xmax && stem.xmin - w / 2 < stems[k].xmin)) {
-				stacked = true;
+			const sk = stems[k], yk = actions[k][Y], wk = actions[k][W];
+			if (yk - wk === yj && wk * uppx * 2 >= sk.width
+				&& sj.xmax > sk.xmax && sj.xmin < sk.xmin) {
+				stackrel[k][j] = ABOVE;
+				actions[k][STACKED] = true;
 			}
-			if (stem.width < stem.touchwidth) continue;
-			if (stems[k].ytouch - stems[k].touchwidth - stem.ytouch <= 1.05 * uppx && !stem.posKeyAtTop) {
-				strict = true;
+			if (wk * uppx > sk.width) continue;
+			if (yk - wk - yj === 1 && !sj.posKeyAtTop) {
+				actions[j][STRICT] = true;
 			}
 		}
-		actions.push([
-			Math.round(stem.ytouch / uppx),
-			Math.round(w / uppx),
-			strict,
-			stacked
-		]);
+	}
+	for (let j = 0; j < stems.length; j++) for (let k = 0; k < j; k++) {
+		for (let m = 0; m < stems.length; m++) {
+			if (stackrel[j][m] && stackrel[j][m] === stackrel[k][m] && env.directOverlaps[j][k]) {
+				actions[k][W] = 0;
+			}
+		}
 	}
 	return actions;
 }

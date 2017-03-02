@@ -75,7 +75,10 @@ module.exports = function (s) {
 		advKey: { id: s.advKey.id, yori: s.advKey.yori },
 		posAlign: s.posAlign.map(function (x) { return x.id }),
 		advAlign: s.advAlign.map(function (x) { return x.id }),
+		diagHigh: !!s.diagHigh,
+		diagLow: !!s.diagLow,
 		posKeyAtTop: !!s.posKeyAtTop,
+		rid: s.rid || 0,
 		slope: s.slope
 	}
 }

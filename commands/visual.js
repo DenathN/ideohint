@@ -6,6 +6,8 @@ var stream = require('stream');
 var devnull = require('dev-null');
 var yargs = require('yargs');
 var nodeStatic = require("node-static");
+var querystring = require('querystring');
+
 
 exports.command = "visual <input>";
 exports.describe = "Visual parameter adjuster";
@@ -14,6 +16,31 @@ exports.builder = function (yargs) {
 		.describe('w', 'Show test word')
 		.describe('port', 'Set Port (9527 by default)');
 }
+
+function processPost(request, response, callback) {
+	var queryData = "";
+	if (typeof callback !== 'function') return null;
+
+	if (request.method == 'POST') {
+		request.on('data', function (data) {
+			queryData += data;
+			if (queryData.length > 1e6) {
+				queryData = "";
+				response.writeHead(413, { 'Content-Type': 'text/plain' }).end();
+				request.connection.destroy();
+			}
+		});
+
+		request.on('end', function () {
+			callback(querystring.parse(queryData));
+		});
+
+	} else {
+		response.writeHead(405, { 'Content-Type': 'text/plain' });
+		response.end();
+	}
+}
+
 
 exports.handler = function (argv) {
 
@@ -50,6 +77,19 @@ exports.handler = function (argv) {
 		var port = process.env.PORT || 9527;
 		// Start a web server which displays an user interface for parameter adjustment
 		require('http').createServer(function (request, response) {
+			if (request.method == 'POST') {
+				return processPost(request, response, function (data) {
+					if (request.url === "/save") {
+						if (argv.parameters) {
+							fs.writeFileSync(argv.parameters, data.content);
+							console.log("parameters saved to", argv.parameters);
+						}
+					} else {
+						response.writeHead(405, { 'Content-Type': 'text/plain' });
+						response.end();
+					}
+				});
+			}
 			request.addListener("end", function () {
 				if (request.url === "/characters.json") {
 					response.setHeader("Content-Type", "application/json;charset=UTF-8");

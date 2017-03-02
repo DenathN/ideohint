@@ -49,15 +49,14 @@ function balance(y, env) {
 	for (var pass = 0; pass < REBALANCE_PASSES; pass++) {
 		for (var jm = 0; jm < N; jm++) {
 			var j = m[jm][1];
-			if (!avaliables[j].atGlyphBottom && !avaliables[j].atGlyphTop) {
-				if (canBeAdjustedDown(y, j, env, 1.8) && y[j] > avaliables[j].low) {
-					if (y[j] - avaliables[j].center > 0.6) {
-						y[j] -= 1;
-					}
-				} else if (canBeAdjustedUp(y, j, env, 1.8) && y[j] < avaliables[j].high) {
-					if (avaliables[j].center - y[j] > 0.6) {
-						y[j] += 1;
-					}
+			if (avaliables[j].atGlyphBottom || avaliables[j].atGlyphTop) continue;
+			if (canBeAdjustedDown(y, j, env, 1.8) && y[j] > avaliables[j].low) {
+				if (y[j] - avaliables[j].center > 0.6) {
+					y[j] -= 1;
+				}
+			} else if (canBeAdjustedUp(y, j, env, 1.8) && y[j] < avaliables[j].high) {
+				if (avaliables[j].center - y[j] > 0.6) {
+					y[j] += 1;
 				}
 			}
 		}
@@ -101,9 +100,13 @@ function balance(y, env) {
 			var d2 = y[k] - avaliables[k].properWidth - y[m];
 			var o1 = avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0;
 			var o2 = avaliables[k].y0 - avaliables[k].w0 - avaliables[m].y0;
-			if (y[k] < avaliables[k].high && o1 / o2 < 2 && env.P[j][k] <= env.P[k][m] && su > 1 && (sb < 1 || d1 >= d2 * 2)) {
+			if (y[k] < avaliables[k].high && o1 / o2 < 2
+				&& env.P[j][k] <= env.P[k][m]
+				&& su > 1 && (sb < 1 || d1 >= d2 * 2)) {
 				y[k] += 1;
-			} else if (y[k] > avaliables[k].low && o2 / o1 < 2 && env.P[j][k] >= env.P[k][m] && sb > 1 && (su < 1 || d2 >= d1 * 2)) {
+			} else if (y[k] > avaliables[k].low && o2 / o1 < 2
+				&& env.P[j][k] >= env.P[k][m]
+				&& sb > 1 && (su < 1 || d2 >= d1 * 2)) {
 				y[k] -= 1;
 			}
 		}

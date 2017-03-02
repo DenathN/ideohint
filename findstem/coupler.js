@@ -3,6 +3,7 @@
 var overlapInfo = require("./overlap").overlapInfo;
 var by_start = function (p, q) { return p[0].xori - q[0].xori; };
 var minmaxOfSeg = require("./seg").minmaxOfSeg;
+var slopeOf = require("../types").slopeOf;
 
 function segmentJoinable(pivot, segment, radical) {
 	for (var k = 0; k < pivot.length; k++) {
@@ -64,7 +65,10 @@ function findHorizontalSegments(radicals, strategy) {
 }
 
 function uuCouplable(sj, sk, radical, strategy) {
-	return Math.abs(sj[0].yori - sk[0].yori) <= strategy.Y_FUZZ && segmentJoinable(sj, sk, radical);
+	let slope = (slopeOf([sj]) + slopeOf([sk])) / 2;
+	let desired = sj[0].yori + (sk[0].xori - sj[0].xori) * slope;
+	let delta = Math.abs(sk[0].xori - sj[0].xori) * strategy.SLOPE_FUZZ_P + strategy.Y_FUZZ;
+	return Math.abs(sk[0].yori - desired) <= delta && segmentJoinable(sj, sk, radical);
 }
 function udMatchable(sj, sk, radical, strategy) {
 	return radical.includesTetragon(sj, sk);
@@ -244,7 +248,93 @@ function pairSymmetricStems(stems, strategy) {
 	return res;
 }
 
+// diagonal split
+function leftmostZ(segs) {
+	let m = segs[0][0];
+	for (let seg of segs) for (let z of seg) if (!m || z && z.xori < m.xori) m = z;
+	return m;
+}
+function rightmostZ(segs) {
+	let m = segs[0][0];
+	for (let seg of segs) for (let z of seg) if (!m || z && z.xori > m.xori) m = z;
+	return m;
+}
+function isDiagonal(hl, ll, hr, lr, strategy) {
+	if (hl === hr || ll === lr) return false;
+	if (hl.yori === hr.yori || ll.yori === lr.yori) return false;
+	return Math.abs(hr.yori - hl.yori) >= Math.abs(hr.xori - hl.xori) * strategy.SLOPE_FUZZ_R
+		&& Math.abs(lr.yori - ll.yori) >= Math.abs(lr.xori - ll.xori) * strategy.SLOPE_FUZZ_R
+		&& Math.abs(hl.xori - ll.xori) * 6 <= Math.max(Math.abs(hl.xori - hr.xori), Math.abs(ll.xori - lr.xori))
+		&& Math.abs(hr.xori - lr.xori) * 6 <= Math.max(Math.abs(hl.xori - hr.xori), Math.abs(ll.xori - lr.xori));
+}
+function linkIP(segs, hl, hr) {
+	let ans = [];
+	let unrel = [];
+	for (let seg of segs) {
+		let z = seg[0];
+		if (z !== hl && z !== hr) { ans.push(z); }
+		if (seg.length > 1 && seg[seg.length - 1] !== z) {
+			let z = seg[seg.length - 1];
+			if (z !== hl && z !== hr) { ans.push(z); }
+		}
+		for (let z of seg) if (z !== hl && z !== hr) unrel.push(z);
+	}
+	let res = { l: hl, r: hr, zs: ans, unrel: unrel }
+	return res;
+}
+function splitDiagonalStem(s, strategy, rid, results) {
+	let hl = leftmostZ(s.high);
+	let ll = leftmostZ(s.low);
+	let hr = rightmostZ(s.high);
+	let lr = rightmostZ(s.low);
+	if (isDiagonal(hl, ll, hr, lr, strategy)) {
+		let hmx = (hl.xori + hr.xori) / 2;
+		let lmx = (ll.xori + lr.xori) / 2;
+		let hmy = (hl.yori + hr.yori) / 2;
+		let lmy = (ll.yori + lr.yori) / 2;
+		let sleft = {
+			high: [[hl, { xori: hmx - 1, yori: hmy, on: true, id: -1 }]],
+			low: [[ll, { xori: lmx - 1, yori: lmy, on: true, id: -1 }]],
+			yori: hl.yori,
+			width: hl.yori - ll.yori,
+			belongRadical: s.belongRadical,
+			rid: rid
+		}
+		let sright = {
+			high: [[{ xori: hmx + 1, yori: hmy, on: true, id: -1 }, hr]],
+			low: [[{ xori: lmx + 1, yori: lmy, on: true, id: -1 }, lr]],
+			yori: hr.yori,
+			width: hr.yori - lr.yori,
+			belongRadical: s.belongRadical,
+			atRight: true,
+			linkedIPsHigh: linkIP(s.high, hl, hr),
+			linkedIPsLow: linkIP(s.low, ll, lr),
+			rid: rid
+		}
+		if (hl.yori > hr.yori) {
+			sleft.diagHigh = true
+			sright.diagLow = true
+		} else {
+			sright.diagHigh = true
+			sleft.diagLow = true
+		}
+		results.push(sleft, sright);
+	} else {
+		results.push(s);
+	}
+}
+function splitDiagonalStems(ss, strategy) {
+	var ans = [];
+	let rid = 1;
+	for (let s of ss) {
+		splitDiagonalStem(s, strategy, rid, ans);
+		rid += 1;
+	}
+	return ans;
+}
+
 module.exports = function (radicals, strategy) {
 	findHorizontalSegments(radicals, strategy);
-	return pairSymmetricStems(pairSegments(radicals, strategy), strategy);
+	var ss = splitDiagonalStems(pairSymmetricStems(pairSegments(radicals, strategy), strategy), strategy);
+	return ss;
 };

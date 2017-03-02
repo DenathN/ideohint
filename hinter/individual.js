@@ -8,6 +8,9 @@ function collidePotential(y, env) {
 		for (var k = 0; k < j; k++) {
 			if (y[j] === y[k]) { p += A[j][k]; } // Alignment
 			else if (y[j] <= y[k] + env.avaliables[j].properWidth) { p += C[j][k]; } // Collide
+			if (avaliables[j].rid && avaliables[j].rid === avaliables[k].rid && y[j] - y[k] > 1) { // diagonal break
+				p += S[j][k];
+			}
 			if (j !== k && sym[j][k]) {
 				if (y[j] !== y[k]) { p += S[j][k]; } // Symmetry break
 			} else {
@@ -26,6 +29,9 @@ function ablationPotential(y, env) {
 		p += avaliables[j].ablationCoeff * env.uppx * Math.abs(y[j] - avaliables[j].center);
 		if (y[j] > avaliables[j].softHigh) {
 			p += env.strategy.COEFF_PORPORTION_DISTORTION * env.uppx * Math.min(1, y[j] - avaliables[j].softHigh)
+		}
+		if (y[j] < avaliables[j].softLow) {
+			p += env.strategy.COEFF_PORPORTION_DISTORTION * env.uppx * Math.min(1, avaliables[j].softHigh - y[j])
 		}
 	}
 

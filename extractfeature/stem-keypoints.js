@@ -2,10 +2,12 @@
 
 var slopeOf = require("../types").slopeOf;
 
-function keyptPriority(incoming, current) {
-	if (current.on && !incoming.on) return false
-	if (incoming.on && !current.on) return true
-	return current.xori < incoming.xori
+function keyptPriority(incoming, current, atr) {
+	if (atr) {
+		return current.xori < incoming.xori
+	} else {
+		return current.xori > incoming.xori
+	}
 }
 
 function atRadicalBottom(s, strategy) {
@@ -30,15 +32,15 @@ module.exports = function (glyph, strategy, dov, P) {
 	for (var js = 0; js < glyph.stems.length; js++) {
 		var s = glyph.stems[js];
 		// b : a bottom stem?
-		var b = atRadicalBottom(s, strategy) && !s.hasGlyphStemBelow
-			|| hasGreaterUpperPromixity(glyph.stems, js, dov, P)
 		var slope = (slopeOf(s.high) + slopeOf(s.low)) / 2;
+		var b = atRadicalBottom(s, strategy) && (!s.hasGlyphStemBelow || Math.abs(slope) >= strategy.SLOPE_FUZZ / 2)
+			|| hasGreaterUpperPromixity(glyph.stems, js, dov, P)
 		// get highkey and lowkey
-		var highkey = s.high[0][0], lowkey = s.low[0][0], highnonkey = [], lownonkey = [];
+		var highkey = null, lowkey = null, highnonkey = [], lownonkey = [];
 		var jHigh = 0, jLow = 0, kHigh = 0, kLow = 0;
 		for (var j = 0; j < s.high.length; j++) {
 			for (var k = 0; k < s.high[j].length; k++) {
-				if (s.high[j][k].id >= 0 && keyptPriority(s.high[j][k], highkey)) {
+				if (!highkey || s.high[j][k].id >= 0 && keyptPriority(s.high[j][k], highkey, s.atRight)) {
 					highkey = s.high[j][k];
 					jHigh = j;
 					kHigh = k;
@@ -47,7 +49,7 @@ module.exports = function (glyph, strategy, dov, P) {
 		}
 		for (var j = 0; j < s.low.length; j++) {
 			for (var k = 0; k < s.low[j].length; k++) {
-				if (s.low[j][k].id >= 0 && keyptPriority(s.low[j][k], lowkey)) {
+				if (!lowkey || s.low[j][k].id >= 0 && keyptPriority(s.low[j][k], lowkey, s.atRight)) {
 					lowkey = s.low[j][k];
 					jLow = j;
 					kLow = k;
@@ -86,6 +88,12 @@ module.exports = function (glyph, strategy, dov, P) {
 				}
 				s.low[j][k].linkedKey = lowkey;
 			}
+		}
+		if (s.linkedIPsHigh) {
+			for (let z of s.linkedIPsHigh.unrel) z.donttouch = true;
+		}
+		if (s.linkedIPsLow) {
+			for (let z of s.linkedIPsLow.unrel) z.donttouch = true;
 		}
 		s.slope = slope;
 		s.yori = highkey.yori;

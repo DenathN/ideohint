@@ -7,7 +7,7 @@ function shortAbsorptionPointByKeys(shortAbsorptions, strategy, pt, keys, inSame
 	if (pt.touched || pt.donttouch || !pt.on || !strategy.DO_SHORT_ABSORPTION || !inSameRadical) return;
 	for (var m = 0; m < keys.length; m++) {
 		var key = keys[m];
-		if (key.blued && key.yStrongExtrema && (Math.hypot(pt.yori - key.yori, pt.xori - key.xori) <= strategy.ABSORPTION_LIMIT && pt.xStrongExtrema)) {
+		if (key.blued && key.yStrongExtrema && (Math.hypot(pt.yori - key.yori, pt.xori - key.xori) <= strategy.ABSORPTION_LIMIT && pt.xStrongExtrema) && key.id !== pt.id) {
 			shortAbsorptions.push([key.id, pt.id, priority + (pt.yExtrema ? 1 : 0)]);
 			pt.touched = true;
 			return;
@@ -44,7 +44,7 @@ function interpolateByKeys(interpolations, shortAbsorptions, strategy, pts, keys
 			if (!upperK.phantom && !lowerK.phantom) {
 				if (upperK.yori > lowerK.yori + strategy.Y_FUZZ) {
 					interpolations.push([upperK.id, lowerK.id, pt.id, priority]);
-				} else {
+				} else if (upperK.id != pt.id) {
 					shortAbsorptions.push([upperK.id, pt.id, priority]);
 				}
 			}
@@ -52,34 +52,37 @@ function interpolateByKeys(interpolations, shortAbsorptions, strategy, pts, keys
 		}
 	}
 }
-function linkRadicalSolePointsToOneStem(shortAbsorptions, strategy, radical, radicalPoints, stem, priority) {
-	var highpts = [].concat.apply([], stem.high);
-	var lowpts = [].concat.apply([], stem.low);
-	var keyPoints = highpts.concat(lowpts);
-	for (var j = 0; j < keyPoints.length; j++) for (var k = 0; k < radicalPoints.length; k++) {
-		var isHigh = j < highpts.length;
-		var zkey = keyPoints[j];
-		var z = radicalPoints[k];
-		if (z.touched || z.donttouch || zkey.id === z.id) continue;
-		// detect whether this sole point is attached to the stem edge.
-		// in most cases, absorbing a lower point should be stricter due to the topology of ideographs
-		// so we use asymmetric condition for "above" and "below" cases.
-		var yDifference = z.yori - (zkey.yori + (z.xori - zkey.xori) * (zkey.slope || 0));
-		if (!(yDifference > 0 ? yDifference < strategy.Y_FUZZ * 2 : -yDifference < strategy.Y_FUZZ)) continue;
 
-		// And it should have at least one segment in the glyph's outline.'
-		if (radical.includesSegmentEdge(z, zkey, 1, strategy.Y_FUZZ * 0.752)) {
-			var key = isHigh ? stem.highkey : stem.lowkey;
-			shortAbsorptions.push([key.id, z.id, priority + (z.yExtrema ? 1 : 0)]);
-			z.touched = true;
-		}
-	}
-}
 function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalStems, priority) {
 	var radicalParts = [radical.outline].concat(radical.holes);
 	var radicalPoints = [].concat.apply([], radicalParts.map(function (c) { return c.points.slice(0, -1); }));
-	for (var s = 0; s < radicalStems.length; s++) {
-		linkRadicalSolePointsToOneStem(shortAbsorptions, strategy, radical, radicalPoints, radicalStems[s], priority);
+	for (var k = 0; k < radicalPoints.length; k++) {
+		var z = radicalPoints[k];
+		if (z.keypoint || z.touched || z.donttouch) continue;
+		var candidate = null;
+		for (const stem of radicalStems) {
+			const highpts = [].concat.apply([], stem.high);
+			const lowpts = [].concat.apply([], stem.low);
+			const keyPoints = highpts.concat(lowpts);
+			for (var j = 0; j < keyPoints.length; j++) {
+				var zkey = keyPoints[j];
+				if (zkey.id === z.id || !(zkey.id >= 0) || zkey.donttouch) continue;
+				// detect whether this sole point is attached to the stem edge.
+				// in most cases, absorbing a lower point should be stricter due to the topology of ideographs
+				// so we use asymmetric condition for "above" and "below" cases.
+				var yDifference = z.yori - (zkey.yori + (z.xori - zkey.xori) * (zkey.slope || 0));
+				if (!(yDifference > 0 ? yDifference < strategy.Y_FUZZ * 2 : -yDifference < strategy.Y_FUZZ)) continue;
+				if (candidate && Math.hypot(z.yori - candidate.yori, z.xori - candidate.xori) <= Math.hypot(z.yori - zkey.yori, z.xori - zkey.xori)) continue;
+				if (!radical.includesSegmentEdge(z, zkey, 1, strategy.SLOPE_FUZZ_K)) continue;
+				candidate = zkey;
+			}
+		}
+		// And it should have at least one segment in the glyph's outline.'
+		if (candidate) {
+			let key = candidate.linkedKey ? candidate.linkedKey : candidate;
+			shortAbsorptions.push([candidate.id, z.id, priority + (z.yExtrema ? 1 : 0)]);
+			z.touched = true;
+		}
 	}
 }
 function linkSoleStemPoints(shortAbsorptions, strategy, glyph, priority) {
@@ -98,6 +101,18 @@ module.exports = function (glyph, strategy) {
 	for (var j = 0; j < contours.length; j++) for (var k = 0; k < contours[j].points.length; k++) {
 		var z = contours[j].points[k];
 		if (z.touched && z.keypoint || z.linkedKey) { glyphKeypoints.push(z); }
+	}
+	for (let s of glyph.stems) {
+		if (s.linkedIPsHigh) {
+			for (let z of s.linkedIPsHigh.zs) {
+				interpolations.push([s.linkedIPsHigh.l.id, s.linkedIPsHigh.r.id, z.id, 9])
+			}
+		}
+		if (s.linkedIPsLow) {
+			for (let z of s.linkedIPsLow.zs) {
+				interpolations.push([s.linkedIPsLow.l.id, s.linkedIPsLow.r.id, z.id, 9])
+			}
+		}
 	}
 	// phantom points
 	for (var s = 0; s < glyph.stems.length; s++) {
@@ -201,6 +216,7 @@ module.exports = function (glyph, strategy) {
 				&& interpolations[j][0] === interpolations[k][0]
 				&& interpolations[j][1] === interpolations[k][1]
 				&& interpolations[j][3] === interpolations[k][3]
+				&& interpolations[j][3] !== 9
 				&& Math.abs(glyph.indexedPoints[interpolations[j][2]].yori - glyph.indexedPoints[interpolations[k][2]].yori) <= strategy.Y_FUZZ) {
 				shortAbsorptions.push([
 					interpolations[j][2],
@@ -213,6 +229,6 @@ module.exports = function (glyph, strategy) {
 	}
 	return {
 		interpolations: interpolations.filter(x => x),
-		shortAbsorptions: shortAbsorptions
+		shortAbsorptions: shortAbsorptions.filter(a => a[0] !== a[1])
 	};
 };
