@@ -56,20 +56,28 @@ The strategy parameters determines how `ideohint` generate the instructions. It 
 
 ```toml
 [hinting]
-MOST_COMMON_STEM_WIDTH = 50
-ABSORPTION_LIMIT = 95
-STEM_SIDE_MIN_DIST_RISE = 120
-STEM_SIDE_MIN_DIST_DESCENT = 120
-BLUEZONE_BOTTOM_CENTER = -96
-BLUEZONE_TOP_CENTER = 805
-BLUEZONE_BOTTOM_LIMIT = -75
-BLUEZONE_TOP_LIMIT = 783
-BLUEZONE_BOTTOM_BAR = -73
-BLUEZONE_TOP_BAR = 790
-BLUEZONE_BOTTOM_DOTBAR = -78
-BLUEZONE_TOP_DOTBAR = 775
-SLOPE_FUZZ = 0.024
-PPEM_STEM_WIDTH_GEARS = [[0,1,1],[25,2,2]]
+PPEM_MIN = 11
+PPEM_MAX = 36
+CANONICAL_STEM_WIDTH = [[36,67]]
+CANONICAL_STEM_WIDTH_DENSE = [[36,67]]
+ABSORPTION_LIMIT = 120
+STEM_SIDE_MIN_RISE = 36
+STEM_SIDE_MIN_DESCENT = 53
+STEM_CENTER_MIN_RISE = 36
+STEM_CENTER_MIN_DESCENT = 50
+STEM_SIDE_MIN_DIST_RISE = 75
+STEM_SIDE_MIN_DIST_DESCENT = 75
+Y_FUZZ = 8
+BLUEZONE_BOTTOM_CENTER = -73
+BLUEZONE_BOTTOM_LIMIT = -45
+BLUEZONE_BOTTOM_BAR_REF = -75
+BLUEZONE_TOP_CENTER = 832
+BLUEZONE_TOP_LIMIT = 813
+BLUEZONE_TOP_BAR_REF = 799
+BLUEZONE_TOP_BAR = [[12,820],[15,820],[16,805],[32,799]]
+BLUEZONE_TOP_DOTBAR = [[12,808],[16,800],[32,790]]
+BLUEZONE_BOTTOM_BAR = [[16,-49],[36,-48]]
+BLUEZONE_BOTTOM_DOTBAR = [[12,-75],[16,-70],[36,-60]]
 
 [cvt]
 padding = 10
@@ -84,21 +92,18 @@ The hinting parameters are stored in `hinting` section. They include:
 * **Top Positioning Parameters**
 
   * **BLUEZONE_TOP_CENTER** and **BLUEZONE_TOP_LIMIT** : Center and lower limit of the top blue zone. Use characters like “木” to decide the value of **BLUEZONE_TOP_CENTER**.
-  * **BLUEZONE_TOP_BAR_REF** : The "reference" position of the upper edge of "top" hotizontal strokes without any stroke above or touching its upper edge. This value is used to determine the relative position of strokes.
-  * **BLUEZONE_TOP_BAR_MIDDLE_SIZE**: The text size being identified as "middle size", in pixels.
+  * **BLUEZONE_TOP_BAR_REF** : The "reference" position of the upper edge of "top" hotizontal strokes without any stroke above or touching its upper edge. This value is used to determine the relative position of strokes. Can be either a constant number, or a size-dependent value, written in the same  format as **BLUEZONE_TOP_BAR** (see below).
 
-
-* **BLUEZONE_TOP_BAR_SMALL**, **BLUEZONE_TOP_BAR_MIDDLE**, **BLUEZONE_TOP_BAR_LARGE**: The controlled position of topmost horizontal stroke's upper edges in small, middle and large font sizes. Carefully adjusting them can optimize the visual representation of the hinted result. This applies to the topmost strokes of characters “里”.
-* **BLUEZONE_TOP_DOTBAR_SMALL**, **BLUEZONE_TOP_DOTBAR_MIDDLE**, **BLUEZONE_TOP_DOTBAR_LARGE**: The controlled position of the upper edge of "top" hotizontal strokes with stroke touching its upper edge. Like the position of the first horizontal stroke in “章”.
+  * **BLUEZONE_TOP_BAR**: The controlled position of topmost horizontal stroke's upper edges in small, middle and large font sizes. Carefully adjusting them can optimize the visual representation of the hinted result. This applies to the topmost strokes of characters “里”. It should be an array containing correspondences between character size (in ppem) and the desired position (in emu), like `[[12,820],[15,820],[16,805],[32,799]]`.
+  * **BLUEZONE_TOP_DOTBAR**: The controlled position of the upper edge of "top" horizontal strokes with stroke touching its upper edge. Like the position of the first horizontal stroke in “章”. It follows the same format as **BLUEZONE_TOP_BAR**.
 
 * **Bottom Positioning Parameters**: Similar as the previous  section, with the name **\_TOP\_** replaced to **\_BOTTOM\_**, and applies to the bottommost features of the characters.
 
 * **Stem Detection Parameters**
 
     * **ABSORPTION_LIMIT**: The limit when a horizontal extremum being linked to a point aligned to the top or bottom blue zone. Useful when preserving diagonal strokes’ width. Preferred value: slightly larger than **MAX_STEM_WIDTH**.
-    * **CANONICAL_STEM_WIDTH** : The “Canonical” stroke width among the entire font. Measured in a loose character like “里”. 
-    * **CANONICAL_STEM_WIDTH_SMALL**: The “Canonical” stroke width used under small sizes. Measured in a loose character like “里”. Preferred value: Equal to or small smaller than **CANONICAL_STEM_WIDTH**.
-    * **CANONICAL_STEM_WIDTH_DENSE**: The “Canonical” stroke width of dense characters like “襄”. Useful in bold weights. For lighter width, it should be identical to **CANONICAL_STEM_WIDTH**.
+    * **CANONICAL_STEM_WIDTH** : The “Canonical” stroke width among the entire font. Measured in a loose character like “里”. Can be either a constant number, or a size-dependent value, in the same format as **BLUEZONE_TOP_BAR**.
+    * **CANONICAL_STEM_WIDTH_DENSE**: The “Canonical” stroke width of dense characters like “襄”. Useful in bold weights. Can be either a constant number, or a size-dependent value, in the same format as **BLUEZONE_TOP_BAR**. For lighter width, it should be identical to **CANONICAL_STEM_WIDTH**. 
     * **STEM_SIDE_MIN_RISE** : The maximum height of decorative shapes placed aside a hotizontal stem's upper edge.
     * **STEM_SIDE_MIN_DESCENT** : The maximum depth of close decorative shapes placed aside a hotizontal stem's lower edge.
     * **STEM_CENTER_MIN_RISE** : The maximum height of close decorative shapes placed above a hotizontal stem's upper edge.
