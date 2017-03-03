@@ -8,7 +8,7 @@ var util = require("util");
 var stripBom = require("strip-bom");
 var oboe = require("oboe");
 var instruct = require("../instructor").instruct;
-var stringifyToStream = require('../stringify-to-stream');
+var stringifyToStream = require('../support/stringify-to-stream');
 var cvtlib = require("../instructor/cvt");
 var talk = require('../instructor/vtttalk').talk;
 

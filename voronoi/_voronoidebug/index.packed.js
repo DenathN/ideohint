@@ -21102,9 +21102,9 @@ module.exports = function(arr, obj){
 },{}],173:[function(require,module,exports){
 "use strict"
 
-var Contour = require('./types.js').Contour;
-var Point = require('./types.js').Point;
-var Glyph = require('./types.js').Glyph;
+var Contour = require('./types').Contour;
+var Point = require('./types').Point;
+var Glyph = require('./types').Glyph;
 var util = require('util');
 
 var crypto = require('crypto');
@@ -21152,7 +21152,7 @@ function parseOTD(input) {
 
 exports.parseOTD = parseOTD;
 exports.hashContours = hashContours;
-},{"./types.js":174,"crypto":7,"util":170}],174:[function(require,module,exports){
+},{"./types":174,"crypto":7,"util":170}],174:[function(require,module,exports){
 "use strict"
 
 function Point(x, y, on, id) {

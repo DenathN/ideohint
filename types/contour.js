@@ -1,17 +1,4 @@
-"use strict";
-
-function Point(x, y, on, id) {
-	this.x = x;
-	this.y = y;
-	this.xtouch = x;
-	this.ytouch = y;
-	this.touched = false;
-	this.donttouch = false;
-	this.on = on;
-	this.id = id;
-	this.interpolated = id < 0;
-}
-Point.PHANTOM = -1;
+"use strict"
 
 function Contour() {
 	this.points = [];
@@ -104,52 +91,4 @@ Contour.prototype.includes = function (that) {
 	return true;
 };
 
-
-function Glyph(contours) {
-	this.contours = contours || [];
-	this.stems = [];
-	this.nPoints = 0;
-	this.indexedPoints = [];
-}
-Glyph.prototype.containsPoint = function (x, y) {
-	var nCW = 0, nCCW = 0;
-	for (var j = 0; j < this.contours.length; j++) {
-		if (inPoly({ x: x, y: y }, this.contours[j].points)) {
-			if (this.contours[j].ccw) nCCW += 1;
-			else nCW += 1;
-		}
-	}
-	return nCCW != nCW;
-};
-Glyph.prototype.unifyZ = function () {
-	for (var j = 0; j < this.contours.length; j++) {
-		var pts = this.contours[j].points
-		for (var k = 0; k < pts.length; k++) {
-			if (this.indexedPoints[pts[k].id]) {
-				pts[k] = this.indexedPoints[pts[k].id]
-			}
-		}
-	}
-}
-exports.Glyph = Glyph;
-exports.Contour = Contour;
-exports.Point = Point;
-
-
-// /
-function slopeOf(segs) {
-	var sy = 0, sx = 0, n = 0;
-	for (var j = 0; j < segs.length; j++) for (var k = 0; k < segs[j].length; k++) {
-		sy += segs[j][k].y;
-		sx += segs[j][k].x;
-		n += 1;
-	}
-	var ax = sx / n, ay = sy / n;
-	var b1num = 0, b1den = 0;
-	for (var j = 0; j < segs.length; j++) for (var k = 0; k < segs[j].length; k++) {
-		b1num += (segs[j][k].x - ax) * (segs[j][k].y - ay);
-		b1den += (segs[j][k].x - ax) * (segs[j][k].x - ax);
-	}
-	return b1num / b1den;
-}
-exports.slopeOf = slopeOf;
+module.exports = Contour;

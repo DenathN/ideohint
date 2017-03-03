@@ -6,7 +6,7 @@ var roundings = require('../roundings');
 var instruct = require('../instructor').instruct;
 var createCvt = require('../instructor/cvt').createCvt;
 
-var monoip = require('../hinter/monotonic-interpolate');
+var monoip = require('../support/monotonic-interpolate');
 
 
 var defaultStrategy;

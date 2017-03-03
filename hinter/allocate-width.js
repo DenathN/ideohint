@@ -1,5 +1,5 @@
 "use strict";
-function mix(a, b, x) { return a + (b - a) * x; }
+const { mix, lerp, xlerp, xclamp } = require('../support/common');
 function spare(y, w, p, q) { return y[p] - y[q] > w[p]; }
 function veryspare(y, w, p, q) { return y[p] - y[q] > w[p] + 1; }
 function edgetouch(s, t) {

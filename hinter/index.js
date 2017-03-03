@@ -1,30 +1,19 @@
 "use strict";
 
-var util = require("util");
-var roundings = require("../roundings");
-var toposort = require("toposort");
+const util = require("util");
+const roundings = require("../roundings");
+const toposort = require("toposort");
 
-var evolve = require("./evolve");
-var Individual = require("./individual");
-var uncollide = require("./uncollide");
-var balance = require("./balance");
-var earlyAdjust = require("./early");
-var allocateWidth = require("./allocate-width");
-var stemPositionToActions = require("./actions");
+const evolve = require("./evolve");
+const Individual = require("./individual");
+const uncollide = require("./uncollide");
+const balance = require("./balance");
+const earlyAdjust = require("./early");
+const allocateWidth = require("./allocate-width");
+const stemPositionToActions = require("./actions");
 
-var monoip = require('./monotonic-interpolate');
-
-function xclamp(low, x, high) { return x < low ? low : x > high ? high : x; }
-function lerp(x, x1, x2, y1, y2) {
-	return (x - x1) / (x2 - x1) * (y2 - y1) + y1;
-}
-function xlerp(x, x1, x2, x3, y1, y2, y3) {
-	if (x <= x2) {
-		return (x - x1) / (x2 - x1) * (y2 - y1) + y1;
-	} else {
-		return (x - x2) / (x3 - x2) * (y3 - y2) + y2;
-	}
-}
+const { lerp, xlerp, xclamp } = require('../support/common');
+const monoip = require('../support/monotonic-interpolate');
 
 function toVQ(v, ppem) {
 	if (v && v instanceof Array) {
