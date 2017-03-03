@@ -5,7 +5,7 @@ function analyzeBlanks(stems, directOverlaps) {
 	for (var j = 0; j < directOverlaps.length; j++) {
 		blanks[j] = [];
 		for (var k = 0; k < directOverlaps.length; k++) {
-			blanks[j][k] = stems[j].yori - stems[j].width - stems[k].yori;
+			blanks[j][k] = stems[j].y - stems[j].width - stems[k].y;
 		}
 	};
 	return blanks;

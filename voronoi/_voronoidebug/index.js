@@ -107,14 +107,14 @@ function construct_voronoi(glyph) {
 		var contour = glyph.contours[j];
 
 		// Layer 1 : Control outline
-		var x0 = contour.points[0].xori;
-		var y0 = contour.points[0].yori;
+		var x0 = contour.points[0].x;
+		var y0 = contour.points[0].y;
 		var testpoints = [{ x: x0, y: y0 }];
 		contour.testpoints = testpoints;
 		for (var k = 1; k < contour.points.length; k++) {
 			if (contour.points[k].on) {
-				var x1 = contour.points[k].xori
-				var y1 = contour.points[k].yori
+				var x1 = contour.points[k].x
+				var y1 = contour.points[k].y
 				var gs = [contour.points[k - 1], contour.points[k]];
 				var ts = [gs, x0, y0, x1, y1];
 				glyphSegments.push(gs);
@@ -123,15 +123,15 @@ function construct_voronoi(glyph) {
 				y0 = y1;
 				testpoints.push({ x: x1, y: y1 });
 			} else {
-				var x1 = contour.points[k].xori;
-				var y1 = contour.points[k].yori;
+				var x1 = contour.points[k].x;
+				var y1 = contour.points[k].y;
 				var next = contour.points[k + 1];
 				if (next.on) {
-					var x2 = next.xori;
-					var y2 = next.yori;
+					var x2 = next.x;
+					var y2 = next.y;
 				} else {
-					var x2 = (x1 + next.xori) / 2;
-					var y2 = (y1 + next.yori) / 2;
+					var x2 = (x1 + next.x) / 2;
+					var y2 = (y1 + next.y) / 2;
 				}
 				var SEGMENTS = 4;
 				var gs = [contour.points[k - 1], contour.points[k], contour.points[k + 1]];
@@ -215,7 +215,7 @@ function extractStems(diagram) {
 function nearestAttach(v, arc) {
 	var mind = 0xFFFF, minp = arc[0];
 	for (var j = 0; j < arc.length; j++) {
-		var d = Math.hypot(arc[j].xori - v.x, arc[j].yori - v.y);
+		var d = Math.hypot(arc[j].x - v.x, arc[j].y - v.y);
 		if (d <= mind) {
 			minp = arc[j];
 			mind = d;
@@ -230,7 +230,7 @@ function valz(z1, z2) {
 	return z1.id === z2.id;
 }
 function vy(z1, z2) {
-	return Math.abs(z1.yori - z2.yori) <= 1
+	return Math.abs(z1.y - z2.y) <= 1
 }
 
 function spp(a, b, c, d) {
@@ -245,9 +245,9 @@ function mergible(s1, s2) {
 }
 function by_val(a, b) { return a - b }
 function uniq(a) {
-    return a.sort(by_val).filter(function (item, pos, ary) {
-        return !pos || item != ary[pos - 1];
-    })
+	return a.sort(by_val).filter(function (item, pos, ary) {
+		return !pos || item != ary[pos - 1];
+	})
 }
 function present(x) { return !!x }
 
@@ -261,8 +261,8 @@ var POS_BELOW = -1;
 var POS_MID = 0
 
 function getpos(v0, v1, a0, a1) {
-	if (a0.yori > v0.y && a1.yori > v1.y && a0.yori > v1.y && a1.yori > v0.y) return POS_ABOVE;
-	if (a0.yori < v0.y && a1.yori < v1.y && a0.yori < v1.y && a1.yori < v0.y) return POS_BELOW;
+	if (a0.y > v0.y && a1.y > v1.y && a0.y > v1.y && a1.y > v0.y) return POS_ABOVE;
+	if (a0.y < v0.y && a1.y < v1.y && a0.y < v1.y && a1.y < v0.y) return POS_BELOW;
 	return POS_MID;
 }
 
@@ -273,23 +273,23 @@ function render() {
 	function txp(x) { return ((x + 50) / strategy.UPM * ppem) };
 	function typ(y) { return Math.round((- y + strategy.BLUEZONE_TOP_CENTER / 1000 * strategy.UPM + 100) / strategy.UPM * ppem) };
 
-var glyph = glyphs[INDEX];
+	var glyph = glyphs[INDEX];
 	var diagram = construct_voronoi(glyph);
 	var edges = diagram.edges;
-	
+
 	var extremeEdges = [];
 	for (var j = 0; j < glyph.contours.length; j++) {
 		var contour = glyph.contours[j];
-		for (var k = 0; k < contour.points.length; k++) if(contour.points[k].on) for(var m = 0; m < edges.length; m++){
+		for (var k = 0; k < contour.points.length; k++) if (contour.points[k].on) for (var m = 0; m < edges.length; m++) {
 			var v0 = diagram.vertexes[edges[m].vertex0_index], v1 = diagram.vertexes[edges[m].vertex1_index];
-			if(v0 && v1 && v0.x === contour.points[k].xori && v0.y === contour.points[k].yori && v1.inside && !v1.border){
+			if (v0 && v1 && v0.x === contour.points[k].x && v0.y === contour.points[k].y && v1.inside && !v1.border) {
 				extremeEdges.push(edges[m]);
 			}
 		}
 	}
 	for (var j = 0; j < edges.length; j++) {
 		var v0 = diagram.vertexes[edges[j].vertex0_index], v1 = diagram.vertexes[edges[j].vertex1_index];
-		if(!v0 || !v1 || !v0.inside || !v1.inside) continue;
+		if (!v0 || !v1 || !v0.inside || !v1.inside) continue;
 		hPreview.lineWidth = 1;
 		hPreview.strokeStyle = 'rgba(0,0,0,0.25)';
 		hPreview.beginPath();
@@ -375,17 +375,17 @@ var glyph = glyphs[INDEX];
 		hPreview.lineTo(txp(s.v1.x), typ(s.v1.y))
 		hPreview.stroke();
 		hPreview.lineWidth = 1;
-		
+
 		//if (s.a0.on) {
 		hPreview.beginPath();
 		hPreview.moveTo(txp(s.v0.x), typ(s.v0.y));
-		hPreview.lineTo(txp(s.a0.xori), typ(s.a0.yori));
+		hPreview.lineTo(txp(s.a0.x), typ(s.a0.y));
 		hPreview.stroke();
 		//}
 		//if (s.a1.on) {
 		hPreview.beginPath();
 		hPreview.moveTo(txp(s.v1.x), typ(s.v1.y));
-		hPreview.lineTo(txp(s.a1.xori), typ(s.a1.yori));
+		hPreview.lineTo(txp(s.a1.x), typ(s.a1.y));
 		hPreview.stroke();
 		//}
 	}
@@ -420,26 +420,26 @@ var glyph = glyphs[INDEX];
 	for (var j = 0; j < glyphs[INDEX].contours.length; j++) {
 		var contour = glyphs[INDEX].contours[j];
 		// Layer 1 : Control outline
-		var x0 = contour.points[0].xori
-		var y0 = contour.points[0].yori
+		var x0 = contour.points[0].x
+		var y0 = contour.points[0].y
 		hPreview.moveTo(txp(x0), typ(y0));
 		for (var k = 1; k < contour.points.length; k++) {
 			if (contour.points[k].on) {
-				var x1 = contour.points[k].xori
-				var y1 = contour.points[k].yori
+				var x1 = contour.points[k].x
+				var y1 = contour.points[k].y
 				hPreview.lineTo(txp(x1), typ(y1));
 				x0 = x1;
 				y0 = y1;
 			} else {
-				var x1 = contour.points[k].xori
-				var y1 = contour.points[k].yori
+				var x1 = contour.points[k].x
+				var y1 = contour.points[k].y
 				var next = contour.points[k + 1];
 				if (next.on) {
-					var x2 = next.xori;
-					var y2 = next.yori;
+					var x2 = next.x;
+					var y2 = next.y;
 				} else {
-					var x2 = (x1 + next.xori) / 2;
-					var y2 = (y1 + next.yori) / 2;
+					var x2 = (x1 + next.x) / 2;
+					var y2 = (y1 + next.y) / 2;
 				}
 				hPreview.quadraticCurveTo(txp(x1), typ(y1), txp(x2), typ(y2))
 				x0 = x2;

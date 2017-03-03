@@ -1,12 +1,13 @@
 "use strict";
 
-var slopeOf = require("../types").slopeOf;
+const slopeOf = require("../types").slopeOf;
+const hlkey = require('../findstem/hlkey');
 
 function keyptPriority(incoming, current, atr) {
 	if (atr) {
-		return current.xori < incoming.xori
+		return current.x < incoming.x
 	} else {
-		return current.xori > incoming.xori
+		return current.x > incoming.x
 	}
 }
 
@@ -30,44 +31,27 @@ function hasGreaterUpperPromixity(stems, js, dov, P) {
 module.exports = function (glyph, strategy, dov, P) {
 	// Stem Keypoints
 	for (var js = 0; js < glyph.stems.length; js++) {
-		var s = glyph.stems[js];
-		// b : a bottom stem?
-		var slope = (slopeOf(s.high) + slopeOf(s.low)) / 2;
-		var b = atRadicalBottom(s, strategy) && (!s.hasGlyphStemBelow || Math.abs(slope) >= strategy.SLOPE_FUZZ / 2)
-			|| hasGreaterUpperPromixity(glyph.stems, js, dov, P)
+		const s = glyph.stems[js];
+		// posKeyShouldAtTop : a bottom stem?
+		const slope = (slopeOf(s.high) + slopeOf(s.low)) / 2;
+		const posKeyShouldAtTop =
+			(atRadicalBottom(s, strategy)
+				&& (!s.hasGlyphStemBelow || Math.abs(slope) >= strategy.SLOPE_FUZZ / 2))
+			|| hasGreaterUpperPromixity(glyph.stems, js, dov, P);
+
 		// get highkey and lowkey
-		var highkey = null, lowkey = null, highnonkey = [], lownonkey = [];
-		var jHigh = 0, jLow = 0, kHigh = 0, kLow = 0;
-		for (var j = 0; j < s.high.length; j++) {
-			for (var k = 0; k < s.high[j].length; k++) {
-				if (!highkey || s.high[j][k].id >= 0 && keyptPriority(s.high[j][k], highkey, s.atRight)) {
-					highkey = s.high[j][k];
-					jHigh = j;
-					kHigh = k;
-				}
-			}
-		}
-		for (var j = 0; j < s.low.length; j++) {
-			for (var k = 0; k < s.low[j].length; k++) {
-				if (!lowkey || s.low[j][k].id >= 0 && keyptPriority(s.low[j][k], lowkey, s.atRight)) {
-					lowkey = s.low[j][k];
-					jLow = j;
-					kLow = k;
-				}
-			}
-		}
+		const { highkey, lowkey } = hlkey.findHighLowKeys(s, strategy);
 		highkey.touched = lowkey.touched = true;
+
+		// get non-key points
+		let highnonkey = [], lownonkey = [];
 		for (var j = 0; j < s.high.length; j++) {
 			for (var k = 0; k < s.high[j].length; k++) {
 				if (s.high[j][k] === highkey) continue;
-				if (j !== jHigh) {
-					if (k === 0) {
-						highnonkey.push(s.high[j][k]);
-						s.high[j][k].touched = true;
-					} else {
-						s.high[j][k].donttouch = true;
-					}
-				} else if (s.high[j][k] !== highkey) {
+				if (k === 0) {
+					highnonkey.push(s.high[j][k]);
+					s.high[j][k].touched = true;
+				} else {
 					s.high[j][k].donttouch = true;
 				}
 				s.high[j][k].linkedKey = highkey;
@@ -76,14 +60,10 @@ module.exports = function (glyph, strategy, dov, P) {
 		for (var j = 0; j < s.low.length; j++) {
 			for (var k = 0; k < s.low[j].length; k++) {
 				if (s.low[j][k] === lowkey) continue;
-				if (j !== jLow) {
-					if (k === s.low[j].length - 1) {
-						lownonkey.push(s.low[j][k]);
-						s.low[j][k].touched = true;
-					} else {
-						s.low[j][k].donttouch = true;
-					}
-				} else if (s.low[j][k] !== lowkey) {
+				if (k === s.low[j].length - 1) {
+					lownonkey.push(s.low[j][k]);
+					s.low[j][k].touched = true;
+				} else {
 					s.low[j][k].donttouch = true;
 				}
 				s.low[j][k].linkedKey = lowkey;
@@ -96,15 +76,15 @@ module.exports = function (glyph, strategy, dov, P) {
 			for (let z of s.linkedIPsLow.unrel) z.donttouch = true;
 		}
 		s.slope = slope;
-		s.yori = highkey.yori;
-		s.width = highkey.yori - lowkey.yori;
+		s.y = highkey.y;
+		s.width = highkey.y - lowkey.y;
 		s.highkey = highkey;
 		s.lowkey = lowkey;
-		s.posKey = b ? lowkey : highkey;
-		s.advKey = b ? highkey : lowkey;
-		s.posAlign = b ? lownonkey : highnonkey;
-		s.advAlign = b ? highnonkey : lownonkey;
-		s.posKeyAtTop = !b;
+		s.posKey = posKeyShouldAtTop ? lowkey : highkey;
+		s.advKey = posKeyShouldAtTop ? highkey : lowkey;
+		s.posAlign = posKeyShouldAtTop ? lownonkey : highnonkey;
+		s.advAlign = posKeyShouldAtTop ? highnonkey : lownonkey;
+		s.posKeyAtTop = !posKeyShouldAtTop;
 		s.posKey.keypoint = true;
 		s.advKey.keypoint = true;
 		s.posKey.slope = s.advKey.slope = s.slope;

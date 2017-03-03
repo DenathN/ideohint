@@ -38,6 +38,7 @@ function hint(glyph, ppem, strategy) {
 	var stems = glyph.stems;
 	if (!stems.length) return [];
 
+	// Hinting parameters
 	const upm = strategy.UPM || 1000;
 	const uppx = upm / ppem;
 	const STEM_SIDE_MIN_RISE = strategy.STEM_SIDE_MIN_RISE;
@@ -290,7 +291,7 @@ function hint(glyph, ppem, strategy) {
 		var tws = decideWidths(stems, glyph.dominancePriority);
 		// Decide avaliability space
 		for (var j = 0; j < stems.length; j++) {
-			var y0 = stems[j].yori, w0 = stems[j].width;
+			var y0 = stems[j].y, w0 = stems[j].width;
 			var w = tws[j] * uppx;
 			// The bottom limit of a stem
 			var lowlimit = atGlyphBottom(stems[j])
@@ -435,18 +436,6 @@ function hint(glyph, ppem, strategy) {
 		WIDTH_GEAR_PROPER: WIDTH_GEAR_PROPER,
 		noAblation: false
 	};
-
-	function assignWidths(res) {
-		for (var j = 0; j < stems.length; j++) {
-			stems[j].touchwidth = res.w[j] * uppx;
-			stems[j].ytouch = res.y[j] * uppx;
-		}
-	}
-
-	for (var j = 0; j < stems.length; j++) {
-		stems[j].ytouch = stems[j].yori;
-		stems[j].touchwidth = uppx;
-	}
 
 	var stemPositions = [];
 	for (var j = 0; j < stems.length; j++) {

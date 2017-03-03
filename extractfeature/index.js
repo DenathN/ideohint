@@ -12,7 +12,7 @@ var analyzeFlex = require('./flex');
 var getStemKeyInfo = require('./stem-keyinfo');
 var analyzeDominance = require('./dominance');
 
-function byyori(a, b) { return a.yori - b.yori }
+function byyori(a, b) { return a.y - b.y }
 
 exports.extractFeature = function (glyph, strategy) {
 	var directOverlaps = analyzeDirectOverlaps(glyph, strategy, true);

@@ -105,7 +105,7 @@ exports.handler = function (argv) {
 				ipsacalls: getIpsaCalls(glyph),
 				stems: glyph.stems.map(function (s) {
 					return {
-						y0: s.yori,
+						y0: s.y,
 						w0: s.width,
 						posKeyAtTop: s.posKeyAtTop,
 						posKey: s.posKey.id,

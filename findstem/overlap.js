@@ -3,8 +3,8 @@ function byAt(p, q) { return p.at - q.at }
 function overlapInfo(a, b, strategy) {
 	var events = []
 	for (var j = 0; j < a.length; j++) {
-		var low = Math.min(a[j][0].xori, a[j][a[j].length - 1].xori);
-		var high = Math.max(a[j][0].xori, a[j][a[j].length - 1].xori);
+		var low = Math.min(a[j][0].x, a[j][a[j].length - 1].x);
+		var high = Math.max(a[j][0].x, a[j][a[j].length - 1].x);
 		if (low < high) {
 			events.push({ at: low, on: true, a: true });
 			events.push({ at: high, on: false, a: true });
@@ -12,8 +12,8 @@ function overlapInfo(a, b, strategy) {
 	}
 	var probeb = new Array(strategy.UPM || 1000);
 	for (var j = 0; j < b.length; j++) {
-		var low = Math.min(b[j][0].xori, b[j][b[j].length - 1].xori);
-		var high = Math.max(b[j][0].xori, b[j][b[j].length - 1].xori);
+		var low = Math.min(b[j][0].x, b[j][b[j].length - 1].x);
+		var high = Math.max(b[j][0].x, b[j][b[j].length - 1].x);
 		if (low < high) {
 			events.push({ at: low, on: true, a: false });
 			events.push({ at: high, on: false, a: false });

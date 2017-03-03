@@ -17,8 +17,8 @@ Radical.prototype.includesSegment = function (z1, z2) {
 	var SEGMENTS = 64;
 	for (var s = 1; s < SEGMENTS; s++) {
 		var testz = {
-			xori: z2.xori + (z1.xori - z2.xori) * (s / SEGMENTS),
-			yori: z2.yori + (z1.yori - z2.yori) * (s / SEGMENTS)
+			x: z2.x + (z1.x - z2.x) * (s / SEGMENTS),
+			y: z2.y + (z1.y - z2.y) * (s / SEGMENTS)
 		};
 		if (!this.includes(testz)) {
 			return false;
@@ -32,8 +32,8 @@ Radical.prototype.includesSegmentEdge = function (z1, z2, um, delta) {
 	}
 	for (var u1 = -um; u1 <= um; u1++) for (var u2 = -um; u2 <= um; u2++)
 		for (var u3 = -um; u3 <= um; u3++) for (var u4 = -um; u4 <= um; u4++) {
-			var z1a = { xori: z1.xori + u1 * delta, yori: z1.yori + u2 * delta };
-			var z2a = { xori: z2.xori + u3 * delta, yori: z2.yori + u4 * delta };
+			var z1a = { x: z1.x + u1 * delta, y: z1.y + u2 * delta };
+			var z2a = { x: z2.x + u3 * delta, y: z2.y + u4 * delta };
 			if (this.includesSegment(z1a, z2a)) {
 				return true;
 			}
@@ -42,7 +42,7 @@ Radical.prototype.includesSegmentEdge = function (z1, z2, um, delta) {
 };
 
 function mixz(p, q, x) {
-	return { xori: p.xori + (q.xori - p.xori) * x, yori: p.yori + (q.yori - p.yori) * x }
+	return { x: p.x + (q.x - p.x) * x, y: p.y + (q.y - p.y) * x }
 }
 
 Radical.prototype.includesTetragon = function (s1, s2) {
@@ -52,11 +52,11 @@ Radical.prototype.includesTetragon = function (s1, s2) {
 		for (var v = 0; v < s2.length - 1; v++) {
 			var p = s1[u], q = s1[u + 1];
 			var r = s2[v], s = s2[v + 1];
-			if (p.xori > q.xori) {
+			if (p.x > q.x) {
 				var t = p;
 				p = q; q = t;
 			}
-			if (r.xori > s.xori) {
+			if (r.x > s.x) {
 				var t = r;
 				r = s; s = t;
 			}

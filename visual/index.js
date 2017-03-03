@@ -14,16 +14,16 @@ var strategy;
 var input;
 var glyphs;
 function interpolate(a, b, c) {
-	if (c.yori <= a.yori) c.ytouch = c.yori - a.yori + a.ytouch;
-	else if (c.yori >= b.yori) c.ytouch = c.yori - b.yori + b.ytouch;
-	else c.ytouch = (c.yori - a.yori) / (b.yori - a.yori) * (b.ytouch - a.ytouch) + a.ytouch;
+	if (c.y <= a.y) c.ytouch = c.y - a.y + a.ytouch;
+	else if (c.y >= b.y) c.ytouch = c.y - b.y + b.ytouch;
+	else c.ytouch = (c.y - a.y) / (b.y - a.y) * (b.ytouch - a.ytouch) + a.ytouch;
 }
 function interpolateIP(a, b, c) {
 	c.touched = true;
-	if (a.yori === b.yori) {
-		c.ytouch = c.yori - a.yori + a.ytouch;
+	if (a.y === b.y) {
+		c.ytouch = c.y - a.y + a.ytouch;
 	} else {
-		c.ytouch = (c.yori - a.yori) / (b.yori - a.yori) * (b.ytouch - a.ytouch) + a.ytouch;
+		c.ytouch = (c.y - a.y) / (b.y - a.y) * (b.ytouch - a.ytouch) + a.ytouch;
 	}
 }
 function IUPy(contours) {
@@ -48,8 +48,8 @@ function IUPy(contours) {
 				if (contour.points[ki].touched) {
 					var pleft = contour.points[kleft];
 					var pright = contour.points[ki];
-					var lower = pleft.yori < pright.yori ? pleft : pright
-					var higher = pleft.yori < pright.yori ? pright : pleft
+					var lower = pleft.y < pright.y ? pleft : pright
+					var higher = pleft.y < pright.y ? pright : pleft
 					for (var w = 0; w < untoucheds.length; w++) interpolate(lower, higher, untoucheds[w]);
 					untoucheds = [];
 					kleft = ki;
@@ -64,7 +64,7 @@ function untouchAll(contours) {
 	for (var j = 0; j < contours.length; j++) for (var k = 0; k < contours[j].points.length; k++) {
 		contours[j].points[k].touched = false;
 		contours[j].points[k].donttouch = false;
-		contours[j].points[k].ytouch = contours[j].points[k].yori;
+		contours[j].points[k].ytouch = contours[j].points[k].y;
 	}
 }
 var SUPERSAMPLING = 8;
@@ -137,7 +137,7 @@ function RenderPreviewForPPEM(hdc, basex, basey, ppem) {
 				var a = glyph.indexedPoints[group[0]]
 				var b = glyph.indexedPoints[group[1]]
 				b.touched = true;
-				b.ytouch = b.yori + a.ytouch - a.yori;
+				b.ytouch = b.y + a.ytouch - a.y;
 			});
 			group.interpolations.forEach(function (group) {
 				var a = glyph.indexedPoints[group[0]]

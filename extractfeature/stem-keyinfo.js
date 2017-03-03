@@ -4,10 +4,8 @@ module.exports = function (s) {
 	return {
 		xmin: s.xmin,
 		xmax: s.xmax,
-		yori: s.yori,
+		y: s.y,
 		width: s.width,
-		ytouch: s.yori,
-		touchwidth: s.width,
 		belongRadical: s.belongRadical,
 
 		hasGlyphStemAbove: !!s.hasGlyphStemAbove,
@@ -71,8 +69,8 @@ module.exports = function (s) {
 		hasEntireContourAbove: !!s.hasEntireContourAbove,
 		hasEntireContourBelow: !!s.hasEntireContourBelow,
 
-		posKey: { id: s.posKey.id, yori: s.posKey.yori },
-		advKey: { id: s.advKey.id, yori: s.advKey.yori },
+		posKey: { id: s.posKey.id, y: s.posKey.y },
+		advKey: { id: s.advKey.id, y: s.advKey.y },
 		posAlign: s.posAlign.map(function (x) { return x.id }),
 		advAlign: s.advAlign.map(function (x) { return x.id }),
 		diagHigh: !!s.diagHigh,

@@ -2,7 +2,7 @@
 
 function adjacent(z1, z2) { return z1.prev === z2 || z2.prev === z1 }
 function near(z1, z2, d) {
-	return Math.hypot(z1.xori - z2.xori, z1.yori - z2.yori) < d;
+	return Math.hypot(z1.x - z2.x, z1.y - z2.y) < d;
 }
 
 module.exports = function (glyph, strategy) {
@@ -15,7 +15,7 @@ module.exports = function (glyph, strategy) {
 			var isDecoTop = false;
 			for (var m = 0; m < glyph.contours[j].points.length - 1; m++) {
 				var zm = glyph.contours[j].points[m];
-				if ((zm.touched || zm.donttouch) && adjacent(point, zm) && zm.yori < point.yori && near(point, zm, strategy.STEM_SIDE_MIN_RISE)) {
+				if ((zm.touched || zm.donttouch) && adjacent(point, zm) && zm.y < point.y && near(point, zm, strategy.STEM_SIDE_MIN_RISE)) {
 					isDecoTop = true;
 				}
 			}
@@ -34,7 +34,7 @@ module.exports = function (glyph, strategy) {
 		}
 	}
 	return {
-		top: topBluePoints.sort((a, b) => b.yori - a.yori).map(p => p.id),
-		bottom: bottomBluePoints.sort((a, b) => a.yori - b.yori).map(p => p.id)
+		top: topBluePoints.sort((a, b) => b.y - a.y).map(p => p.id),
+		bottom: bottomBluePoints.sort((a, b) => a.y - b.y).map(p => p.id)
 	}
 }

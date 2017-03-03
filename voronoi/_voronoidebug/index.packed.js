@@ -21156,8 +21156,8 @@ exports.hashContours = hashContours;
 "use strict"
 
 function Point(x, y, on, id) {
-	this.xori = x;
-	this.yori = y;
+	this.x = x;
+	this.y = y;
 	this.xtouch = x;
 	this.ytouch = y;
 	this.touched = false;
@@ -21173,41 +21173,41 @@ function Contour() {
 Contour.prototype.stat = function () {
 	var points = this.points;
 	if (
-		points[0].yori > points[points.length - 2].yori && points[0].yori >= points[1].yori
-		|| points[0].yori < points[points.length - 2].yori && points[0].yori <= points[1].yori) {
+		points[0].y > points[points.length - 2].y && points[0].y >= points[1].y
+		|| points[0].y < points[points.length - 2].y && points[0].y <= points[1].y) {
 		points[0].yExtrema = true;
-		points[0].yStrongExtrema = points[0].yori > points[points.length - 2].yori + 1 && points[0].yori > points[1].yori - 1
-			|| points[0].yori < points[points.length - 2].yori + 1 && points[0].yori < points[1].yori - 1;
+		points[0].yStrongExtrema = points[0].y > points[points.length - 2].y + 1 && points[0].y > points[1].y - 1
+			|| points[0].y < points[points.length - 2].y + 1 && points[0].y < points[1].y - 1;
 	}
 	if (
-		points[0].xori > points[points.length - 2].xori && points[0].xori >= points[1].xori
-		|| points[0].xori < points[points.length - 2].xori && points[0].xori <= points[1].xori) {
+		points[0].x > points[points.length - 2].x && points[0].x >= points[1].x
+		|| points[0].x < points[points.length - 2].x && points[0].x <= points[1].x) {
 		points[0].xExtrema = true;
-		points[0].xStrongExtrema = points[0].xori > points[points.length - 2].xori + 1 && points[0].xori > points[1].xori - 1
-			|| points[0].xori < points[points.length - 2].xori + 1 && points[0].xori < points[1].xori - 1;
+		points[0].xStrongExtrema = points[0].x > points[points.length - 2].x + 1 && points[0].x > points[1].x - 1
+			|| points[0].x < points[points.length - 2].x + 1 && points[0].x < points[1].x - 1;
 		if (points[0].xStrongExtrema) {
-			points[0].atleft = points[0].xori < points[points.length - 2].xori + 1 && points[0].xori < points[1].xori - 1;
+			points[0].atleft = points[0].x < points[points.length - 2].x + 1 && points[0].x < points[1].x - 1;
 		}
 	}
 	for (var j = 1; j < points.length - 1; j++) {
-		if (points[j].yori > points[j - 1].yori && points[j].yori >= points[j + 1].yori
-			|| points[j].yori < points[j - 1].yori && points[j].yori <= points[j + 1].yori) {
+		if (points[j].y > points[j - 1].y && points[j].y >= points[j + 1].y
+			|| points[j].y < points[j - 1].y && points[j].y <= points[j + 1].y) {
 			points[j].yExtrema = true;
-			points[j].yStrongExtrema = points[j].yori > points[j - 1].yori + 1 && points[j].yori >= points[j + 1].yori - 1
-				|| points[j].yori < points[j - 1].yori + 1 && points[j].yori <= points[j + 1].yori - 1;
+			points[j].yStrongExtrema = points[j].y > points[j - 1].y + 1 && points[j].y >= points[j + 1].y - 1
+				|| points[j].y < points[j - 1].y + 1 && points[j].y <= points[j + 1].y - 1;
 		}
-		if (points[j].xori > points[j - 1].xori && points[j].xori >= points[j + 1].xori
-			|| points[j].xori < points[j - 1].xori && points[j].xori <= points[j + 1].xori) {
+		if (points[j].x > points[j - 1].x && points[j].x >= points[j + 1].x
+			|| points[j].x < points[j - 1].x && points[j].x <= points[j + 1].x) {
 			points[j].xExtrema = true;
-			points[j].xStrongExtrema = points[j].xori > points[j - 1].xori + 1 && points[j].xori >= points[j + 1].xori - 1
-				|| points[j].xori < points[j - 1].xori + 1 && points[j].xori <= points[j + 1].xori - 1;
+			points[j].xStrongExtrema = points[j].x > points[j - 1].x + 1 && points[j].x >= points[j + 1].x - 1
+				|| points[j].x < points[j - 1].x + 1 && points[j].x <= points[j + 1].x - 1;
 			if (points[j].xStrongExtrema) {
-				points[j].atleft = points[j].xori < points[j - 1].xori + 1 && points[j].xori <= points[j + 1].xori - 1;
+				points[j].atleft = points[j].x < points[j - 1].x + 1 && points[j].x <= points[j + 1].x - 1;
 			}
 		}
 	};
-	var xoris = this.points.map(function (p) { return p.xori });
-	var yoris = this.points.map(function (p) { return p.yori });
+	var xoris = this.points.map(function (p) { return p.x });
+	var yoris = this.points.map(function (p) { return p.y });
 	this.xmax = Math.max.apply(Math, xoris);
 	this.ymax = Math.max.apply(Math, yoris);
 	this.xmin = Math.min.apply(Math, xoris);
@@ -21219,14 +21219,14 @@ function setHidden(obj, prop, v) {
 }
 Contour.prototype.orient = function () {
 	// Findout PYmin
-	var jm = 0, ym = this.points[0].yori
-	for (var j = 0; j < this.points.length - 1; j++) if (this.points[j].yori < ym) {
-		jm = j; ym = this.points[j].yori;
+	var jm = 0, ym = this.points[0].y
+	for (var j = 0; j < this.points.length - 1; j++) if (this.points[j].y < ym) {
+		jm = j; ym = this.points[j].y;
 	}
 	var p0 = this.points[(jm ? jm - 1 : this.points.length - 2)], p1 = this.points[jm], p2 = this.points[jm + 1];
-	var x = ((p0.xori - p1.xori) * (p2.yori - p1.yori) - (p0.yori - p1.yori) * (p2.xori - p1.xori));
+	var x = ((p0.x - p1.x) * (p2.y - p1.y) - (p0.y - p1.y) * (p2.x - p1.x));
 	if (x < 0) { this.ccw = true; }
-	else if (x === 0) { this.ccw = p2.xori > p1.xori; }
+	else if (x === 0) { this.ccw = p2.x > p1.x; }
 	// Adjacency
 	var pt = this.points[0];
 	for (var j = 0; j < this.points.length - 1; j++) if (this.points[j].on) {
@@ -21239,12 +21239,12 @@ var inPoly = function (point, vs) {
 	// ray-casting algorithm based on
 	// http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
 
-	var x = point.xori, y = point.yori;
+	var x = point.x, y = point.y;
 
 	var inside = false;
 	for (var i = 0, j = vs.length - 2; i < vs.length - 1; j = i++) {
-		var xi = vs[i].xori, yi = vs[i].yori;
-		var xj = vs[j].xori, yj = vs[j].yori;
+		var xi = vs[i].x, yi = vs[i].y;
+		var xj = vs[j].x, yj = vs[j].y;
 
 		var intersect = ((yi > y) !== (yj > y))
 			&& (yj > yi ?
@@ -21268,7 +21268,7 @@ function Glyph(contours) {
 Glyph.prototype.containsPoint = function (x, y) {
 	var nCW = 0, nCCW = 0;
 	for (var j = 0; j < this.contours.length; j++) {
-		if (inPoly({ xori: x, yori: y }, this.contours[j].points)) {
+		if (inPoly({ x: x, y: y }, this.contours[j].points)) {
 			if (this.contours[j].ccw) nCCW += 1;
 			else nCW += 1;
 		}
@@ -21285,15 +21285,15 @@ exports.Point = Point;
 function slopeOf(segs) {
 	var sy = 0, sx = 0, n = 0;
 	for (var j = 0; j < segs.length; j++) for (var k = 0; k < segs[j].length; k++) {
-		sy += segs[j][k].yori;
-		sx += segs[j][k].xori;
+		sy += segs[j][k].y;
+		sx += segs[j][k].x;
 		n += 1;
 	};
 	var ax = sx / n, ay = sy / n;
 	var b1num = 0, b1den = 0;
 	for (var j = 0; j < segs.length; j++) for (var k = 0; k < segs[j].length; k++) {
-		b1num += (segs[j][k].xori - ax) * (segs[j][k].yori - ay);
-		b1den += (segs[j][k].xori - ax) * (segs[j][k].xori - ax);
+		b1num += (segs[j][k].x - ax) * (segs[j][k].y - ay);
+		b1den += (segs[j][k].x - ax) * (segs[j][k].x - ax);
 	};
 	return b1num / b1den
 }
@@ -21408,14 +21408,14 @@ function construct_voronoi(glyph) {
 		var contour = glyph.contours[j];
 
 		// Layer 1 : Control outline
-		var x0 = contour.points[0].xori;
-		var y0 = contour.points[0].yori;
+		var x0 = contour.points[0].x;
+		var y0 = contour.points[0].y;
 		var testpoints = [{ x: x0, y: y0 }];
 		contour.testpoints = testpoints;
 		for (var k = 1; k < contour.points.length; k++) {
 			if (contour.points[k].on) {
-				var x1 = contour.points[k].xori
-				var y1 = contour.points[k].yori
+				var x1 = contour.points[k].x
+				var y1 = contour.points[k].y
 				var gs = [contour.points[k - 1], contour.points[k]];
 				var ts = [gs, x0, y0, x1, y1];
 				glyphSegments.push(gs);
@@ -21424,15 +21424,15 @@ function construct_voronoi(glyph) {
 				y0 = y1;
 				testpoints.push({ x: x1, y: y1 });
 			} else {
-				var x1 = contour.points[k].xori;
-				var y1 = contour.points[k].yori;
+				var x1 = contour.points[k].x;
+				var y1 = contour.points[k].y;
 				var next = contour.points[k + 1];
 				if (next.on) {
-					var x2 = next.xori;
-					var y2 = next.yori;
+					var x2 = next.x;
+					var y2 = next.y;
 				} else {
-					var x2 = (x1 + next.xori) / 2;
-					var y2 = (y1 + next.yori) / 2;
+					var x2 = (x1 + next.x) / 2;
+					var y2 = (y1 + next.y) / 2;
 				}
 				var SEGMENTS = 4;
 				var gs = [contour.points[k - 1], contour.points[k], contour.points[k + 1]];
@@ -21516,7 +21516,7 @@ function extractStems(diagram) {
 function nearestAttach(v, arc) {
 	var mind = 0xFFFF, minp = arc[0];
 	for (var j = 0; j < arc.length; j++) {
-		var d = Math.hypot(arc[j].xori - v.x, arc[j].yori - v.y);
+		var d = Math.hypot(arc[j].x - v.x, arc[j].y - v.y);
 		if (d <= mind) {
 			minp = arc[j];
 			mind = d;
@@ -21531,7 +21531,7 @@ function valz(z1, z2) {
 	return z1.id === z2.id;
 }
 function vy(z1, z2) {
-	return Math.abs(z1.yori - z2.yori) <= 1
+	return Math.abs(z1.y - z2.y) <= 1
 }
 
 function spp(a, b, c, d) {
@@ -21562,8 +21562,8 @@ var POS_BELOW = -1;
 var POS_MID = 0
 
 function getpos(v0, v1, a0, a1) {
-	if (a0.yori > v0.y && a1.yori > v1.y && a0.yori > v1.y && a1.yori > v0.y) return POS_ABOVE;
-	if (a0.yori < v0.y && a1.yori < v1.y && a0.yori < v1.y && a1.yori < v0.y) return POS_BELOW;
+	if (a0.y > v0.y && a1.y > v1.y && a0.y > v1.y && a1.y > v0.y) return POS_ABOVE;
+	if (a0.y < v0.y && a1.y < v1.y && a0.y < v1.y && a1.y < v0.y) return POS_BELOW;
 	return POS_MID;
 }
 
@@ -21583,7 +21583,7 @@ var glyph = glyphs[INDEX];
 		var contour = glyph.contours[j];
 		for (var k = 0; k < contour.points.length; k++) if(contour.points[k].on) for(var m = 0; m < edges.length; m++){
 			var v0 = diagram.vertexes[edges[m].vertex0_index], v1 = diagram.vertexes[edges[m].vertex1_index];
-			if(v0 && v1 && v0.x === contour.points[k].xori && v0.y === contour.points[k].yori && v1.inside && !v1.border){
+			if(v0 && v1 && v0.x === contour.points[k].x && v0.y === contour.points[k].y && v1.inside && !v1.border){
 				extremeEdges.push(edges[m]);
 			}
 		}
@@ -21680,13 +21680,13 @@ var glyph = glyphs[INDEX];
 		//if (s.a0.on) {
 		hPreview.beginPath();
 		hPreview.moveTo(txp(s.v0.x), typ(s.v0.y));
-		hPreview.lineTo(txp(s.a0.xori), typ(s.a0.yori));
+		hPreview.lineTo(txp(s.a0.x), typ(s.a0.y));
 		hPreview.stroke();
 		//}
 		//if (s.a1.on) {
 		hPreview.beginPath();
 		hPreview.moveTo(txp(s.v1.x), typ(s.v1.y));
-		hPreview.lineTo(txp(s.a1.xori), typ(s.a1.yori));
+		hPreview.lineTo(txp(s.a1.x), typ(s.a1.y));
 		hPreview.stroke();
 		//}
 	}
@@ -21721,26 +21721,26 @@ var glyph = glyphs[INDEX];
 	for (var j = 0; j < glyphs[INDEX].contours.length; j++) {
 		var contour = glyphs[INDEX].contours[j];
 		// Layer 1 : Control outline
-		var x0 = contour.points[0].xori
-		var y0 = contour.points[0].yori
+		var x0 = contour.points[0].x
+		var y0 = contour.points[0].y
 		hPreview.moveTo(txp(x0), typ(y0));
 		for (var k = 1; k < contour.points.length; k++) {
 			if (contour.points[k].on) {
-				var x1 = contour.points[k].xori
-				var y1 = contour.points[k].yori
+				var x1 = contour.points[k].x
+				var y1 = contour.points[k].y
 				hPreview.lineTo(txp(x1), typ(y1));
 				x0 = x1;
 				y0 = y1;
 			} else {
-				var x1 = contour.points[k].xori
-				var y1 = contour.points[k].yori
+				var x1 = contour.points[k].x
+				var y1 = contour.points[k].y
 				var next = contour.points[k + 1];
 				if (next.on) {
-					var x2 = next.xori;
-					var y2 = next.yori;
+					var x2 = next.x;
+					var y2 = next.y;
 				} else {
-					var x2 = (x1 + next.xori) / 2;
-					var y2 = (y1 + next.yori) / 2;
+					var x2 = (x1 + next.x) / 2;
+					var y2 = (y1 + next.y) / 2;
 				}
 				hPreview.quadraticCurveTo(txp(x1), typ(y1), txp(x2), typ(y2))
 				x0 = x2;

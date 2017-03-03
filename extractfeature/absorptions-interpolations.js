@@ -1,13 +1,13 @@
 "use strict";
 
-function BY_YORI(p, q) { return p.yori - q.yori; }
+function BY_YORI(p, q) { return p.y - q.y; }
 function adjacent(z1, z2) { return z1.prev === z2 || z2.prev === z1; }
 var STEPS = 10;
 function shortAbsorptionPointByKeys(shortAbsorptions, strategy, pt, keys, inSameRadical, priority) {
 	if (pt.touched || pt.donttouch || !pt.on || !strategy.DO_SHORT_ABSORPTION || !inSameRadical) return;
 	for (var m = 0; m < keys.length; m++) {
 		var key = keys[m];
-		if (key.blued && key.yStrongExtrema && (Math.hypot(pt.yori - key.yori, pt.xori - key.xori) <= strategy.ABSORPTION_LIMIT && pt.xStrongExtrema) && key.id !== pt.id) {
+		if (key.blued && key.yStrongExtrema && (Math.hypot(pt.y - key.y, pt.x - key.x) <= strategy.ABSORPTION_LIMIT && pt.xStrongExtrema) && key.id !== pt.id) {
 			shortAbsorptions.push([key.id, pt.id, priority + (pt.yExtrema ? 1 : 0)]);
 			pt.touched = true;
 			return;
@@ -26,23 +26,23 @@ function interpolateByKeys(interpolations, shortAbsorptions, strategy, pts, keys
 		if (pt.touched || pt.donttouch) continue;
 		var upperK = null, upperdist = 0xFFFF;
 		var lowerK = null, lowerdist = 0xFFFF;
-		for (var m = keys.length - 1; m >= 0; m--) if (keys[m].yori <= pt.yori) {
-			if (!lowerK || Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori)) < lowerdist) {
+		for (var m = keys.length - 1; m >= 0; m--) if (keys[m].y <= pt.y) {
+			if (!lowerK || Math.hypot(keys[m].x - pt.x, COEFF_EXT * (keys[m].y - pt.y)) < lowerdist) {
 				lowerK = keys[m];
-				lowerdist = Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori));
+				lowerdist = Math.hypot(keys[m].x - pt.x, COEFF_EXT * (keys[m].y - pt.y));
 			}
 		}
-		for (var m = keys.length - 1; m >= 0; m--) if (keys[m].yori >= pt.yori) {
-			if (!upperK || Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori)) < upperdist) {
+		for (var m = keys.length - 1; m >= 0; m--) if (keys[m].y >= pt.y) {
+			if (!upperK || Math.hypot(keys[m].x - pt.x, COEFF_EXT * (keys[m].y - pt.y)) < upperdist) {
 				upperK = keys[m];
-				upperdist = Math.hypot(keys[m].xori - pt.xori, COEFF_EXT * (keys[m].yori - pt.yori));
+				upperdist = Math.hypot(keys[m].x - pt.x, COEFF_EXT * (keys[m].y - pt.y));
 			}
 		}
 		if (lowerK && upperK) {
 			if (upperK.linkedKey) upperK = upperK.linkedKey;
 			if (lowerK.linkedKey) lowerK = lowerK.linkedKey;
 			if (!upperK.phantom && !lowerK.phantom) {
-				if (upperK.yori > lowerK.yori + strategy.Y_FUZZ) {
+				if (upperK.y > lowerK.y + strategy.Y_FUZZ) {
 					interpolations.push([upperK.id, lowerK.id, pt.id, priority]);
 				} else if (upperK.id != pt.id) {
 					shortAbsorptions.push([upperK.id, pt.id, priority]);
@@ -70,9 +70,9 @@ function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalS
 				// detect whether this sole point is attached to the stem edge.
 				// in most cases, absorbing a lower point should be stricter due to the topology of ideographs
 				// so we use asymmetric condition for "above" and "below" cases.
-				var yDifference = z.yori - (zkey.yori + (z.xori - zkey.xori) * (zkey.slope || 0));
+				var yDifference = z.y - (zkey.y + (z.x - zkey.x) * (zkey.slope || 0));
 				if (!(yDifference > 0 ? yDifference < strategy.Y_FUZZ * 2 : -yDifference < strategy.Y_FUZZ)) continue;
-				if (candidate && Math.hypot(z.yori - candidate.yori, z.xori - candidate.xori) <= Math.hypot(z.yori - zkey.yori, z.xori - zkey.xori)) continue;
+				if (candidate && Math.hypot(z.y - candidate.y, z.x - candidate.x) <= Math.hypot(z.y - zkey.y, z.x - zkey.x)) continue;
 				if (!radical.includesSegmentEdge(z, zkey, 1, strategy.SLOPE_FUZZ_K)) continue;
 				candidate = zkey;
 			}
@@ -122,8 +122,8 @@ module.exports = function (glyph, strategy) {
 			var r = stem.high[j][stem.high[j].length - 1];
 			for (var step = 1; step < STEPS; step++) {
 				glyphKeypoints.push({
-					xori: l.xori + (step / STEPS) * (r.xori - l.xori),
-					yori: l.yori + (step / STEPS) * (r.yori - l.yori),
+					x: l.x + (step / STEPS) * (r.x - l.x),
+					y: l.y + (step / STEPS) * (r.y - l.y),
 					linkedKey: l.linkedKey || r.linkedKey,
 					phantom: true
 				});
@@ -134,8 +134,8 @@ module.exports = function (glyph, strategy) {
 			var r = stem.low[j][stem.low[j].length - 1];
 			for (var step = 1; step < STEPS; step++) {
 				glyphKeypoints.push({
-					xori: l.xori + (step / STEPS) * (r.xori - l.xori),
-					yori: l.yori + (step / STEPS) * (r.yori - l.yori),
+					x: l.x + (step / STEPS) * (r.x - l.x),
+					y: l.y + (step / STEPS) * (r.y - l.y),
 					linkedKey: l.linkedKey || r.linkedKey,
 					phantom: true
 				});
@@ -157,13 +157,13 @@ module.exports = function (glyph, strategy) {
 			});
 			var midex = [];
 			for (var m = 0; m < extrema.length; m++) {
-				if (extrema[m].yori === topbot[0].yori) {
+				if (extrema[m].y === topbot[0].y) {
 					if (!adjacent(topbot[0], extrema[m])) {
 						shortAbsorptions.push([topbot[0].id, extrema[m].id, 1]);
 					}
 					extrema[m].touched = true;
 					extrema[m].donttouch = true;
-				} else if (extrema[m].yori === topbot[1].yori) {
+				} else if (extrema[m].y === topbot[1].y) {
 					if (!adjacent(topbot[1], extrema[m])) {
 						shortAbsorptions.push([topbot[1].id, extrema[m].id, 1]);
 					}
@@ -207,7 +207,7 @@ module.exports = function (glyph, strategy) {
 		interpolateByKeys(interpolations, shortAbsorptions, strategy, records[j].midex, glyphKeypoints, false, 3);
 	}
 	interpolations = interpolations.sort(function (u, v) {
-		return glyph.indexedPoints[u[2]].xori - glyph.indexedPoints[v[2]].xori;
+		return glyph.indexedPoints[u[2]].x - glyph.indexedPoints[v[2]].x;
 	});
 	for (var j = 0; j < interpolations.length; j++) {
 		if (!interpolations[j]) continue;
@@ -217,7 +217,7 @@ module.exports = function (glyph, strategy) {
 				&& interpolations[j][1] === interpolations[k][1]
 				&& interpolations[j][3] === interpolations[k][3]
 				&& interpolations[j][3] !== 9
-				&& Math.abs(glyph.indexedPoints[interpolations[j][2]].yori - glyph.indexedPoints[interpolations[k][2]].yori) <= strategy.Y_FUZZ) {
+				&& Math.abs(glyph.indexedPoints[interpolations[j][2]].y - glyph.indexedPoints[interpolations[k][2]].y) <= strategy.Y_FUZZ) {
 				shortAbsorptions.push([
 					interpolations[j][2],
 					interpolations[k][2],
