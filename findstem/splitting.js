@@ -1,5 +1,7 @@
 "use strict"
 
+const Point = require('../types').Point;
+
 // diagonal split
 function leftmostZ(segs) {
 	let m = segs[0][0];
@@ -45,16 +47,16 @@ function splitDiagonalStem(s, strategy, rid, results) {
 		let hmy = (hl.y + hr.y) / 2;
 		let lmy = (ll.y + lr.y) / 2;
 		let sleft = {
-			high: [[hl, { x: hmx - 1, y: hmy, on: true, id: -1 }]],
-			low: [[ll, { x: lmx - 1, y: lmy, on: true, id: -1 }]],
+			high: [[hl, new Point(hmx - 1, hmy, true, Point.PHANTOM)]],
+			low: [[ll, new Point(lmx - 1, lmy, true, Point.PHANTOM)]],
 			y: hl.y,
 			width: hl.y - ll.y,
 			belongRadical: s.belongRadical,
 			rid: rid
 		}
 		let sright = {
-			high: [[{ x: hmx + 1, y: hmy, on: true, id: -1 }, hr]],
-			low: [[{ x: lmx + 1, y: lmy, on: true, id: -1 }, lr]],
+			high: [[new Point(hmx + 1, hmy, true, Point.PHANTOM), hr]],
+			low: [[new Point(lmx + 1, lmy, true, Point.PHANTOM), lr]],
 			y: hr.y,
 			width: hr.y - lr.y,
 			belongRadical: s.belongRadical,

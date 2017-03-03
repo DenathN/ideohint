@@ -11,11 +11,12 @@ function Point(x, y, on, id) {
 	this.id = id;
 	this.interpolated = id < 0;
 }
+Point.PHANTOM = -1;
+
 function Contour() {
 	this.points = [];
 	this.ccw = false;
 }
-
 function checkExtrema(prev, z, next) {
 	if (
 		z.y > prev.y && z.y >= next.y || z.y < prev.y && z.y <= next.y) {
