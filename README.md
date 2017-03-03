@@ -88,17 +88,18 @@ The hinting parameters are stored in `hinting` section. They include:
 * **Metric Parameters**
 
   * **UPM** : The units-per-em value of your sfd
-
+* **Hinting Ranges**
+  * **PPEM_MIN**: Minimal size being hinted.
+  * **PPEM_MAX**: Maximal size being hinted.
 * **Top Positioning Parameters**
 
   * **BLUEZONE_TOP_CENTER** and **BLUEZONE_TOP_LIMIT** : Center and lower limit of the top blue zone. Use characters like “木” to decide the value of **BLUEZONE_TOP_CENTER**.
   * **BLUEZONE_TOP_BAR_REF** : The "reference" position of the upper edge of "top" hotizontal strokes without any stroke above or touching its upper edge. This value is used to determine the relative position of strokes. Can be either a constant number, or a size-dependent value, written in the same  format as **BLUEZONE_TOP_BAR** (see below).
 
-  * **BLUEZONE_TOP_BAR**: The controlled position of topmost horizontal stroke's upper edges in small, middle and large font sizes. Carefully adjusting them can optimize the visual representation of the hinted result. This applies to the topmost strokes of characters “里”. It should be an array containing correspondences between character size (in ppem) and the desired position (in emu), like `[[12,820],[15,820],[16,805],[32,799]]`.
+  * **BLUEZONE_TOP_BAR**: The controlled position of topmost horizontal stroke's upper edges in small, middle and large font sizes. Carefully adjusting them can optimize the visual representation of the hinted result. This applies to the topmost strokes of characters “里”.
+    It should be an array containing correspondences between character size (in ppem) and the desired position (in emu), like `[[12,820],[15,820],[16,805],[32,799]]`. Value for text sizes not mentioned will be interpolated monotonically using closest records.
   * **BLUEZONE_TOP_DOTBAR**: The controlled position of the upper edge of "top" horizontal strokes with stroke touching its upper edge. Like the position of the first horizontal stroke in “章”. It follows the same format as **BLUEZONE_TOP_BAR**.
-
 * **Bottom Positioning Parameters**: Similar as the previous  section, with the name **\_TOP\_** replaced to **\_BOTTOM\_**, and applies to the bottommost features of the characters.
-
 * **Stem Detection Parameters**
 
     * **ABSORPTION_LIMIT**: The limit when a horizontal extremum being linked to a point aligned to the top or bottom blue zone. Useful when preserving diagonal strokes’ width. Preferred value: slightly larger than **MAX_STEM_WIDTH**.
