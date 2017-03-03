@@ -49,11 +49,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	// bottom
 	for (let j = 0; j < si.bottomBluePoints.length; j++) {
 		const z = si.bottomBluePoints[j];
-		if (j === 0) {
-			talk(`YAnchor(${z},${padding + 2})`);
-		} else {
-			talk(`YDist(${si.bottomBluePoints[0]}, ${z}, ${isXML ? '&lt;' : '<'})`)
-		}
+		talk(`YAnchor(${z},${padding + 2})`);
 	}
 	// top
 	for (let j = 0; j < si.topBluePoints.length; j++) {
@@ -72,7 +68,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 			}
 			talk(sanityDelta(z, deltas));
 		} else {
-			talk(`YDist(${si.topBluePoints[0]}, ${z}, ${isXML ? '&lt;' : '<'})`)
+			talk(`YLink(${si.topBluePoints[0]}, ${z}, ${padding}, ${isXML ? '&lt;' : '<'})`)
 		}
 	}
 	for (var sid = 0; sid < si.stems.length; sid++) {

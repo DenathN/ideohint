@@ -95,6 +95,8 @@ exports.handler = function (argv) {
 					otd.TSI_01.extra.cvt = otd.TSI_01.extra.cvt
 						.replace(new RegExp(`${cvtPadding + 1}` + '\\s*:\\s*-?\\d+'), '')
 						.replace(new RegExp(`${cvtPadding + 2}` + '\\s*:\\s*-?\\d+'), '')
+						+ `${cvtPadding} : ${0}`
+						+ '\n'
 						+ `${cvtPadding + 1} : ${strategy.BLUEZONE_TOP_CENTER}`
 						+ '\n'
 						+ `${cvtPadding + 2} : ${strategy.BLUEZONE_BOTTOM_CENTER}`
