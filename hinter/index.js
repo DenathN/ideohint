@@ -291,31 +291,30 @@ function hint(glyph, ppem, strategy) {
 		var tws = decideWidths(stems, glyph.dominancePriority);
 		// Decide avaliability space
 		for (var j = 0; j < stems.length; j++) {
-			var y0 = stems[j].y, w0 = stems[j].width;
-			var w = tws[j] * uppx;
+			const stem = stems[j], y0 = stem.y, w0 = stem.width, w = tws[j] * uppx;
 			// The bottom limit of a stem
-			var lowlimit = atGlyphBottom(stems[j])
-				? stems[j].diagHigh
+			let lowlimit = atGlyphBottom(stem)
+				? stem.diagHigh
 					? ppem <= PPEM_INCREASE_GLYPH_LIMIT
 						? glyphBottom + w
 						: glyphBottom + w + uppx
 					: glyphBottom + w
 				: glyphBottom + w + uppx;
-			var fold = false;
+			let fold = false;
 			// Add additional space below strokes with a fold under it.
-			if (stems[j].hasGlyphFoldBelow && !stems[j].hasGlyphStemBelow) {
+			if (stem.hasGlyphFoldBelow && !stem.hasGlyphStemBelow) {
 				lowlimit = Math.max(glyphBottom + Math.max(2, WIDTH_GEAR_PROPER + 1) * uppx + w, lowlimit);
 				fold = true;
-			} else if (stems[j].hasGlyphSideFoldBelow && !stems[j].hasGlyphStemBelow) {
+			} else if (stem.hasGlyphSideFoldBelow && !stem.hasGlyphStemBelow) {
 				lowlimit = Math.max(glyphBottom + Math.max(WIDTH_GEAR_PROPER + 2, WIDTH_GEAR_PROPER * 2) * uppx, lowlimit);
 				fold = true;
 			}
 
 			// The top limit of a stem ('s upper edge)
-			var highlimit = glyphTop - xclamp(
-				atGlyphTop(stems[j]) ? 0 : uppx, // essential space above
-				atGlyphTop(stems[j])
-					? stems[j].diagHigh
+			let highlimit = glyphTop - xclamp(
+				atGlyphTop(stem) ? 0 : uppx, // essential space above
+				atGlyphTop(stem)
+					? stem.diagHigh
 						? 0
 						: (y0 > BLUEZONE_TOP_BAR && ppem <= PPEM_INCREASE_GLYPH_LIMIT
 							? round(BLUEZONE_TOP_CENTER - y0)
@@ -327,23 +326,28 @@ function hint(glyph, ppem, strategy) {
 							roundDown(BLUEZONE_TOP_BAR - y0)
 						)),
 				WIDTH_GEAR_MIN * uppx);
-			if (highlimit > refStemTop && !stems[j].diagHigh) highlimit = refStemTop
-			if (stems[j].hasGlyphFoldAbove && !stems[j].hasGlyphStemAbove || stems[j].hasEntireContourAbove) {
+			if (highlimit > refStemTop && !stem.diagHigh) highlimit = refStemTop
+			if (stem.hasGlyphFoldAbove && !stem.hasGlyphStemAbove || stem.hasEntireContourAbove) {
 				highlimit = Math.min(glyphTop - 2 * uppx, highlimit);
 			}
 
-			var center0 = cy(y0, w0, w, atGlyphTop(stems[j]) && !stems[j].diagLow || atGlyphBottom(stems[j]) && stems[j].diagHigh, stems[j].posKeyAtTop);
-			var maxshift = xclamp(1, ppem / 16, 2);
-			var lowlimitW = tws[j] > 1 ? lowlimit - uppx : lowlimit;
-			var lowW = xclamp(lowlimitW, round(center0 - maxshift * uppx), highlimit);
-			var highW = xclamp(lowlimitW, round(center0 + maxshift * uppx), highlimit);
-			var low = xclamp(lowlimit, round(center0 - maxshift * uppx), highlimit);
-			var high = xclamp(lowlimit, round(center0 + maxshift * uppx), highlimit);
-			var center = xclamp(low, center0, high);
+			const center0 = cy(y0, w0, w, atGlyphTop(stem) && !stem.diagLow || atGlyphBottom(stem) && stem.diagHigh, stem.posKeyAtTop);
+			const maxshift = xclamp(1, ppem / 16, 2);
+			const lowlimitW = tws[j] > 1 ? lowlimit - uppx : lowlimit;
+			const lowW = xclamp(lowlimitW, round(center0 - maxshift * uppx), highlimit);
+			const highW = xclamp(lowlimitW, round(center0 + maxshift * uppx), highlimit);
+			const low = xclamp(lowlimit, round(center0 - maxshift * uppx), highlimit);
+			const high = xclamp(lowlimit, round(center0 + maxshift * uppx), highlimit);
+			const center = xclamp(low, center0, high);
 
-			var ablationCoeff = atGlyphTop(stems[j]) || atGlyphBottom(stems[j]) ? ABLATION_GLYPH_HARD_EDGE
-				: !stems[j].hasGlyphStemAbove || !stems[j].hasGlyphStemBelow ? ABLATION_GLYPH_EDGE
-					: !stems[j].hasSameRadicalStemAbove || !stems[j].hasSameRadicalStemBelow ? ABLATION_RADICAL_EDGE : ABLATION_IN_RADICAL;
+			const ablationCoeff = (atGlyphTop(stem) || atGlyphBottom(stem))
+				? ABLATION_GLYPH_HARD_EDGE
+				: (!stem.hasGlyphStemAbove || !stem.hasGlyphStemBelow)
+					? ABLATION_GLYPH_EDGE
+					: (!stem.hasSameRadicalStemAbove || !stem.hasSameRadicalStemBelow)
+						? ABLATION_RADICAL_EDGE
+						: ABLATION_IN_RADICAL;
+
 			avaliables[j] = {
 				// limit of the stroke's y, when positioning, in pixels
 				low: Math.round(low / uppx),
@@ -358,24 +362,24 @@ function hint(glyph, ppem, strategy) {
 				properWidth: tws[j],
 				// its proper position, in pixels
 				center: center / uppx,
-				ablationCoeff: ablationCoeff / uppx * (1 + 0.5 * (stems[j].xmax - stems[j].xmin) / upm),
+				ablationCoeff: ablationCoeff / uppx * (1 + 0.5 * (stem.xmax - stem.xmin) / upm),
 				// original position and width
 				y0: y0,
 				w0: w0,
 				w0px: w0 / uppx,
-				xmin: stems[j].xmin,
-				xmax: stems[j].xmax,
-				length: stems[j].xmax - stems[j].xmin,
+				xmin: stem.xmin,
+				xmax: stem.xmax,
+				length: stem.xmax - stem.xmin,
 				// spatial relationships
-				atGlyphTop: atGlyphTop(stems[j]),
-				atGlyphBottom: atGlyphBottom(stems[j]),
-				hasGlyphStemAbove: stems[j].hasGlyphStemAbove,
-				hasGlyphStemBelow: stems[j].hasGlyphStemBelow,
+				atGlyphTop: atGlyphTop(stem),
+				atGlyphBottom: atGlyphBottom(stem),
+				hasGlyphStemAbove: stem.hasGlyphStemAbove,
+				hasGlyphStemBelow: stem.hasGlyphStemBelow,
 				hasFoldBelow: fold,
-				posKeyAtTop: stems[j].posKeyAtTop,
-				diagLow: stems[j].diagLow,
-				diagHigh: stems[j].diagHigh,
-				rid: stems[j].rid
+				posKeyAtTop: stem.posKeyAtTop,
+				diagLow: stem.diagLow,
+				diagHigh: stem.diagHigh,
+				rid: stem.rid
 			};
 		}
 		flexCenter(avaliables);
