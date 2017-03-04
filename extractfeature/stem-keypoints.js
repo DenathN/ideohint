@@ -25,18 +25,17 @@ function hasGreaterUpperPromixity(stems, js, dov, P) {
 		if (dov[j][js]) promUp += P[j][js];
 		if (dov[js][j]) promDown += P[js][j];
 	}
-	return promUp > promDown && promDown > 0
+	return promUp >= promDown && promDown > 0
 }
 
 module.exports = function (glyph, strategy, dov, P) {
 	// Stem Keypoints
 	for (var js = 0; js < glyph.stems.length; js++) {
 		const s = glyph.stems[js];
-		// posKeyShouldAtTop : a bottom stem?
+		// posKeyShouldAtBottom : a bottom stem?
 		const slope = (slopeOf(s.high) + slopeOf(s.low)) / 2;
-		const posKeyShouldAtTop =
-			(atRadicalBottom(s, strategy)
-				&& (!s.hasGlyphStemBelow || Math.abs(slope) >= strategy.SLOPE_FUZZ / 2))
+		const posKeyShouldAtBottom =
+			(atRadicalBottom(s, strategy) && (!s.hasGlyphStemBelow || Math.abs(slope) >= strategy.SLOPE_FUZZ / 2))
 			|| hasGreaterUpperPromixity(glyph.stems, js, dov, P);
 
 		// get highkey and lowkey
@@ -82,11 +81,11 @@ module.exports = function (glyph, strategy, dov, P) {
 		s.width = highkey.y - lowkey.y;
 		s.highkey = highkey;
 		s.lowkey = lowkey;
-		s.posKey = posKeyShouldAtTop ? lowkey : highkey;
-		s.advKey = posKeyShouldAtTop ? highkey : lowkey;
-		s.posAlign = posKeyShouldAtTop ? lownonkey : highnonkey;
-		s.advAlign = posKeyShouldAtTop ? highnonkey : lownonkey;
-		s.posKeyAtTop = !posKeyShouldAtTop;
+		s.posKey = posKeyShouldAtBottom ? lowkey : highkey;
+		s.advKey = posKeyShouldAtBottom ? highkey : lowkey;
+		s.posAlign = posKeyShouldAtBottom ? lownonkey : highnonkey;
+		s.advAlign = posKeyShouldAtBottom ? highnonkey : lownonkey;
+		s.posKeyAtTop = !posKeyShouldAtBottom;
 		s.posKey.keypoint = true;
 		s.advKey.keypoint = true;
 		s.posKey.slope = s.advKey.slope = s.slope;
