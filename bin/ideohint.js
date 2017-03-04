@@ -1,13 +1,11 @@
 #!/usr/bin/env node
 
-var yargs = require("yargs")
-	.alias("?", "help")
-	.command(require("../commands/otd2hgl"))
-	.command(require("../commands/extract"))
-	.command(require("../commands/hint"))
-	.command(require("../commands/apply"))
-	.command(require("../commands/merge"))
-	.command(require("../commands/visual"))
-	.command(require("../commands/vtt"))
-	.help()
-	.argv;
+var child_process = require("child_process");
+var os = require("os");
+var command = process.execPath;
+var args = [
+	"--max-old-space-size=" + Math.floor(os.totalmem() / 1048576),
+	require.resolve("./ideohint-main.js"),
+	...process.argv.slice(2)
+];
+child_process.spawnSync(command, args, { stdio: "inherit" });
