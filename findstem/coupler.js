@@ -27,6 +27,11 @@ function isVertical(radical, u, v) {
 	return Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min) < Math.abs(u[0][0].y - v[0][0].y) * 0.9;
 }
 
+function approSlope(z1, z2, strategy) {
+	const slope = (z1.y - z2.y) / (z1.x - z2.x)
+	return slope >= 0 ? slope <= strategy.SLOPE_FUZZ : slope >= -strategy.SLOPE_FUZZ_NEG;
+}
+
 // Stemfinding
 function findHorizontalSegments(radicals, strategy) {
 	var segments = [];
@@ -39,7 +44,7 @@ function findHorizontalSegments(radicals, strategy) {
 			var segment = [lastPoint];
 			segment.radical = r;
 			for (var k = 1; k < contour.points.length - 1; k++) if (!contour.points[k].interpolated) {
-				if (Math.abs((contour.points[k].y - lastPoint.y) / (contour.points[k].x - lastPoint.x)) <= strategy.SLOPE_FUZZ) {
+				if (approSlope(contour.points[k], lastPoint, strategy)) {
 					segment.push(contour.points[k]);
 					lastPoint = contour.points[k];
 				} else {
@@ -49,7 +54,7 @@ function findHorizontalSegments(radicals, strategy) {
 					segment.radical = r;
 				}
 			}
-			if (Math.abs((contour.points[0].y - lastPoint.y) / (contour.points[0].x - lastPoint.x)) <= strategy.SLOPE_FUZZ) {
+			if (approSlope(contour.points[0], lastPoint, strategy)) {
 				segment.push(contour.points[0]);
 				segment.push(contour.points[contour.points.length - 1]);
 			}
