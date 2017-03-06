@@ -42,6 +42,22 @@ function hint(glyph, ppem, strategy) {
 	const CANONICAL_STEM_WIDTH = toVQ(strategy.CANONICAL_STEM_WIDTH, ppem);
 	const CANONICAL_STEM_WIDTH_DENSE = toVQ(strategy.CANONICAL_STEM_WIDTH, ppem);
 
+	const CHEBYSHEV_2 = toVQ(strategy.GRAVITY, ppem) / -200;
+	const CHEBYSHEV_3 = toVQ(strategy.CONCENTRATE, ppem) / 200;
+	const CHEBYSHEV_4 = toVQ(strategy.CHEBYSHEV_4, ppem) / -200;
+	const CHEBYSHEV_5 = toVQ(strategy.CHEBYSHEV_5, ppem) / 200;
+	function cheby(_x) {
+		if (_x < 0) return 0;
+		if (_x > 1) return 1;
+		const x = _x * 2 - 1;
+		const y = x
+			+ CHEBYSHEV_2 * (2 * x * x - 1)
+			+ CHEBYSHEV_3 * (4 * x * x * x - 3 * x)
+			+ CHEBYSHEV_4 * (8 * x * x * x * x - 8 * x * x + 1)
+			+ CHEBYSHEV_5 * (16 * x * x * x * x * x - 20 * x * x * x + 5 * x);
+		return (y + 1) / 2;
+	}
+
 	const WIDTH_GEAR_PROPER = Math.round(CANONICAL_STEM_WIDTH / uppx);
 	const WIDTH_GEAR_MIN = Math.min(WIDTH_GEAR_PROPER, Math.round(CANONICAL_STEM_WIDTH_DENSE / uppx));
 	const SHRINK_THERSHOLD = strategy.SHRINK_THERSHOLD || 0.75;
@@ -135,16 +151,16 @@ function hint(glyph, ppem, strategy) {
 		if (att) {
 			const p = (y - BLUEZONE_BOTTOM_BAR_REF) / (BLUEZONE_TOP_BAR_REF - BLUEZONE_BOTTOM_BAR_REF);
 			if (x) {
-				return cybx + (cytx - cybx) * p;
+				return cybx + (cytx - cybx) * cheby(p);
 			} else {
-				return cyb + (cyt - cyb) * p;
+				return cyb + (cyt - cyb) * cheby(p);
 			}
 		} else {
 			const p = (y - w0 - BLUEZONE_BOTTOM_BAR_REF) / (BLUEZONE_TOP_BAR_REF - BLUEZONE_BOTTOM_BAR_REF);
 			if (x) {
-				return w + cybx + (cytx - cybx) * p;
+				return w + cybx + (cytx - cybx) * cheby(p);
 			} else {
-				return w + cyb + (cyt - cyb) * p;
+				return w + cyb + (cyt - cyb) * cheby(p);
 			}
 		}
 	}

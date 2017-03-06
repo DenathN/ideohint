@@ -100,6 +100,7 @@ exports.handler = function (argv) {
 			currentProgress = showProgressBar(currentProgress, glyphIndex, pendings.length);
 
 			var sideIndependent = {
+				blue: glyph.blueZoned,
 				bottomBluePoints: glyph.bottomBluePoints,
 				topBluePoints: glyph.topBluePoints,
 				ipsacalls: getIpsaCalls(glyph),

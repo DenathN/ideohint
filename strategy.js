@@ -89,7 +89,11 @@ var DefaultStrategy = function () {
 		DO_SHORT_ABSORPTION: true,
 		DONT_ADJUST_STEM_WIDTH: false,
 		WIDTH_ALLOCATION_PASSES: 5,
-		STACK_DEPTH: 200
+		STACK_DEPTH: 200,
+		GRAVITY: 0,
+		CONCENTRATE: 0,
+		CHEBYSHEV_4: 0,
+		CHEBYSHEV_5: 0
 	};
 };
 exports.defaultStrategy = DefaultStrategy();

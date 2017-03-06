@@ -81,13 +81,18 @@ function interpretTT(glyphs, strategy, ppem) {
 		})
 		// Stems
 		actions.forEach(function (action, j) {
-			var h = glyph.indexedPoints[glyph.stems[j].highkey.id];
-			var l = glyph.indexedPoints[glyph.stems[j].lowkey.id];
+			var h, l;
+			const stem = features.stems[j];
+			if (stem.posKeyAtTop) {
+				h = glyph.indexedPoints[stem.posKey.id], l = glyph.indexedPoints[stem.advKey.id]
+			} else {
+				h = glyph.indexedPoints[stem.advKey.id], l = glyph.indexedPoints[stem.posKey.id]
+			}
 			const yTopTarget = h.ytouch = (action[0]) * uppx;
 			const yBotTarget = l.ytouch = (action[0] - action[1]) * uppx;
 			h.touched = l.touched = true;
 			if (action[2]) return;
-			if (features.stems[j].posKeyAtTop) {
+			if (stem.posKeyAtTop) {
 				const dir = action[1] * uppx > h.y - l.y ? (1 / 16) * uppx : (-1 / 16) * uppx;
 				while (rtg(yBotTarget) === rtg(l.ytouch) && (action[3] || (dir > 0
 					? yTopTarget - l.ytouch > h.y - l.y

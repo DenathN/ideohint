@@ -76,7 +76,8 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlapRat
 			spatialPromixity *= (ecbs[j][k] + 1);
 			structuralPromixity *= (ecbs[j][k] + 1);
 			// Top/bottom
-			if (atGlyphTop(stems[j], strategy) || atGlyphBottom(stems[k], strategy)) {
+			if (atGlyphTop(stems[j], strategy) && !stems[j].diagLow
+				|| atGlyphBottom(stems[k], strategy) && !stems[j].diagHigh) {
 				spatialPromixity *= strategy.COEFF_STRICT_TOP_BOT_PROMIX
 			} else if (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow) {
 				spatialPromixity *= strategy.COEFF_TOP_BOT_PROMIX

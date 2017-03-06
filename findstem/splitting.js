@@ -50,6 +50,7 @@ function splitDiagonalStem(s, strategy, rid, results) {
 			high: [[hl, new Point(hmx - 1, hmy, true, Point.PHANTOM)]],
 			low: [[ll, new Point(lmx - 1, lmy, true, Point.PHANTOM)]],
 			y: hl.y,
+			atLeft: true,
 			width: hl.y - ll.y,
 			belongRadical: s.belongRadical,
 			rid: rid

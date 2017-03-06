@@ -42,6 +42,7 @@ exports.extractFeature = function (glyph, strategy) {
 		collisionMatrices: glyph.collisionMatrices,
 		topBluePoints: blueZonePoints.top,
 		bottomBluePoints: blueZonePoints.bottom,
+		blueZoned: blueZonePoints,
 		interpolations: iss.interpolations,
 		shortAbsorptions: iss.shortAbsorptions,
 		dominancePriority: dominancePriority

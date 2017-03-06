@@ -22,7 +22,7 @@ function stemPositionToActions(y, w, stems, uppx, env) {
 		for (let k = 0; k < j; k++) {
 			const sk = stems[k], yk = actions[k][Y], wk = actions[k][W];
 			if (yj - wj === yk && wk * uppx * 2 >= sk.width
-				&& sj.xmax >= sk.xmax && sj.xmin <= sk.xmin
+				&& sj.xmax >= sk.xmax - wk / 2 * uppx && sj.xmin <= sk.xmin + wk / 2 * uppx
 				&& !(stems[j].rid === stems[k].rid && stems[j].rid)) {
 				stackrel[k][j] = BELOW;
 				actions[k][STACKED] = true;
@@ -41,7 +41,8 @@ function stemPositionToActions(y, w, stems, uppx, env) {
 		for (let k = j + 1; k < stems.length; k++) {
 			const sk = stems[k], yk = actions[k][Y], wk = actions[k][W];
 			if (yk - wk === yj && wk * uppx * 2 >= sk.width
-				&& sj.xmax > sk.xmax && sj.xmin < sk.xmin
+				&& sj.xmax >= sk.xmax - wk / 2 * uppx && sj.xmin <= sk.xmin + wk / 2 * uppx
+				&& !(sk.xmax >= sj.xmax - wj / 2 * uppx && sk.xmin <= sj.xmin + wj / 2 * uppx)
 				&& !(stems[j].rid === stems[k].rid && stems[j].rid)) {
 				stackrel[k][j] = ABOVE;
 				actions[k][STACKED] = true;

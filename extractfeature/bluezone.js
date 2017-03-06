@@ -35,6 +35,8 @@ module.exports = function (glyph, strategy) {
 	}
 	return {
 		top: topBluePoints.sort((a, b) => b.y - a.y).map(p => p.id),
-		bottom: bottomBluePoints.sort((a, b) => a.y - b.y).map(p => p.id)
+		bottom: bottomBluePoints.sort((a, b) => a.y - b.y).map(p => p.id),
+		topZs: topBluePoints.sort((a, b) => b.y - a.y).map(p => ({ id: p.id, y: p.y })),
+		bottomZs: bottomBluePoints.sort((a, b) => b.y - a.y).map(p => ({ id: p.id, y: p.y })),
 	}
 }

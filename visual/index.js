@@ -30,7 +30,11 @@ var strategyControlTypes = {
 	'CANONICAL_STEM_WIDTH': 'VQ',
 	'CANONICAL_STEM_WIDTH_DENSE': 'VQ',
 	BLUEZONE_TOP_BAR_REF: 'VQ',
-	BLUEZONE_BOTTOM_BAR_REF: 'VQ'
+	BLUEZONE_BOTTOM_BAR_REF: 'VQ',
+	GRAVITY: 'VQ',
+	CONCENTRATE: 'VQ',
+	CHEBYSHEV_4: 'VQ',
+	CHEBYSHEV_5: 'VQ'
 }
 
 var strategyControlGroups = [
@@ -49,8 +53,9 @@ var strategyControlGroups = [
 		'BLUEZONE_BOTTOM_BAR',
 		'BLUEZONE_BOTTOM_DOTBAR'
 	],
+	['GRAVITY', 'CONCENTRATE', 'CHEBYSHEV_4', 'CHEBYSHEV_5'],
 	['CANONICAL_STEM_WIDTH', 'CANONICAL_STEM_WIDTH_DENSE'],
-	['ABSORPTION_LIMIT', 'STEM_SIDE_MIN_RISE', 'STEM_SIDE_MIN_DESCENT', 'STEM_CENTER_MIN_RISE', 'STEM_CENTER_MIN_DESCENT', 'STEM_SIDE_MIN_DIST_RISE', 'STEM_SIDE_MIN_DIST_DESCENT', 'SLOPE_FUZZ', 'Y_FUZZ']
+	['ABSORPTION_LIMIT', 'STEM_SIDE_MIN_RISE', 'STEM_SIDE_MIN_DESCENT', 'STEM_CENTER_MIN_RISE', 'STEM_CENTER_MIN_DESCENT', 'STEM_SIDE_MIN_DIST_RISE', 'STEM_SIDE_MIN_DIST_DESCENT', 'SLOPE_FUZZ', 'SLOPE_FUZZ_NEG', 'Y_FUZZ']
 ]
 
 let controls = {};
@@ -89,7 +94,7 @@ controls.VQ = function (ol, key, strategy, initVal, callback) {
 			focus: false,
 			val: 0
 		}
-		let panel = document.createElement('div');
+		let panel = document.createElement('label');
 		panel.className = "vq-panel"
 		panel.innerHTML += j;
 		let input = document.createElement('input');
