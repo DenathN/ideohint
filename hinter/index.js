@@ -47,15 +47,17 @@ function hint(glyph, ppem, strategy) {
 	const CHEBYSHEV_4 = toVQ(strategy.CHEBYSHEV_4, ppem) / -200;
 	const CHEBYSHEV_5 = toVQ(strategy.CHEBYSHEV_5, ppem) / 200;
 	function cheby(_x) {
-		if (_x < 0) return 0;
-		if (_x > 1) return 1;
+		if (_x < 0) return _x;
+		if (_x > 1) return _x;
 		const x = _x * 2 - 1;
 		const y = x
 			+ CHEBYSHEV_2 * (2 * x * x - 1)
 			+ CHEBYSHEV_3 * (4 * x * x * x - 3 * x)
 			+ CHEBYSHEV_4 * (8 * x * x * x * x - 8 * x * x + 1)
 			+ CHEBYSHEV_5 * (16 * x * x * x * x * x - 20 * x * x * x + 5 * x);
-		return (y + 1) / 2;
+		const y0 = -1 + CHEBYSHEV_2 - CHEBYSHEV_3 + CHEBYSHEV_4 - CHEBYSHEV_5;
+		const y1 = 1 + CHEBYSHEV_2 + CHEBYSHEV_3 + CHEBYSHEV_4 + CHEBYSHEV_5;
+		return (y - y0) / (y1 - y0);
 	}
 
 	const WIDTH_GEAR_PROPER = Math.round(CANONICAL_STEM_WIDTH / uppx);
