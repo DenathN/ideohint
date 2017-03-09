@@ -83,6 +83,8 @@ exports.handler = function (argv) {
 						if (argv.parameters) {
 							fs.writeFileSync(argv.parameters, data.content);
 							console.log("parameters saved to", argv.parameters);
+							response.writeHead(200, { 'Content-Type': 'text/plain' });
+							response.end();
 						}
 					} else {
 						response.writeHead(405, { 'Content-Type': 'text/plain' });

@@ -1,5 +1,5 @@
 var monoip = require('../support/monotonic-interpolate');
-const RenderPreview = require('./render');
+const renderPreview = require('./render').renderPreview;
 
 // models
 var defaultStrategy;
@@ -15,7 +15,7 @@ const render = function () {
 		worker.onmessage = function (message) {
 			worker = null;
 			console.log(message.data);
-			RenderPreview(document.getElementById('preview').getContext('2d'), message.data, strategy);
+			renderPreview(document.getElementById('preview').getContext('2d'), message.data, strategy);
 		}
 		worker.postMessage({ input, strategy });
 	};
@@ -23,37 +23,29 @@ const render = function () {
 }();
 
 var strategyControlTypes = {
-	'BLUEZONE_TOP_BAR': 'VQ',
-	'BLUEZONE_TOP_DOTBAR': 'VQ',
-	'BLUEZONE_BOTTOM_BAR': 'VQ',
-	'BLUEZONE_BOTTOM_DOTBAR': 'VQ',
-	'CANONICAL_STEM_WIDTH': 'VQ',
-	'CANONICAL_STEM_WIDTH_DENSE': 'VQ',
-	BLUEZONE_TOP_BAR_REF: 'VQ',
-	BLUEZONE_BOTTOM_BAR_REF: 'VQ',
+	RISE: 'VQ',
+	SINK: 'VQ',
+	RISE_DIAGH: 'VQ',
+	SINK_DIAGL: 'VQ',
+	TOP_CUT: 'VQ',
+	BOTTOM_CUT: 'VQ',
+	TOP_CUT_DIAGH: 'VQ',
+	TOP_CUT_DIAG_DIST: 'VQ',
+	BOTTOM_CUT_DIAGL: 'VQ',
+	BOTTOM_CUT_DIAG_DIST: 'VQ',
 	GRAVITY: 'VQ',
 	CONCENTRATE: 'VQ',
 	CHEBYSHEV_4: 'VQ',
-	CHEBYSHEV_5: 'VQ'
+	CHEBYSHEV_5: 'VQ',
+	CANONICAL_STEM_WIDTH: 'VQ',
+	CANONICAL_STEM_WIDTH_DENSE: 'VQ'
 }
 
 var strategyControlGroups = [
-	['UPM', 'BLUEZONE_WIDTH', 'PPEM_INCREASE_GLYPH_LIMIT', 'PPEM_LOCK_BOTTOM'],
-	[
-		'BLUEZONE_TOP_CENTER',
-		'BLUEZONE_TOP_LIMIT',
-		'BLUEZONE_TOP_BAR_REF',
-		'BLUEZONE_TOP_BAR',
-		'BLUEZONE_TOP_DOTBAR'
-	],
-	[
-		'BLUEZONE_BOTTOM_CENTER',
-		'BLUEZONE_BOTTOM_LIMIT',
-		'BLUEZONE_BOTTOM_BAR_REF',
-		'BLUEZONE_BOTTOM_BAR',
-		'BLUEZONE_BOTTOM_DOTBAR'
-	],
-	['GRAVITY', 'CONCENTRATE', 'CHEBYSHEV_4', 'CHEBYSHEV_5'],
+	['UPM', 'BLUEZONE_WIDTH', 'PPEM_INCREASE_GLYPH_LIMIT'],
+	['BLUEZONE_TOP_CENTER', 'BLUEZONE_TOP_LIMIT', 'BLUEZONE_BOTTOM_CENTER', 'BLUEZONE_BOTTOM_LIMIT'],
+	['TOP_CUT', 'BOTTOM_CUT', 'TOP_CUT_DIAGH', 'BOTTOM_CUT_DIAGL', 'TOP_CUT_DIAG_DIST', 'BOTTOM_CUT_DIAG_DIST'],
+	['RISE', 'SINK', 'RISE_DIAGH', 'SINK_DIAGL', 'GRAVITY', 'CONCENTRATE', 'CHEBYSHEV_4', 'CHEBYSHEV_5'],
 	['CANONICAL_STEM_WIDTH', 'CANONICAL_STEM_WIDTH_DENSE'],
 	['ABSORPTION_LIMIT', 'STEM_SIDE_MIN_RISE', 'STEM_SIDE_MIN_DESCENT', 'STEM_CENTER_MIN_RISE', 'STEM_CENTER_MIN_DESCENT', 'STEM_SIDE_MIN_DIST_RISE', 'STEM_SIDE_MIN_DIST_DESCENT', 'SLOPE_FUZZ', 'SLOPE_FUZZ_NEG', 'Y_FUZZ']
 ]
@@ -141,6 +133,8 @@ controls.VQ = function (ol, key, strategy, initVal, callback) {
 			vqModel[k[0]].val = k[1];
 		}
 	} else if (typeof initVal === 'number') {
+		vqModel[strategy.PPEM_MIN].focus = true;
+		vqModel[strategy.PPEM_MIN].val = initVal;
 		vqModel[strategy.PPEM_MAX].focus = true;
 		vqModel[strategy.PPEM_MAX].val = initVal;
 	}
@@ -209,35 +203,7 @@ $.getJSON("/characters.json", function (data) {
 		console.log(strg);
 		defaultStrategy = strg.default;
 		strategy = strg.start;
-		if (!strategy.BLUEZONE_TOP_BAR && strategy.BLUEZONE_TOP_BAR_MIDDLE_SIZE) {
-			strategy.BLUEZONE_TOP_BAR = [
-				[strategy.PPEM_MIN, strategy.BLUEZONE_TOP_BAR_SMALL],
-				[strategy.BLUEZONE_TOP_BAR_MIDDLE_SIZE, strategy.BLUEZONE_TOP_BAR_MIDDLE],
-				[strategy.PPEM_MAX, strategy.BLUEZONE_TOP_BAR_LARGE]
-			]
-		}
-		if (!strategy.BLUEZONE_TOP_DOTBAR && strategy.BLUEZONE_TOP_BAR_MIDDLE_SIZE) {
-			strategy.BLUEZONE_TOP_DOTBAR = [
-				[strategy.PPEM_MIN, strategy.BLUEZONE_TOP_DOTBAR_SMALL],
-				[strategy.BLUEZONE_TOP_BAR_MIDDLE_SIZE, strategy.BLUEZONE_TOP_DOTBAR_MIDDLE],
-				[strategy.PPEM_MAX, strategy.BLUEZONE_TOP_DOTBAR_LARGE]
-			]
-		}
-		if (!strategy.BLUEZONE_BOTTOM_BAR && strategy.BLUEZONE_BOTTOM_BAR_MIDDLE_SIZE) {
-			strategy.BLUEZONE_BOTTOM_BAR = [
-				[strategy.PPEM_MIN, strategy.BLUEZONE_BOTTOM_BAR_SMALL],
-				[strategy.BLUEZONE_BOTTOM_BAR_MIDDLE_SIZE, strategy.BLUEZONE_BOTTOM_BAR_MIDDLE],
-				[strategy.PPEM_MAX, strategy.BLUEZONE_BOTTOM_BAR_LARGE]
-			]
-		}
-		if (!strategy.BLUEZONE_BOTTOM_DOTBAR && strategy.BLUEZONE_BOTTOM_BAR_MIDDLE_SIZE) {
-			strategy.BLUEZONE_BOTTOM_DOTBAR = [
-				[strategy.PPEM_MIN, strategy.BLUEZONE_BOTTOM_DOTBAR_SMALL],
-				[strategy.BLUEZONE_BOTTOM_BAR_MIDDLE_SIZE, strategy.BLUEZONE_BOTTOM_DOTBAR_MIDDLE],
-				[strategy.PPEM_MAX, strategy.BLUEZONE_BOTTOM_DOTBAR_LARGE]
-			]
-		}
-		input = data;
+		input = data.filter(x => x);
 		createAdjusters();
 	});
 });

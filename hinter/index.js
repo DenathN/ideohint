@@ -42,22 +42,39 @@ function hint(glyph, ppem, strategy) {
 	const CANONICAL_STEM_WIDTH = toVQ(strategy.CANONICAL_STEM_WIDTH, ppem);
 	const CANONICAL_STEM_WIDTH_DENSE = toVQ(strategy.CANONICAL_STEM_WIDTH, ppem);
 
+	const TOP_CUT = Math.round(toVQ(strategy.TOP_CUT, ppem)) * uppx;
+	const BOTTOM_CUT = Math.round(toVQ(strategy.BOTTOM_CUT, ppem)) * uppx;
+	const TOP_CUT_DIAGH = Math.round(toVQ(strategy.TOP_CUT_DIAGH, ppem)) * uppx;
+	const BOTTOM_CUT_DIAGL = Math.round(toVQ(strategy.BOTTOM_CUT_DIAGL, ppem)) * uppx;
+	const TOP_CUT_DIAG_DIST = Math.round(toVQ(strategy.TOP_CUT_DIAG_DIST, ppem)) * uppx;
+	const BOTTOM_CUT_DIAG_DIST = Math.round(toVQ(strategy.BOTTOM_CUT_DIAG_DIST, ppem)) * uppx;
+
+	const RISE = toVQ(strategy.RISE, ppem) / 200;
+	const SINK = toVQ(strategy.SINK, ppem) / 200;
+	const RISE_DIAGH = toVQ(strategy.RISE_DIAGH, ppem) / 200;
+	const SINK_DIAGL = toVQ(strategy.SINK_DIAGL, ppem) / 200;
 	const CHEBYSHEV_2 = toVQ(strategy.GRAVITY, ppem) / -200;
 	const CHEBYSHEV_3 = toVQ(strategy.CONCENTRATE, ppem) / 200;
 	const CHEBYSHEV_4 = toVQ(strategy.CHEBYSHEV_4, ppem) / -200;
 	const CHEBYSHEV_5 = toVQ(strategy.CHEBYSHEV_5, ppem) / 200;
-	function cheby(_x) {
-		if (_x < 0) return _x;
-		if (_x > 1) return _x;
+
+	function risefn(x) {
+		return x * x * x * x * x * x
+	}
+
+	function cheby(_x, extreme) {
 		const x = _x * 2 - 1;
-		const y = x
-			+ CHEBYSHEV_2 * (2 * x * x - 1)
+		const rise = RISE + (extreme ? RISE_DIAGH : 0);
+		const sink = SINK + (extreme ? SINK_DIAGL : 0);
+		const y = x + rise * risefn(_x) - sink * risefn(1 - _x);
+		const dy = CHEBYSHEV_2 * (2 * x * x - 1)
 			+ CHEBYSHEV_3 * (4 * x * x * x - 3 * x)
 			+ CHEBYSHEV_4 * (8 * x * x * x * x - 8 * x * x + 1)
 			+ CHEBYSHEV_5 * (16 * x * x * x * x * x - 20 * x * x * x + 5 * x);
-		const y0 = -1 + CHEBYSHEV_2 - CHEBYSHEV_3 + CHEBYSHEV_4 - CHEBYSHEV_5;
-		const y1 = 1 + CHEBYSHEV_2 + CHEBYSHEV_3 + CHEBYSHEV_4 + CHEBYSHEV_5;
-		return (y - y0) / (y1 - y0);
+		const dy0 = CHEBYSHEV_2 - CHEBYSHEV_3 + CHEBYSHEV_4 - CHEBYSHEV_5;
+		const dy1 = CHEBYSHEV_2 + CHEBYSHEV_3 + CHEBYSHEV_4 + CHEBYSHEV_5;
+		const fdy = (_x < 0 || _x > 1) ? 0 : dy - dy0 - (dy1 - dy0) * (x + 1) / 2;
+		return (y + fdy + 1) / 2;
 	}
 
 	const WIDTH_GEAR_PROPER = Math.round(CANONICAL_STEM_WIDTH / uppx);
@@ -69,33 +86,8 @@ function hint(glyph, ppem, strategy) {
 	const ABLATION_GLYPH_EDGE = strategy.ABLATION_GLYPH_EDGE;
 	const ABLATION_GLYPH_HARD_EDGE = strategy.ABLATION_GLYPH_HARD_EDGE;
 
-	const COEFF_PORPORTION_DISTORTION = strategy.COEFF_PORPORTION_DISTORTION;
-
 	const BLUEZONE_BOTTOM_CENTER = strategy.BLUEZONE_BOTTOM_CENTER;
-	const BLUEZONE_BOTTOM_BAR_REF = toVQ(strategy.BLUEZONE_BOTTOM_BAR_REF, ppem);
-	const BLUEZONE_BOTTOM_BAR = strategy.BLUEZONE_BOTTOM_BAR
-		? monoip(strategy.BLUEZONE_BOTTOM_BAR)(ppem)
-		: xlerp(ppem,
-			strategy.PPEM_MIN, strategy.BLUEZONE_BOTTOM_BAR_MIDDLE_SIZE, strategy.PPEM_MAX,
-			strategy.BLUEZONE_BOTTOM_BAR_SMALL, strategy.BLUEZONE_BOTTOM_BAR_MIDDLE, strategy.BLUEZONE_BOTTOM_BAR_LARGE);
-	const BLUEZONE_BOTTOM_DOTBAR = strategy.BLUEZONE_BOTTOM_DOTBAR
-		? monoip(strategy.BLUEZONE_BOTTOM_DOTBAR)(ppem)
-		: xlerp(ppem,
-			strategy.PPEM_MIN, strategy.BLUEZONE_BOTTOM_BAR_MIDDLE_SIZE, strategy.PPEM_MAX,
-			strategy.BLUEZONE_BOTTOM_DOTBAR_SMALL, strategy.BLUEZONE_BOTTOM_DOTBAR_MIDDLE, strategy.BLUEZONE_BOTTOM_DOTBAR_LARGE);
-
 	const BLUEZONE_TOP_CENTER = strategy.BLUEZONE_TOP_CENTER;
-	const BLUEZONE_TOP_BAR_REF = toVQ(strategy.BLUEZONE_TOP_BAR_REF, ppem);
-	const BLUEZONE_TOP_DOTBAR = strategy.BLUEZONE_TOP_DOTBAR
-		? monoip(strategy.BLUEZONE_TOP_DOTBAR)(ppem)
-		: xlerp(ppem,
-			strategy.PPEM_MIN, strategy.BLUEZONE_TOP_BAR_MIDDLE_SIZE, strategy.PPEM_MAX,
-			strategy.BLUEZONE_TOP_DOTBAR_SMALL, strategy.BLUEZONE_TOP_DOTBAR_MIDDLE, strategy.BLUEZONE_TOP_DOTBAR_LARGE);
-	const BLUEZONE_TOP_BAR = strategy.BLUEZONE_TOP_BAR
-		? monoip(strategy.BLUEZONE_TOP_BAR)(ppem)
-		: xlerp(ppem,
-			strategy.PPEM_MIN, strategy.BLUEZONE_TOP_BAR_MIDDLE_SIZE, strategy.PPEM_MAX,
-			strategy.BLUEZONE_TOP_BAR_SMALL, strategy.BLUEZONE_TOP_BAR_MIDDLE, strategy.BLUEZONE_TOP_BAR_LARGE);
 
 	const round = roundings.Rtg(upm, ppem);
 	const roundDown = roundings.Rdtg(upm, ppem);
@@ -105,7 +97,6 @@ function hint(glyph, ppem, strategy) {
 	const glyphBottom = round(BLUEZONE_BOTTOM_CENTER);
 	const oPixelTop = round(BLUEZONE_TOP_CENTER);
 	const glyphTop = glyphBottom + round(BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER);
-	const refStemTop = round(BLUEZONE_TOP_BAR);
 
 	function atRadicalTop(stem) {
 		return !stem.hasSameRadicalStemAbove
@@ -141,60 +132,47 @@ function hint(glyph, ppem, strategy) {
 	const triplets = glyph.triplets;
 	const flexes = glyph.flexes;
 
-	const cyb = glyphBottom + (round(BLUEZONE_BOTTOM_DOTBAR - BLUEZONE_BOTTOM_CENTER));
-	const cyt = glyphTop - (round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_DOTBAR));
-	const cybx = glyphBottom + (round(BLUEZONE_BOTTOM_BAR - BLUEZONE_BOTTOM_CENTER))
-		+ Math.min(0, glyphBottom - BLUEZONE_BOTTOM_BAR);
-	const cytx = glyphTop - (round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_BAR))
-		+ Math.max(0, oPixelTop - BLUEZONE_TOP_BAR);
-
-	function cy(y, w0, w, x, att) {
-		// x means this stroke is topmost or bottommost
-		if (att) {
-			const p = (y - BLUEZONE_BOTTOM_BAR_REF) / (BLUEZONE_TOP_BAR_REF - BLUEZONE_BOTTOM_BAR_REF);
-			if (x) {
-				return cybx + (cytx - cybx) * cheby(p);
-			} else {
-				return cyb + (cyt - cyb) * cheby(p);
-			}
+	function cy(y, w0, w, extreme, posKeyAtTop) {
+		if (posKeyAtTop) {
+			const p = (y - BLUEZONE_BOTTOM_CENTER) / (BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER);
+			return glyphBottom + (glyphTop - glyphBottom) * cheby(p, extreme);
 		} else {
-			const p = (y - w0 - BLUEZONE_BOTTOM_BAR_REF) / (BLUEZONE_TOP_BAR_REF - BLUEZONE_BOTTOM_BAR_REF);
-			if (x) {
-				return w + cybx + (cytx - cybx) * cheby(p);
-			} else {
-				return w + cyb + (cyt - cyb) * cheby(p);
-			}
+			const p = (y - w0 - BLUEZONE_BOTTOM_CENTER) / (BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER);
+			return w + glyphBottom + (glyphTop - glyphBottom) * cheby(p, extreme);
 		}
 	}
 	function flexMiddleStem(t, m, b) {
-		const spaceAboveOri = t.y0 - t.w0 / 2 - m.y0 + m.w0 / 2;
-		const spaceBelowOri = m.y0 - m.w0 / 2 - b.y0 + b.w0 / 2;
-		if (spaceAboveOri + spaceBelowOri > 0) {
-			const totalSpaceFlexed = t.center - t.properWidth / 2 - b.center + b.properWidth / 2;
-			const y = m.properWidth / 2 + b.center - b.properWidth / 2 + totalSpaceFlexed * (spaceBelowOri / (spaceBelowOri + spaceAboveOri));
-			m.center = xclamp(m.low, y, m.high);
-		}
+		const spaceAboveOri = t.y0 - t.w0 - m.y0;
+		const spaceBelowOri = m.y0 - m.w0 - b.y0;
+		if (spaceAboveOri + spaceBelowOri <= 0) return;
+
+		const totalSpaceFlexed = t.center - t.properWidth - b.center - m.properWidth;
+		const y = m.properWidth + b.center + totalSpaceFlexed * (spaceBelowOri / (spaceBelowOri + spaceAboveOri));
+		m.center = xclamp(m.low, y, m.high);
 	}
 
 	function flexCenter(avaliables) {
 		// fix top and bottom stems
 		for (var j = 0; j < stems.length; j++) {
-			if (!stems[j].hasGlyphStemBelow) {
-				avaliables[j].high = Math.round(Math.max(
-					avaliables[j].center,
-					glyphBottom / uppx + avaliables[j].properWidth + (atGlyphBottom(stems[j]) ? 0 : 1
+			const avail = avaliables[j], stem = stems[j];
+			if (!stem.hasGlyphStemBelow) {
+				avail.high = Math.round(Math.max(
+					avail.center,
+					glyphBottom / uppx + avail.properWidth + (atGlyphBottom(stem) ? 0 : 1
 					)));
 			}
-			if (!stems[j].hasGlyphStemAbove && !stems[j].diagLow) {
+			if (!stem.hasGlyphStemAbove && !stem.diagLow) {
 				// lock top
-				avaliables[j].low = Math.round(avaliables[j].center);
+				avail.low = Math.round(avail.center);
 			}
-			if (ppem <= strategy.PPEM_LOCK_BOTTOM && atGlyphBottom(stems[j]) && !avaliables[j].diagLow
-				&& avaliables[j].high - avaliables[j].low <= 1
-				&& avaliables[j].low <= glyphBottom / uppx + avaliables[j].properWidth + 0.1) {
+			if (atGlyphBottom(stem) && !avail.diagLow
+				&& avail.high - avail.low <= 1
+				&& avail.low <= glyphBottom / uppx + avail.properWidth + 0.1
+				&& !(stem.hasRadicalLeftAdjacentPointBelow && stem.radicalLeftAdjacentDescent > STEM_SIDE_MIN_DESCENT / 3)
+				&& !(stem.hasRadicalRightAdjacentPointBelow && stem.radicalRightAdjacentDescent > STEM_SIDE_MIN_DESCENT / 3)) {
 				// Lock the bottommost stroke
-				avaliables[j].high -= 1;
-				if (avaliables[j].high < avaliables[j].low) avaliables[j].high = avaliables[j].low;
+				avail.high -= 1;
+				if (avail.high < avail.low) avail.high = avail.low;
 			}
 		}
 		for (var j = 0; j < flexes.length; j++) {
@@ -300,13 +278,15 @@ function hint(glyph, ppem, strategy) {
 		for (var j = 0; j < stems.length; j++) {
 			const stem = stems[j], y0 = stem.y, w0 = stem.width, w = tws[j] * uppx;
 			// The bottom limit of a stem
-			let lowlimit = atGlyphBottom(stem)
-				? stem.diagHigh
-					? ppem <= PPEM_INCREASE_GLYPH_LIMIT
-						? glyphBottom + w
-						: glyphBottom + w + uppx
-					: glyphBottom + w
-				: glyphBottom + w + uppx;
+			let lowlimit = glyphBottom + Math.max(
+				stem.diagLow
+					? BOTTOM_CUT_DIAGL
+					: stem.diagHigh
+						? (BOTTOM_CUT_DIAGL + BOTTOM_CUT_DIAG_DIST)
+						: BOTTOM_CUT,
+				atGlyphBottom(stem)
+					? stem.diagHigh ? ppem <= PPEM_INCREASE_GLYPH_LIMIT ? w : w + uppx : w
+					: w + uppx);
 			let fold = false;
 			// Add additional space below strokes with a fold under it.
 			if (stem.hasGlyphFoldBelow && !stem.hasGlyphStemBelow) {
@@ -318,27 +298,20 @@ function hint(glyph, ppem, strategy) {
 			}
 
 			// The top limit of a stem ('s upper edge)
-			let highlimit = glyphTop - xclamp(
-				atGlyphTop(stem) ? 0 : uppx, // essential space above
-				atGlyphTop(stem)
-					? stem.diagHigh
-						? 0
-						: (y0 > BLUEZONE_TOP_BAR && ppem <= PPEM_INCREASE_GLYPH_LIMIT
-							? round(BLUEZONE_TOP_CENTER - y0)
-							: round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_BAR) + roundDown(BLUEZONE_TOP_BAR - y0))
-					: (y0 > BLUEZONE_TOP_DOTBAR && ppem <= PPEM_INCREASE_GLYPH_LIMIT
-						? round(BLUEZONE_TOP_CENTER - y0)
-						: Math.max(
-							round(BLUEZONE_TOP_CENTER - BLUEZONE_TOP_DOTBAR),
-							roundDown(BLUEZONE_TOP_BAR - y0)
-						)),
-				WIDTH_GEAR_MIN * uppx);
-			if (highlimit > refStemTop && !stem.diagHigh) highlimit = refStemTop
+			let highlimit = glyphTop - Math.max(
+				// cut part
+				stem.diagHigh
+					? TOP_CUT_DIAGH
+					: stem.diagLow
+						? (TOP_CUT_DIAGH + TOP_CUT_DIAG_DIST)
+						: TOP_CUT,
+				// spatial part
+				atGlyphTop(stem) ? 0 : uppx);
 			if (stem.hasGlyphFoldAbove && !stem.hasGlyphStemAbove || stem.hasEntireContourAbove) {
 				highlimit = Math.min(glyphTop - 2 * uppx, highlimit);
 			}
 
-			const center0 = cy(y0, w0, w, atGlyphTop(stem) && !stem.diagLow || atGlyphBottom(stem) && stem.diagHigh, stem.posKeyAtTop);
+			const center0 = cy(y0, w0, w, atGlyphTop(stem) && stem.diagHigh || atGlyphBottom(stem) && stem.diagLow, stem.posKeyAtTop);
 			const maxshift = xclamp(1, ppem / 16, 2);
 			const lowlimitW = tws[j] > 1 ? lowlimit - uppx : lowlimit;
 			const lowW = xclamp(lowlimitW, round(center0 - maxshift * uppx), highlimit);
@@ -386,7 +359,8 @@ function hint(glyph, ppem, strategy) {
 				posKeyAtTop: stem.posKeyAtTop,
 				diagLow: stem.diagLow,
 				diagHigh: stem.diagHigh,
-				rid: stem.rid
+				rid: stem.rid,
+				belongRadical: stem.belongRadical
 			};
 		}
 		flexCenter(avaliables);

@@ -88,20 +88,21 @@ function interpretTT(glyphs, strategy, ppem) {
 			} else {
 				h = glyph.indexedPoints[stem.advKey.id], l = glyph.indexedPoints[stem.posKey.id]
 			}
-			const yTopTarget = h.ytouch = (action[0]) * uppx;
-			const yBotTarget = l.ytouch = (action[0] - action[1]) * uppx;
+			const [y, w, strict, stacked] = action;
+			const yTopTarget = h.ytouch = (y) * uppx;
+			const yBotTarget = l.ytouch = (y - w) * uppx;
 			h.touched = l.touched = true;
-			if (action[2]) return;
+			if (strict || w === 1 && h.y - l.y <= uppx && !stacked) return;
 			if (stem.posKeyAtTop) {
-				const dir = action[1] * uppx > h.y - l.y ? (1 / 16) * uppx : (-1 / 16) * uppx;
-				while (rtg(yBotTarget) === rtg(l.ytouch) && (action[3] || (dir > 0
+				const dir = w * uppx > h.y - l.y ? (1 / 16) * uppx : (-1 / 16) * uppx;
+				while (rtg(yBotTarget) === rtg(l.ytouch) && (stacked || (dir > 0
 					? yTopTarget - l.ytouch > h.y - l.y
 					: yTopTarget - l.ytouch < h.y - l.y))) {
 					l.ytouch += dir;
 				}
 			} else {
-				const dir = action[1] * uppx > h.y - l.y ? (-1 / 16) * uppx : (1 / 16) * uppx;
-				while (rtg(yTopTarget) === rtg(h.ytouch) && (action[3] || (dir > 0
+				const dir = w * uppx > h.y - l.y ? (-1 / 16) * uppx : (1 / 16) * uppx;
+				while (rtg(yTopTarget) === rtg(h.ytouch) && (stacked || (dir > 0
 					? h.ytouch - yBotTarget < h.y - l.y
 					: h.ytouch - yBotTarget > h.y - l.y))) {
 					h.ytouch += dir;
@@ -163,24 +164,26 @@ function interpretTT(glyphs, strategy, ppem) {
 }
 
 const SUPERSAMPLING = 8;
-const SAMPLING_Y = 1;
+const SAMPLING_Y = 4;
 const DPI = 2;
-const GAMMA = 2.2;
+const GAMMA = 2.4;
 function RenderPreviewForPPEM(glyphs, strategy, hdc, basex, basey, ppem) {
 	const uppx = strategy.UPM / ppem;
 
 	interpretTT(glyphs, strategy, ppem);
 
 	// Create a temp canvas
+	const hpixels = ppem * glyphs.length;
+	const vpixels = ppem + 1;
 	var eTemp = document.createElement('canvas')
-	eTemp.width = ppem * glyphs.length * 3 * SUPERSAMPLING;
-	eTemp.height = (ppem * 3 + 3) * SAMPLING_Y;
+	eTemp.width = hpixels * 3 * SUPERSAMPLING;
+	eTemp.height = vpixels * SAMPLING_Y;
 	var hTemp = eTemp.getContext('2d')
 	hTemp.fillStyle = "white";
 	hTemp.fillRect(0, 0, eTemp.width, eTemp.height);
 
 	function txp(x) { return (x / uppx) * 3 * SUPERSAMPLING }
-	function typ(y) { return ((-y / uppx + Math.round(strategy.BLUEZONE_TOP_CENTER / uppx)) * 3 + 3) * SAMPLING_Y }
+	function typ(y) { return ((-y / uppx + Math.round(strategy.BLUEZONE_TOP_CENTER / uppx)) + 1) * SAMPLING_Y }
 	// Fill
 	hTemp.fillStyle = 'black';
 	for (var m = 0; m < glyphs.length; m++) {
@@ -204,69 +207,63 @@ function RenderPreviewForPPEM(glyphs, strategy, hdc, basex, basey, ppem) {
 	};
 
 	// Downsampling
-	var ori = hTemp.getImageData(0, 0, eTemp.width, eTemp.height);
-	var vpixels = eTemp.height / 3;
-	const eAA = document.createElement('canvas');
-	eAA.width = ppem * glyphs.length * DPI;
-	eAA.height = vpixels * DPI;
-	const hAA = eAA.getContext('2d');
-	var aa = hAA.createImageData(eAA.width, eAA.height);
-	for (var j = 0; j < aa.width; j++) for (var k = 0; k < aa.height; k++) {
-		aa.data[(k * aa.height + j) * 4] = 0xFF;
-		aa.data[(k * aa.height + j) * 4 + 1] = 0xFF;
-		aa.data[(k * aa.height + j) * 4 + 2] = 0xFF;
-		aa.data[(k * aa.height + j) * 4 + 3] = 0xFF;
-	}
-	var w = 4 * eTemp.width;
-	var h = []; for (var j = 0; j < 3 * SUPERSAMPLING; j++) h[j] = 1;
-	var jSample = 0;
-	var a = 3 * SUPERSAMPLING;
+	const ori = hTemp.getImageData(0, 0, eTemp.width, eTemp.height);
+	const eAA = document.createElement("canvas");
+	eAA.width = hpixels;
+	eAA.height = vpixels;
+	const hAA = eAA.getContext("2d");
+
 	for (var j = 0; j < vpixels; j++) {
-		for (var k = 0; k < ppem * glyphs.length; k++) {
+		let aa = hAA.createImageData(hpixels, 1);
+		for (var k = 0; k < hpixels; k++) {
+			aa.data[k * 4] = 0xFF, aa.data[k * 4 + 1] = 0, aa.data[k * 4 + 2] = 0, aa.data[k * 4 + 3] = 0xFF;
 			for (var component = 0; component < 3; component++) {
-				for (var ss = 0; ss < SUPERSAMPLING; ss++) {
-					var d = Math.pow(ori.data[w] / 255, GAMMA);
-					a += d
-					a -= h[jSample]
-					h[jSample] = d;
-					w += 4;
-					jSample += 1;
-					if (jSample >= 3 * SUPERSAMPLING) jSample = 0;
+				let coverage = 0;
+				for (let ssy = 0; ssy < SAMPLING_Y; ssy++)for (let ss = -SUPERSAMPLING; ss < SUPERSAMPLING * 2; ss++) {
+					const origRow = j * SAMPLING_Y + ssy;
+					let origCol = (k * 3 + component) * SUPERSAMPLING + ss;
+					if (origCol < 0) origCol = 0;
+					if (origCol >= eTemp.width) origCol = eTemp.width - 1;
+					const origPixelId = eTemp.width * origRow + origCol;
+					const raw = ori.data[origPixelId * 4];
+					coverage += raw < 128 ? 1 : 0;
 				}
-				var alpha = a / (3 * SUPERSAMPLING);
-				for (var dr = 0; dr < DPI; dr++) for (var dc = 0; dc < DPI; dc++) {
-					aa.data[((j * DPI + dr) * aa.width + k * DPI + dc) * 4 + component] = 255 * Math.pow(alpha, 1 / GAMMA)
-				}
-			}
-			for (var dr = 0; dr < DPI; dr++) for (var dc = 0; dc < DPI; dc++) {
-				aa.data[((j * DPI + dr) * aa.width + k * DPI + dc) * 4 + 3] = 255
+				const alpha = coverage / (3 * SUPERSAMPLING * SAMPLING_Y);
+				aa.data[k * 4 + component] = 255 * Math.pow(1 - alpha, 1 / GAMMA);
 			}
 		}
-		w += 4 * 2 * 3 * ppem * glyphs.length * SUPERSAMPLING
+		hAA.putImageData(aa, 0, j);
 	};
-	hAA.putImageData(aa, 0, 0);
-	hdc.imageSmoothingEnabled = true;
-	hdc.drawImage(eAA, basex, basey, eAA.width, eAA.height / SAMPLING_Y);
+	hdc.imageSmoothingEnabled = false;
+	hdc.drawImage(eAA, basex, basey, eAA.width * DPI, eAA.height * DPI);
 };
 
+let renderHandle = { handle: null }
 
 function renderPreview(hPreview, glyphs, strategy) {
 	hPreview.font = (12 * DPI) + 'px sans-serif'
-	var y = 10 * DPI;
-	for (var ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
-		// fill with red block
+	let y = 10 * DPI;
+	let ppem = strategy.PPEM_MIN;
+	function renderView() {
+		// fill with white
 		hPreview.fillStyle = 'white';
 		hPreview.fillRect(0, y, 128 + glyphs.length * DPI * ppem, y + DPI * ppem)
 		// render 
-		setTimeout(function (y, ppem) {
-			return function () {
-				RenderPreviewForPPEM(glyphs, strategy, hPreview, 128, y, ppem)
-			}
-		}(y, ppem), 0);
+		RenderPreviewForPPEM(glyphs, strategy, hPreview, 128, y, ppem)
 		hPreview.fillStyle = 'black';
 		hPreview.fillText(ppem + '', 0, y + ppem * (strategy.BLUEZONE_TOP_CENTER / strategy.UPM) * DPI)
-		y += Math.round(ppem * 1.2) * DPI
+		y += Math.round(ppem * 1.2) * DPI;
+		ppem += 1;
+		if (ppem <= strategy.PPEM_MAX) {
+			if (renderHandle.handle) { clearTimeout(renderHandle.handle); }
+			setTimeout(renderView, 0);
+		} else {
+			renderHandle.handle = null;
+		}
 	}
+	if (renderHandle.handle) { clearTimeout(renderHandle.handle); }
+	setTimeout(renderView, 0);
 }
 
-module.exports = renderPreview;
+exports.renderPreview = renderPreview;
+exports.renderHandle = renderHandle;

@@ -34,8 +34,7 @@ module.exports = function (glyph, strategy, dov, P) {
 		const s = glyph.stems[js];
 		// posKeyShouldAtBottom : a bottom stem?
 		const slope = (slopeOf(s.high) + slopeOf(s.low)) / 2;
-		const posKeyShouldAtBottom =
-			(atRadicalBottom(s, strategy) && (!s.hasGlyphStemBelow || Math.abs(slope) >= strategy.SLOPE_FUZZ / 2))
+		const posKeyShouldAtBottom = atRadicalBottom(s, strategy)
 			|| hasGreaterUpperPromixity(glyph.stems, js, dov, P);
 
 		// get highkey and lowkey

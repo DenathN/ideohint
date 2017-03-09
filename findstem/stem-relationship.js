@@ -1,6 +1,10 @@
 "use strict";
 var minmaxOfSeg = require("./seg").minmaxOfSeg;
 
+function pointBelowStem(point, stem, fuzz) {
+	return point.y < stem.y - stem.width - fuzz
+}
+
 function analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, strategy) {
 	var blueFuzz = strategy.BLUEZONE_WIDTH || 15;
 	var a0 = stem.low[0][0].x, az = stem.low[stem.low.length - 1][stem.low[stem.low.length - 1].length - 1].x;
@@ -65,7 +69,7 @@ function analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, str
 				}
 			}
 		}
-		if (point.y < stem.y - stem.width && point.x < xmax - blueFuzz && point.x > xmin + blueFuzz) {
+		if (pointBelowStem(point, stem, blueFuzz) && point.x < xmax - blueFuzz && point.x > xmin + blueFuzz) {
 			stem.hasGlyphPointBelow = true;
 			stem.glyphCenterDescent = Math.max(stem.glyphCenterDescent || 0, stem.y - stem.width - point.y);
 			if (sameRadical) {
@@ -77,7 +81,7 @@ function analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, str
 				if (sameRadical) { stem.hasRadicalVFoldBelow = true; }
 			}
 		}
-		if (point.xStrongExtrema && !(point.yExtrema && !point.yStrongExtrema) && point.y < stem.y - stem.width - blueFuzz && point.x < xmax + stem.width && point.x > xmin - stem.width) {
+		if (pointBelowStem(point, stem, blueFuzz) && point.xStrongExtrema && !(point.yExtrema && !point.yStrongExtrema) && point.x < xmax + stem.width && point.x > xmin - stem.width) {
 			if (!point.atleft && point.x > xmin + (xmax - xmin) * 0.2 || point.atleft && point.x < xmax - (xmax - xmin) * 0.2) {
 				stem.hasGlyphFoldBelow = true;
 				if (sameRadical) { stem.hasRadicalFoldBelow = true; }
@@ -86,7 +90,7 @@ function analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, str
 				if (sameRadical) { stem.hasRadicalSideFoldBelow = true; }
 			}
 		}
-		if (point.y < stem.y - stem.width && point.x >= xmax - blueFuzz && point.x <= xmax + blueFuzz) {
+		if (pointBelowStem(point, stem, blueFuzz) && point.x >= xmax - blueFuzz && point.x <= xmax + blueFuzz) {
 			stem.hasGlyphRightAdjacentPointBelow = true;
 			stem.glyphRightAdjacentDescent = Math.max(stem.glyphRightAdjacentDescent || 0, stem.y - stem.width - point.y);
 			if (sameRadical) {
@@ -94,7 +98,7 @@ function analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, str
 				stem.radicalRightAdjacentDescent = Math.max(stem.radicalRightAdjacentDescent || 0, stem.y - stem.width - point.y);
 			}
 		}
-		if (point.y < stem.y - stem.width && point.x <= xmin + blueFuzz && point.x >= xmin - blueFuzz) {
+		if (pointBelowStem(point, stem, blueFuzz) && point.x <= xmin + blueFuzz && point.x >= xmin - blueFuzz) {
 			stem.hasGlyphLeftAdjacentPointBelow = true;
 			stem.glyphLeftAdjacentDescent = Math.max(stem.glyphLeftAdjacentDescent || 0, stem.y - stem.width - point.y);
 			if (sameRadical) {
@@ -102,7 +106,7 @@ function analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, str
 				stem.radicalLeftAdjacentDescent = Math.max(stem.radicalLeftAdjacentDescent || 0, stem.y - stem.width - point.y);
 			}
 		}
-		if (point.y < stem.y - stem.width && point.x >= xmax + blueFuzz) {
+		if (pointBelowStem(point, stem, blueFuzz) && point.x >= xmax + blueFuzz) {
 			stem.hasGlyphRightDistancedPointBelow = true;
 			stem.glyphRightDistancedDescent = Math.max(stem.glyphRightDistancedDescent || 0, stem.y - stem.width - point.y);
 			if (sameRadical) {
@@ -110,7 +114,7 @@ function analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, str
 				stem.radicalRightDistancedDescent = Math.max(stem.radicalRightDistancedDescent || 0, stem.y - stem.width - point.y);
 			}
 		}
-		if (point.y < stem.y - stem.width && point.x <= xmin - blueFuzz) {
+		if (pointBelowStem(point, stem, blueFuzz) && point.x <= xmin - blueFuzz) {
 			stem.hasGlyphLeftDistancedPointBelow = true;
 			stem.glyphLeftDistancedDescent = Math.max(stem.glyphLeftDistancedDescent || 0, stem.y - stem.width - point.y);
 			if (sameRadical) {

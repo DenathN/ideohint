@@ -129,12 +129,14 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	const pmax = record.pmax;
 	const upm = strategy.UPM;
 	let buf = "";
-
 	function talk(s) { buf += s + "\n"; }
+
+	talk('/* !!IDH!! ANCHOR BOTTOM */');
 	// bottom
 	for (let z of si.blue.bottomZs) {
 		talk(`YAnchor(${z.id},${padding + 2})`);
 	}
+	talk('/* !!IDH!! ANCHOR TOP */');
 	// top
 	for (let j = 0; j < si.blue.topZs.length; j++) {
 		const z = si.blue.topZs[j];
@@ -158,14 +160,14 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	// ip decider
 	let candidates = [];
 	initCandidates: {
-		for (let z of si.blue.bottomZs) {
+		if (false) for (let z of si.blue.bottomZs) {
 			candidates.push({
 				ipz: z.id,
 				pOrg: z.y,
 				pDsts: table(pmin, pmax, ppem => roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem))
 			})
 		}
-		for (let z of si.blue.topZs) {
+		if (false) for (let z of si.blue.topZs) {
 			candidates.push({
 				ipz: z.id,
 				pOrg: z.y,

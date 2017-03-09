@@ -284,7 +284,6 @@ function allocateWidth(y0, env) {
 	}
 
 	// Triplet whitespace balancing
-
 	for (var pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) {
 		for (var t = 0; t < strictTriplets.length; t++) {
 			var j = strictTriplets[t][0], k = strictTriplets[t][1], m = strictTriplets[t][2];
@@ -322,7 +321,18 @@ function allocateWidth(y0, env) {
 			}
 		}
 	}
-
+	// Prevent swap
+	for (let j = y.length - 2; j >= 0; j--) {
+		if (y[j] > y[j + 1]) {
+			const su = spaceAbove(env, y, w, k + 1, pixelTop + 2);
+			const sb = spaceBelow(env, y, w, j, pixelBottom - 2);
+			if (sb > y[j] - y[j + 1]) {
+				y[j] = xclamp(avaliables[j].lowW, y[j + 1], avaliables[j].highW);
+			} else if (su > y[j] - y[j + 1]) {
+				y[j + 1] = xclamp(avaliables[j + 1].lowW, y[j], avaliables[j + 1].highW);
+			}
+		}
+	}
 	return { y: y, w: w };
 }
 
