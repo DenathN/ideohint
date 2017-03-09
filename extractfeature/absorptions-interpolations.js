@@ -57,9 +57,10 @@ function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalS
 	var radicalParts = [radical.outline].concat(radical.holes);
 	var radicalPoints = [].concat.apply([], radicalParts.map(function (c) { return c.points.slice(0, -1); }));
 	for (var k = 0; k < radicalPoints.length; k++) {
-		var z = radicalPoints[k];
+		const z = radicalPoints[k];
 		if (z.keypoint || z.touched || z.donttouch) continue;
-		var candidate = null;
+		let candidate = null;
+		let reject = false;
 		for (const stem of radicalStems) {
 			const highpts = [].concat.apply([], stem.high);
 			const lowpts = [].concat.apply([], stem.low);
@@ -67,6 +68,7 @@ function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalS
 			for (var j = 0; j < keyPoints.length; j++) {
 				var zkey = keyPoints[j];
 				if (zkey.id === z.id || !(zkey.id >= 0) || zkey.donttouch) continue;
+				if (zkey.prev === z || z.prev === zkey) { reject = true; break; }
 				// detect whether this sole point is attached to the stem edge.
 				// in most cases, absorbing a lower point should be stricter due to the topology of ideographs
 				// so we use asymmetric condition for "above" and "below" cases.
@@ -78,7 +80,7 @@ function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalS
 			}
 		}
 		// And it should have at least one segment in the glyph's outline.'
-		if (candidate) {
+		if (!reject && candidate) {
 			let key = candidate.linkedKey ? candidate.linkedKey : candidate;
 			shortAbsorptions.push([candidate.id, z.id, priority + (z.yExtrema ? 1 : 0)]);
 			z.touched = true;

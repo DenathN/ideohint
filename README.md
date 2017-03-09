@@ -58,8 +58,9 @@ The strategy parameters determines how `ideohint` generate the instructions. It 
 [hinting]
 PPEM_MIN = 11
 PPEM_MAX = 36
-CANONICAL_STEM_WIDTH = [[36,67]]
-CANONICAL_STEM_WIDTH_DENSE = [[36,67]]
+PPEM_LOCK_BOTTOM = 20
+CANONICAL_STEM_WIDTH = [[11,67],[36,67]]
+CANONICAL_STEM_WIDTH_DENSE = [[11,67],[36,67]]
 ABSORPTION_LIMIT = 120
 STEM_SIDE_MIN_RISE = 36
 STEM_SIDE_MIN_DESCENT = 53
@@ -68,19 +69,19 @@ STEM_CENTER_MIN_DESCENT = 50
 STEM_SIDE_MIN_DIST_RISE = 75
 STEM_SIDE_MIN_DIST_DESCENT = 75
 Y_FUZZ = 8
-BLUEZONE_BOTTOM_CENTER = -73
+BLUEZONE_BOTTOM_CENTER = -75
 BLUEZONE_BOTTOM_LIMIT = -45
-BLUEZONE_BOTTOM_BAR_REF = -75
-BLUEZONE_TOP_CENTER = 832
+BLUEZONE_TOP_CENTER = 840
 BLUEZONE_TOP_LIMIT = 813
-BLUEZONE_TOP_BAR_REF = 799
-BLUEZONE_TOP_BAR = [[12,820],[15,820],[16,805],[32,799]]
-BLUEZONE_TOP_DOTBAR = [[12,808],[16,800],[32,790]]
-BLUEZONE_BOTTOM_BAR = [[16,-49],[36,-48]]
-BLUEZONE_BOTTOM_DOTBAR = [[12,-75],[16,-70],[36,-60]]
-
-[cvt]
-padding = 10
+RISE = [[11,10],[18,10],[36,-1]]
+SINK = [[11,5],[32,0]]
+SINK_DIAGL = [[11,16],[36,15]]
+GRAVITY = [[11,0],[36,0]]
+CONCENTRATE = [[11,0],[36,0]]
+CHEBYSHEV_4 = [[11,0],[36,0]]
+CHEBYSHEV_5 = [[11,0],[36,0]]
+TOP_CUT = [[11,0],[18,0],[19,1],[32,1],[33,2],[36,2]]
+BOTTOM_CUT = [[11,0],[36,0]]
 ```
 
 The hinting parameters are stored in `hinting` section. They include:
@@ -91,20 +92,31 @@ The hinting parameters are stored in `hinting` section. They include:
 * **Hinting Ranges**
   * **PPEM_MIN**: Minimal size being hinted.
   * **PPEM_MAX**: Maximal size being hinted.
-* **Top Positioning Parameters**
+* **Blue zones**
 
   * **BLUEZONE_TOP_CENTER** and **BLUEZONE_TOP_LIMIT** : Center and lower limit of the top blue zone. Use characters like “木” to decide the value of **BLUEZONE_TOP_CENTER**.
-  * **BLUEZONE_TOP_BAR_REF** : The "reference" position of the upper edge of "top" hotizontal strokes without any stroke above or touching its upper edge. This value is used to determine the relative position of strokes. Can be either a constant number, or a size-dependent value, written in the same  format as **BLUEZONE_TOP_BAR** (see below).
-
-  * **BLUEZONE_TOP_BAR**: The controlled position of topmost horizontal stroke's upper edges in small, middle and large font sizes. Carefully adjusting them can optimize the visual representation of the hinted result. This applies to the topmost strokes of characters “里”.
-    It should be an array containing correspondences between character size (in ppem) and the desired position (in emu), like `[[12,820],[15,820],[16,805],[32,799]]`. Value for text sizes not mentioned will be interpolated monotonically using closest records.
-  * **BLUEZONE_TOP_DOTBAR**: The controlled position of the upper edge of "top" horizontal strokes with stroke touching its upper edge. Like the position of the first horizontal stroke in “章”. It follows the same format as **BLUEZONE_TOP_BAR**.
-* **Bottom Positioning Parameters**: Similar as the previous  section, with the name **\_TOP\_** replaced to **\_BOTTOM\_**, and applies to the bottommost features of the characters.
+  * **BLUEZONE_BOTTOM_CENTER** and **BLUEZONE_BOTTOM_LIMIT** : Center and lower limit of the top blue zone. Use characters like “木” to decide the value.
+* **Stem Restriction Parameters**
+  * **TOP_CUT**: Required space for topmost, flat stems, like the topmost stroke in “里”, to the glyph top. In pixels.
+  * **BOTTOM_CUT**: Required space for bottommost, flat stems, like the bottommost stroke in “里”, to the glyph bottom. In pixels.
+  * **TOP_CUT_DIAGH**: Required space for topmost, semi-diagonal stems, like the topmost stroke in “看”, to the glyph top. In pixels.
+  * **BOTTOM_CUT_DIAGL**: Required space for bottommost, semi-diagonal stems to the glyph bottom. In pixels.
+  * **TOP_CUT_DIAGH_DIST**: Additional space for the lower half of the topmost, semi-diagonal stems to the glyph top. In pixels.
+  * **BOTTOM_CUT_DIAGL_DIST**: Additional space for the higher half of bottommost, semi-diagonal stems to the glyph bottom. In pixels.
+* **Stem Positioning Parameters**
+    * **RISE** : Tend to rise topmost stems. 0 for “natural”.
+    * **SINK**: Tend to sink bottommost stems. 0 for “natural”.
+    * **RISE_DIAGH**: Additional rise tend for the higher half of a semi-diagonal stem.
+    * **SINK_DIAGL**: Additional sink tend for the lower half of a semi-diagonal stem.
+    * **GRAVITY**: Tend to move middle stems upward or downward. 0 for “natural”, positive for upward, negative for downward.
+    * **CONCENTRATE**: Tend to aggregate middle stems or distribute them to the character's top and bottom. Positive for aggregation, negative for distribution.
+    * **CHEBYSHEV_4** and **CHEBYSHEV_5**: Fine tuning of stem distribution.
+* **Stem Width Parameters**
+    * **CANONICAL_STEM_WIDTH** : The “Canonical” stroke width among the entire font. Measured in a loose character like “里”. Can be either a constant number, or a size-dependent value, in the same format as **BLUEZONE_TOP_BAR**.
+    * **CANONICAL_STEM_WIDTH_DENSE**: The “Canonical” stroke width of dense characters like “襄”. Useful in bold weights. Can be either a constant number, or a size-dependent value, in the same format as **BLUEZONE_TOP_BAR**. For lighter width, it should be identical to **CANONICAL_STEM_WIDTH**. 
 * **Stem Detection Parameters**
 
     * **ABSORPTION_LIMIT**: The limit when a horizontal extremum being linked to a point aligned to the top or bottom blue zone. Useful when preserving diagonal strokes’ width. Preferred value: slightly larger than **MAX_STEM_WIDTH**.
-    * **CANONICAL_STEM_WIDTH** : The “Canonical” stroke width among the entire font. Measured in a loose character like “里”. Can be either a constant number, or a size-dependent value, in the same format as **BLUEZONE_TOP_BAR**.
-    * **CANONICAL_STEM_WIDTH_DENSE**: The “Canonical” stroke width of dense characters like “襄”. Useful in bold weights. Can be either a constant number, or a size-dependent value, in the same format as **BLUEZONE_TOP_BAR**. For lighter width, it should be identical to **CANONICAL_STEM_WIDTH**. 
     * **STEM_SIDE_MIN_RISE** : The maximum height of decorative shapes placed aside a hotizontal stem's upper edge.
     * **STEM_SIDE_MIN_DESCENT** : The maximum depth of close decorative shapes placed aside a hotizontal stem's lower edge.
     * **STEM_CENTER_MIN_RISE** : The maximum height of close decorative shapes placed above a hotizontal stem's upper edge.
