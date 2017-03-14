@@ -133,13 +133,8 @@ function hint(glyph, ppem, strategy) {
 	const flexes = glyph.flexes;
 
 	function cy(y, w0, w, extreme, posKeyAtTop) {
-		if (posKeyAtTop) {
-			const p = (y - BLUEZONE_BOTTOM_CENTER) / (BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER);
-			return glyphBottom + (glyphTop - glyphBottom) * cheby(p, extreme);
-		} else {
-			const p = (y - w0 - BLUEZONE_BOTTOM_CENTER) / (BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER);
-			return w + glyphBottom + (glyphTop - glyphBottom) * cheby(p, extreme);
-		}
+		const p = (y - w0 - BLUEZONE_BOTTOM_CENTER) / (BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER - w0);
+		return w + glyphBottom + (glyphTop - glyphBottom - w) * cheby(p, extreme);
 	}
 	function flexMiddleStem(t, m, b) {
 		const spaceAboveOri = t.y0 - t.w0 - m.y0;
@@ -314,9 +309,11 @@ function hint(glyph, ppem, strategy) {
 						: TOP_CUT,
 				// spatial part
 				atGlyphTop(stem) ? 0 : uppx);
+			/*
 			if (stem.hasGlyphFoldAbove && !stem.hasGlyphStemAbove || stem.hasEntireContourAbove) {
 				highlimit = Math.min(glyphTop - 2 * uppx, highlimit);
 			}
+			*/
 
 			const center0 = cy(y0, w0, w, atGlyphTop(stem) && stem.diagHigh || atGlyphBottom(stem) && stem.diagLow, stem.posKeyAtTop);
 			const maxshift = xclamp(1, ppem / 16, 2);

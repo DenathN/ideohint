@@ -22,8 +22,6 @@ exports.handler = function (argv) {
 
 	getCMAPInfo();
 
-
-
 	function getCMAPInfo() {
 		var sParseCmap = JSONStream.parse(["cmap"]);
 		var instream = fs.createReadStream(argv._[1], "utf-8");
@@ -50,6 +48,27 @@ exports.handler = function (argv) {
 					|| code >= 0xF900 && code <= 0xfa6F
 					|| code >= 0x20000 && code <= 0x2FFFF) {
 					keep[cmap[k]] = true;
+				}
+			}
+		});
+		sParseCmap.on("end", function () {
+			getGSUBinfo();
+		});
+		instream.pipe(sParseCmap);
+	}
+	function getGSUBinfo() {
+		var sParseCmap = JSONStream.parse(["GSUB"]);
+		var instream = fs.createReadStream(argv._[1], "utf-8");
+		sParseCmap.on("data", function (gsub) {
+			let lookups = gsub.lookups;
+			if (!lookups) return;
+			for (let passes = 0; passes < 10; passes++) {
+				for (let lid in lookups) {
+					if (!lookups[lid]) continue;
+					if (lookups[lid].type !== 'gsub_single') continue;
+					for (let subtable of lookups[lid].subtables) {
+						for (let g in subtable) if (keep[g]) { keep[subtable[g]] = true }
+					}
 				}
 			}
 		});

@@ -14,8 +14,8 @@ function checkExtrema(prev, z, next) {
 	if (
 		z.x > prev.x && z.x >= next.x || z.x < prev.x && z.x <= next.x) {
 		z.xExtrema = true;
-		z.xStrongExtrema = z.x > prev.x + 1 && z.x > next.x + 1
-			|| z.x < prev.x - 1 && z.x < next.x - 1;
+		z.xStrongExtrema = (z.x > prev.x + 1 && z.x > next.x + 1 || z.x < prev.x - 1 && z.x < next.x - 1)
+			|| (z.on && !prev.on && !next.on && z.x === prev.x && z.x === next.x)
 		if (z.xStrongExtrema) {
 			z.atleft = z.x < prev.x - 1 && z.x < next.x - 1;
 		}
@@ -54,9 +54,11 @@ Contour.prototype.orient = function () {
 	var pt = this.points[0];
 	for (var j = 0; j < this.points.length - 1; j++) if (this.points[j].on) {
 		setHidden(this.points[j], "prev", pt);
+		setHidden(pt, "next", this.points[j]);
 		pt = this.points[j];
 	}
 	setHidden(this.points[0], "prev", pt);
+	setHidden(pt, "next", this.points[0]);
 };
 var inPoly = function (point, vs) {
 	// ray-casting algorithm based on
