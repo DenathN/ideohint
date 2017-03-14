@@ -69,15 +69,15 @@ function interpretTT(glyphs, strategy, ppem) {
 		untouchAll(glyph.contours);
 		var actions = glyphs[j].hints[ppem];
 
-		// Top blues
-		features.topBluePoints.forEach(function (pid) {
-			glyph.indexedPoints[pid].touched = true;
-			glyph.indexedPoints[pid].ytouch = Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER) + rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER));
-		})
 		// Bottom blues
 		features.bottomBluePoints.forEach(function (pid) {
 			glyph.indexedPoints[pid].touched = true;
 			glyph.indexedPoints[pid].ytouch = rtg(strategy.BLUEZONE_BOTTOM_CENTER)
+		})
+		// Top blues
+		features.topBluePoints.forEach(function (pid) {
+			glyph.indexedPoints[pid].touched = true;
+			glyph.indexedPoints[pid].ytouch = Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER) + rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER));
 		})
 		// Stems
 		actions.forEach(function (action, j) {

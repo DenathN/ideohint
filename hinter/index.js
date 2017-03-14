@@ -264,6 +264,11 @@ function hint(glyph, ppem, strategy) {
 				}
 			}
 		}
+		for (var j = 0; j < stems.length; j++) {
+			if (tws[j] < 1) {
+				tws[j] = 1
+			}
+		}
 		return tws;
 	}
 
@@ -279,6 +284,7 @@ function hint(glyph, ppem, strategy) {
 			const stem = stems[j], y0 = stem.y, w0 = stem.width, w = tws[j] * uppx;
 			// The bottom limit of a stem
 			let lowlimit = glyphBottom + Math.max(
+				w,
 				stem.diagLow
 					? BOTTOM_CUT_DIAGL
 					: stem.diagHigh
@@ -299,6 +305,7 @@ function hint(glyph, ppem, strategy) {
 
 			// The top limit of a stem ('s upper edge)
 			let highlimit = glyphTop - Math.max(
+				0,
 				// cut part
 				stem.diagHigh
 					? TOP_CUT_DIAGH
@@ -313,7 +320,7 @@ function hint(glyph, ppem, strategy) {
 
 			const center0 = cy(y0, w0, w, atGlyphTop(stem) && stem.diagHigh || atGlyphBottom(stem) && stem.diagLow, stem.posKeyAtTop);
 			const maxshift = xclamp(1, ppem / 16, 2);
-			const lowlimitW = tws[j] > 1 ? lowlimit - uppx : lowlimit;
+			const lowlimitW = Math.max(glyphBottom + w, tws[j] > 1 ? lowlimit - uppx : lowlimit);
 			const lowW = xclamp(lowlimitW, round(center0 - maxshift * uppx), highlimit);
 			const highW = xclamp(lowlimitW, round(center0 + maxshift * uppx), highlimit);
 			const low = xclamp(lowlimit, round(center0 - maxshift * uppx), highlimit);
@@ -427,7 +434,7 @@ function hint(glyph, ppem, strategy) {
 		stemPositions[j] = avaliables[j].center;
 	}
 	stemPositions = uncollide(stemPositions, env,
-		xclamp(2, Math.round(stems.length / strategy.STEADY_STAGES_X), strategy.STEADY_STAGES_MAX), // stages
+		xclamp(2, Math.round(stems.length / strategy.STEADY_STAGES_X * stems.length / ppem), strategy.STEADY_STAGES_MAX), // stages
 		strategy.POPULATION_LIMIT * Math.max(1, stems.length) // population
 	);
 

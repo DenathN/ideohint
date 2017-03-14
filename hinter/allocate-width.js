@@ -77,6 +77,55 @@ function allocateWidth(y0, env) {
 	}
 	// Avoid thin strokes
 	for (var pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) {
+		// small size
+		for (var t = 0; t < strictTriplets.length; t++) {
+			var j = strictTriplets[t][0], k = strictTriplets[t][1], m = strictTriplets[t][2];
+			var y1 = y.slice(0), w1 = w.slice(0);
+			// [1] 0 [1] 1 [1] -> [1] 1 [1] 0 [1]
+			if (tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY)
+				&& y[j] - w[j] - y[k] < 1
+				&& y[k] - w[k] - y[m] >= 1
+				&& env.P[j][k] > env.P[k][m]
+				&& env.C[j][k] > env.C[k][m]) {
+				y[k] -= 1;
+				continue;
+			}
+			// [1] 1 [1] 0 [1] -> [1] 0 [1] 1 [1]
+			else if (tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY)
+				&& y[j] - w[j] - y[k] >= 1
+				&& y[k] - w[k] - y[m] < 1
+				&& env.P[j][k] < env.P[k][m]
+				&& env.C[j][k] < env.C[k][m]) {
+				y[k] += 1;
+				continue;
+			}
+			// [1] 0 [1] 2 [1] -> [1] 1 [1] 1 [1]
+			else if (tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY)
+				&& y[j] - w[j] - y[k] < 1
+				&& y[k] - w[k] - y[m] >= 2) {
+				y[k] -= 1;
+			}
+			// [1] 0 [1] 2 [1] -> [1] 1 [1] 1 [1]
+			else if (tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY)
+				&& y[j] - w[j] - y[k] >= 2
+				&& y[k] - w[k] - y[m] < 1) {
+				y[k] += 1;
+			}
+			// rollback when no space
+			if (spaceBelow(env, y, w, j, pixelBottom - 1) < 1
+				|| spaceAbove(env, y, w, k, pixelTop + 1) < 1
+				|| spaceAbove(env, y, w, m, pixelTop + 1) < 1
+				|| spaceBelow(env, y, w, k, pixelBottom - 1) < 1
+				|| j < N - 1 && y[j] > y[j + 1] || j > 0 && y[j] < y[j - 1]
+				|| k < N - 1 && y[k] > y[k + 1] || k > 0 && y[k] < y[k - 1]
+				|| m < N - 1 && y[m] > y[m + 1] || m > 0 && y[m] < y[m - 1]
+				|| y[k] < avaliables[k].lowW || y[k] > avaliables[k].highW
+				|| y[m] < avaliables[m].lowW || y[m] > avaliables[m].highW) {
+				y = y1; w = w1;
+			}
+		}
+
+		// large size
 		if (env.WIDTH_GEAR_PROPER < 2) continue;
 		for (var psi = 0; psi < 3; psi++) {
 			var applyToLowerOnly = [false, true, true][psi];
@@ -286,23 +335,23 @@ function allocateWidth(y0, env) {
 	// Triplet whitespace balancing
 	for (var pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) {
 		for (var t = 0; t < strictTriplets.length; t++) {
-			var j = strictTriplets[t][0], k = strictTriplets[t][1], m = strictTriplets[t][2];
-			var su = spaceAbove(env, y, w, k, pixelTop + 2);
-			var sb = spaceBelow(env, y, w, k, pixelBottom - 2);
-			var d1 = y[j] - w[j] - y[k];
-			var d2 = y[k] - w[k] - y[m];
-			var o1 = avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0;
-			var o2 = avaliables[k].y0 - avaliables[k].w0 - avaliables[m].y0;
-			var o1o2 = o1 / o2;
-			if (su > 1 && (sb < 1 || d1 >= d2 * 1.66)
+			const j = strictTriplets[t][0], k = strictTriplets[t][1], m = strictTriplets[t][2];
+			const su = spaceAbove(env, y, w, k, pixelTop + 2);
+			const sb = spaceBelow(env, y, w, k, pixelBottom - 2);
+			const d1 = y[j] - w[j] - y[k];
+			const d2 = y[k] - w[k] - y[m];
+			const o1 = avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0;
+			const o2 = avaliables[k].y0 - avaliables[k].w0 - avaliables[m].y0;
+			const o1o2 = o1 / o2;
+			if (su > 1 && (sb < 1 || d1 >= d2 * 1.66) && o1o2 <= 0.9
 				&& y[k] < avaliables[k].highW && (k === N + 1 || y[k] + 1 <= y[k + 1])
-				&& o1o2 <= 1.25 && env.P[j][k] <= env.P[k][m]) {
+				&& env.P[j][k] <= env.P[k][m]) {
 				// A distorted triplet space, but we can adjust this stem up.
 				y[k] += 1;
 				if (properWidths[k] > w[k] && Math.abs((d1 - 1) / (d2 + 1) - o1o2) > Math.abs((d1 - 1) / d2 - o1o2)) {
 					w[k] += 1;
 				}
-			} else if (sb > 1 && (su < 1 || d2 >= d1 * 1.66) && o2 / o1 <= 1.25 && env.P[j][k] >= env.P[k][m]) {
+			} else if (sb > 1 && (su < 1 || d2 >= d1 * 1.66) && o1o2 >= 1.1 && env.P[j][k] >= env.P[k][m]) {
 				if (w[k] < properWidths[k]) {
 					// A distorted triplet space, but we increase the middle stem’s weight
 					w[k] += 1;

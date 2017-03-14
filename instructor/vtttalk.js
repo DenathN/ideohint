@@ -160,21 +160,6 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	// ip decider
 	let candidates = [];
 	initCandidates: {
-		if (false) for (let z of si.blue.bottomZs) {
-			candidates.push({
-				ipz: z.id,
-				pOrg: z.y,
-				pDsts: table(pmin, pmax, ppem => roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem))
-			})
-		}
-		if (false) for (let z of si.blue.topZs) {
-			candidates.push({
-				ipz: z.id,
-				pOrg: z.y,
-				pDsts: table(pmin, pmax, ppem => (roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
-					+ roundings.rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)))
-			})
-		}
 		for (let sid = 0; sid < si.stems.length; sid++) {
 			const s = si.stems[sid];
 			candidates.push({
@@ -204,6 +189,17 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 			refBottom.pDsts = pDsts;
 			talk(buf);
 		}
+		const ipAnchorZs = [];
+		for (let r of candidates) {
+			if (!r.stem) continue;
+			if (r.pDsts) continue;
+			if (r.pOrg > refBottom.pOrg && r.pOrg < refTop.pOrg) {
+				ipAnchorZs.push(r.ipz);
+			}
+		}
+		if (ipAnchorZs.length) {
+			talk(`YIPAnchor(${refBottom.ipz},${ipAnchorZs.join(',')},${refTop.ipz})`);
+		}
 
 		for (let r of candidates) {
 			if (!r.stem) continue;
@@ -212,7 +208,6 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 				talk(`/* !!IDH!! StemDef ${r.sid} INTERPOLATE */`)
 				let por = (r.pOrg - refBottom.pOrg) / (refTop.pOrg - refBottom.pOrg);
 				let pos0s = table(pmin, pmax, ppem => refBottom.pDsts[ppem] + (refTop.pDsts[ppem] - refBottom.pDsts[ppem]) * por);
-				talk(`YIPAnchor(${refBottom.ipz}, ${r.ipz}, ${refTop.ipz})`);
 				let { pDsts, buf } = encodeStem(r.stem, r.sid, sd, strategy, pos0s);
 				talk(buf);
 				r.pDsts = pDsts;

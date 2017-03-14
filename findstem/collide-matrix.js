@@ -96,7 +96,9 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlapRat
 					coeffA = strategy.COEFF_A_TOPBOT_MERGED;
 				}
 			} else if (stems[j].belongRadical === stems[k].belongRadical) {
-				if (!stems[j].hasSameRadicalStemAbove || !stems[k].hasSameRadicalStemBelow) {
+				if (!stems[j].hasSameRadicalStemAbove && !stems[k].hasSameRadicalStemBelow && ecbs[j][k]) {
+					coeffA = strategy.COEFF_A_SHAPE_LOST_XX;
+				} else if (!stems[j].hasSameRadicalStemAbove || !stems[k].hasSameRadicalStemBelow) {
 					coeffA = strategy.COEFF_A_SHAPE_LOST;
 				} else {
 					coeffA = strategy.COEFF_A_SAME_RADICAL;
@@ -113,7 +115,12 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlapRat
 
 			// Collision coefficients
 			var coeffC = 1;
-			if (stems[j].belongRadical === stems[k].belongRadical) coeffC = strategy.COEFF_C_SAME_RADICAL;
+			if (stems[j].belongRadical === stems[k].belongRadical) {
+				coeffC = strategy.COEFF_C_SAME_RADICAL;
+				if (!stems[j].hasSameRadicalStemAbove && !stems[k].hasSameRadicalStemBelow && ecbs[j][k]) {
+					coeffC = strategy.COEFF_C_SHAPE_LOST_XX;
+				}
+			}
 			if (pbs[j][k]) coeffC *= strategy.COEFF_C_FEATURE_LOSS / 2;
 			var symmetryCoeff = 1;
 			if (Math.abs(stems[j].xmin - stems[k].xmin) <= strategy.BLUEZONE_WIDTH) {

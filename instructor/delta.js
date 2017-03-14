@@ -20,8 +20,7 @@ function decideDeltaShift(gear, sign, isStrict, isStacked, base0, dist0, base1, 
 		const y2a = y1 + (deltaDesired + delta1) * (upm / ppem) / gear;
 		if (roundings.rtg(y2 - base1, upm, ppem) !== roundings.rtg(y2a - base1, upm, ppem) // wrong pixel!
 			|| Math.abs(y2a - roundings.rtg(y2, upm, ppem)) > ROUNDING_CUTOFF * (upm / ppem)
-			//|| (dist0 > dist1) && ((y2a - y2) / sign) > (1 / 2) * (upm / ppem) * (ppem / HALF_PIXEL_PPEM)
-			|| isStrict && !isStacked && (Math.abs(y2 - base1 - (y2a - base1)) > (upm / ppem) * (3 / 16))) break;
+			|| isStrict && !isStacked) break;
 		delta = (delta > 0 ? delta - 1 : delta + 1);
 	}
 	// process.stderr.write(`${delta0} -> ${delta} @ ${ppem}` + "\n");
