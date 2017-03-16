@@ -41,8 +41,8 @@ function parseOTD(input) {
 		indexedPoints[c0index] = pt;
 		contours.push(currentContour);
 	}
-	for (var j = 0; j < contours.length; j++) { contours[j].stat(); }
 	var glyph = new Glyph(contours);
+	glyph.stat();
 	glyph.nPoints = ptindex - 1;
 	glyph.indexedPoints = indexedPoints;
 	glyph.unifyZ();

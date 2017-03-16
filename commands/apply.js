@@ -93,6 +93,7 @@ exports.handler = function (argv) {
 				}
 				if (otd.TSI_01 && otd.TSI_01.extra && otd.TSI_01.extra.cvt) {
 					otd.TSI_01.extra.cvt = otd.TSI_01.extra.cvt
+						.replace(new RegExp(`${cvtPadding}` + '\\s*:\\s*-?\\d+'), '')
 						.replace(new RegExp(`${cvtPadding + 1}` + '\\s*:\\s*-?\\d+'), '')
 						.replace(new RegExp(`${cvtPadding + 2}` + '\\s*:\\s*-?\\d+'), '')
 						+ `${cvtPadding} : ${0}`

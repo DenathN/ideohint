@@ -81,8 +81,26 @@ function allocateWidth(y0, env) {
 		for (var t = 0; t < strictTriplets.length; t++) {
 			var j = strictTriplets[t][0], k = strictTriplets[t][1], m = strictTriplets[t][2];
 			var y1 = y.slice(0), w1 = w.slice(0);
-			// [1] 0 [1] 1 [1] -> [1] 1 [1] 0 [1]
+			// [1] 0 [1] 0 [1] -> [1] & [1] 1 [1]
 			if (tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY)
+				&& y[j] - w[j] - y[k] < 1
+				&& y[k] - w[k] - y[m] < 1
+				&& env.P[j][k] > env.P[k][m]
+				&& env.C[j][k] > env.C[k][m]) {
+				y[k] -= 1;
+				continue;
+			}
+			// [1] 0 [1] 0 [1] -> [1] 1 [1] & [1]
+			else if (tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY)
+				&& y[j] - w[j] - y[k] < 1
+				&& y[k] - w[k] - y[m] < 1
+				&& env.P[j][k] < env.P[k][m]
+				&& env.C[j][k] < env.C[k][m]) {
+				y[k] += 1;
+				continue;
+			}
+			// [1] 0 [1] 1 [1] -> [1] 1 [1] 0 [1]
+			else if (tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY)
 				&& y[j] - w[j] - y[k] < 1
 				&& y[k] - w[k] - y[m] >= 1
 				&& env.P[j][k] > env.P[k][m]
@@ -195,6 +213,14 @@ function allocateWidth(y0, env) {
 				} else {
 					w[k] -= 1; y[k] -= 1;
 				}
+			}
+			// [3] 1 [1] -> [2] 1 [2]
+			else if (w[j] === 3 && w[k] === 1 && w[j] >= properWidths[j] && y[j] - y[k] === w[j] + 1) {
+				w[j] -= 1, w[k] += 1, y[k] += 1
+			}
+			// [1] 1 [3] -> [2] 1 [2]
+			else if (w[j] === 1 && w[k] === 3 && w[k] >= properWidths[k] && y[j] - y[k] === w[j] + 1) {
+				w[j] += 1, w[k] -= 1, y[k] -= 1
 			}
 			if (spaceBelow(env, y, w, j, pixelBottom - 2) < 1
 				|| spaceAbove(env, y, w, k, pixelTop + 2) < 1

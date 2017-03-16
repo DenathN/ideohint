@@ -69,6 +69,7 @@ function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalS
 				var zkey = keyPoints[j];
 				if (zkey.id === z.id || !(zkey.id >= 0) || zkey.donttouch) continue;
 				if (zkey.prev === z || z.prev === zkey) { reject = true; break; }
+				if (Math.abs(z.y - zkey.y) <= strategy.Y_FUZZ && Math.abs(z.x - zkey.x) <= strategy.Y_FUZZ) { reject = true; break; }
 				// detect whether this sole point is attached to the stem edge.
 				// in most cases, absorbing a lower point should be stricter due to the topology of ideographs
 				// so we use asymmetric condition for "above" and "below" cases.
@@ -95,27 +96,34 @@ function linkSoleStemPoints(shortAbsorptions, strategy, glyph, priority) {
 	}
 }
 module.exports = function (glyph, strategy) {
-	var interpolations = [];
-	var shortAbsorptions = [];
+	let interpolations = [];
+	let shortAbsorptions = [];
+	let diagAligns = [];
 
-	var contours = glyph.contours;
-	var glyphKeypoints = [];
+	const contours = glyph.contours;
+	let glyphKeypoints = [];
 	for (var j = 0; j < contours.length; j++) for (var k = 0; k < contours[j].points.length; k++) {
 		var z = contours[j].points[k];
 		if (z.touched && z.keypoint || z.linkedKey) { glyphKeypoints.push(z); }
 	}
-	for (let s of glyph.stems) {
+
+	extractDiagStemIPs: for (let s of glyph.stems) {
 		if (s.linkedIPsHigh) {
-			for (let z of s.linkedIPsHigh.zs) {
-				interpolations.push([s.linkedIPsHigh.l.id, s.linkedIPsHigh.r.id, z.id, 9])
-			}
+			diagAligns.push({
+				l: s.linkedIPsHigh.l.id,
+				r: s.linkedIPsHigh.r.id,
+				zs: s.linkedIPsHigh.zs.map(z => z.id)
+			})
 		}
 		if (s.linkedIPsLow) {
-			for (let z of s.linkedIPsLow.zs) {
-				interpolations.push([s.linkedIPsLow.l.id, s.linkedIPsLow.r.id, z.id, 9])
-			}
+			diagAligns.push({
+				l: s.linkedIPsLow.l.id,
+				r: s.linkedIPsLow.r.id,
+				zs: s.linkedIPsLow.zs.map(z => z.id)
+			})
 		}
 	}
+
 	// phantom points
 	for (var s = 0; s < glyph.stems.length; s++) {
 		var stem = glyph.stems[s];
@@ -152,8 +160,14 @@ module.exports = function (glyph, strategy) {
 		var contourAlignPoints = contourpoints.filter(function (p) { return p.touched; }).sort(BY_YORI);
 		var contourExtrema = contourpoints.filter(function (p) { return p.xExtrema || p.yExtrema; }).sort(BY_YORI);
 
+		var pmin = null, pmax = null;
+		for (let z of contourpoints) {
+			if (!pmin || z.y < pmin.y) pmin = z;
+			if (!pmax || z.y > pmax.y) pmax = z;
+		}
+
 		if (contourExtrema.length > 1) {
-			var topbot = [contourExtrema[0], contourExtrema[contourExtrema.length - 1]];
+			var topbot = [pmin, pmax];
 			var extrema = contourExtrema.slice(1, -1).filter(function (z) {
 				return !z.touched && !z.donttouch && z.yExtrema;
 			});
@@ -186,7 +200,7 @@ module.exports = function (glyph, strategy) {
 			});
 		} else {
 			records.push({
-				topbot: [],
+				topbot: [pmin, pmax],
 				midex: [],
 				midexl: [],
 				blues: [],
@@ -231,6 +245,7 @@ module.exports = function (glyph, strategy) {
 	}
 	return {
 		interpolations: interpolations.filter(x => x),
-		shortAbsorptions: shortAbsorptions.filter(a => a[0] !== a[1])
+		shortAbsorptions: shortAbsorptions.filter(a => a[0] !== a[1]),
+		diagAligns: diagAligns
 	};
 };

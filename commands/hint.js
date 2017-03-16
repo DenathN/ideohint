@@ -104,6 +104,7 @@ exports.handler = function (argv) {
 				bottomBluePoints: glyph.bottomBluePoints,
 				topBluePoints: glyph.topBluePoints,
 				ipsacalls: getIpsaCalls(glyph),
+				diagAligns: glyph.diagAligns,
 				stems: glyph.stems.map(function (s) {
 					return {
 						y0: s.y,

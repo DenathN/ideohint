@@ -46,7 +46,10 @@ module.exports = function (glyph, strategy, dov, P) {
 		for (var j = 0; j < s.high.length; j++) {
 			for (var k = 0; k < s.high[j].length; k++) {
 				if (s.high[j][k] === highkey) continue;
-				if (!(s.high[j][k].id >= 0)) continue;
+				if (!(s.high[j][k].id >= 0)) {
+					s.high[j][k].linkedKey = highkey;
+					continue;
+				}
 				if (k === 0) {
 					highnonkey.push(s.high[j][k]);
 					s.high[j][k].touched = true;
@@ -59,7 +62,10 @@ module.exports = function (glyph, strategy, dov, P) {
 		for (var j = 0; j < s.low.length; j++) {
 			for (var k = 0; k < s.low[j].length; k++) {
 				if (s.low[j][k] === lowkey) continue;
-				if (!(s.low[j][k].id >= 0)) continue;
+				if (!(s.low[j][k].id >= 0)) {
+					s.low[j][k].linkedKey = lowkey;
+					continue;
+				}
 				if (k === s.low[j].length - 1) {
 					lownonkey.push(s.low[j][k]);
 					s.low[j][k].touched = true;

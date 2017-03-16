@@ -31,6 +31,7 @@ var DefaultStrategy = function () {
 		SLOPE_FUZZ_R: 0.01,
 		SLOPE_FUZZ_P: 0.005,
 		Y_FUZZ: 7,
+		Y_FUZZ_DIAG: 15,
 
 		BLUEZONE_BOTTOM_CENTER: -67,
 		BLUEZONE_BOTTOM_LIMIT: -55,

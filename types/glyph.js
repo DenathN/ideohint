@@ -6,6 +6,12 @@ function Glyph(contours) {
 	this.stems = [];
 	this.nPoints = 0;
 	this.indexedPoints = [];
+	this.stats = {
+		xmin: 0xFFFF,
+		xmax: -0xFFFF,
+		ymin: 0xFFFF,
+		ymax: -0xFFFF
+	}
 }
 Glyph.prototype.containsPoint = function (x, y) {
 	var nCW = 0, nCCW = 0;
@@ -25,6 +31,15 @@ Glyph.prototype.unifyZ = function () {
 				pts[k] = this.indexedPoints[pts[k].id]
 			}
 		}
+	}
+};
+Glyph.prototype.stat = function () {
+	for (let c of this.contours) {
+		c.stat();
+		if (c.xmin < this.stats.xmin) this.stats.xmin = c.xmin;
+		if (c.ymin < this.stats.ymin) this.stats.ymin = c.ymin;
+		if (c.xmax > this.stats.xmax) this.stats.xmax = c.xmax;
+		if (c.ymax > this.stats.ymax) this.stats.ymax = c.ymax;
 	}
 }
 

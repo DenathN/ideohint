@@ -3,9 +3,11 @@ var roundings = require("../roundings");
 const decideDelta = require('./delta.js').decideDelta;
 const decideDeltaShift = require('./delta.js').decideDeltaShift;
 
-const ROUNDING_SEGMENTS = 16;
+const ROUNDING_SEGMENTS = 8;
 
 function formatdelta(delta) {
+	if (delta > 8) return formatdelta(8);
+	if (delta < -8) return formatdelta(-8);
 	let u = Math.round(delta * ROUNDING_SEGMENTS);
 	let d = ROUNDING_SEGMENTS;
 	while (!(u % 2) && !(d % 2) && d > 1) { u /= 2, d /= 2; }
@@ -160,6 +162,21 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	// ip decider
 	let candidates = [];
 	initCandidates: {
+		for (let z of si.blue.bottomZs) {
+			candidates.push({
+				ipz: z.id,
+				pOrg: z.y,
+				pDsts: table(pmin, pmax, ppem => roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem))
+			})
+		}
+		for (let z of si.blue.topZs) {
+			candidates.push({
+				ipz: z.id,
+				pOrg: z.y,
+				pDsts: table(pmin, pmax, ppem => (roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
+					+ roundings.rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)))
+			})
+		}
 		for (let sid = 0; sid < si.stems.length; sid++) {
 			const s = si.stems[sid];
 			candidates.push({
@@ -219,6 +236,13 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 				r.pDsts = pDsts;
 			}
 		}
+	}
+	/* Diag-aligns */
+	for (let da of si.diagAligns) {
+		if (!da.zs.length) continue;
+		talk(`XAnchor(${da.l})`);
+		talk(`XAnchor(${da.r})`);
+		talk(`DAlign(${da.l},${da.zs.join(',')},${da.r})`);
 	}
 	/** IPSA calls */
 	var l = 0;

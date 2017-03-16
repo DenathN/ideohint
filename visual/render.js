@@ -122,6 +122,12 @@ function interpretTT(glyphs, strategy, ppem) {
 				pt.ytouch = glyph.indexedPoints[stem.advKey.id].ytouch
 			})
 		});
+		// diagaligns
+		for (let da of features.diagAligns) {
+			for (let z of da.zs) {
+				interpolateIP(da.l, da.r, z);
+			}
+		}
 		// IPs
 		var g = [];
 		features.shortAbsorptions.forEach(function (s) {

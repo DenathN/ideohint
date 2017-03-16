@@ -214,7 +214,7 @@ function instruct(record, strategy, padding) {
 		}
 		if (!deltas.length) continue;
 		for (var j = 0; j < deltas.length; j++) {
-			let {deltas: {coarse, fine}, id} = deltas[j];
+			let { deltas: { coarse, fine }, id } = deltas[j];
 			let instr = "DELTAP" + (1 + Math.floor((ppem - pmin) / 16));
 			for (let d of coarse) {
 				deltaCalls.coarse.push({
@@ -257,6 +257,11 @@ function instruct(record, strategy, padding) {
 			}
 		});
 	}
+	var isks = [];
+	for (let da of glyph.diagAligns) {
+		if (!da.zs || !da.zs.length) continue;
+		isks.push([da.l, da.r].concat(da.zs));
+	}
 
 	// Interpolations
 	tt = tt.concat(
@@ -264,7 +269,7 @@ function instruct(record, strategy, padding) {
 		mirps,
 		invokesToInstrs([].concat(
 			isalInvocations,
-			ipsaInvokes(glyph.ipsacalls)
+			ipsaInvokes(isks.concat(glyph.ipsacalls))
 		), STACK_DEPTH));
 
 	tt.push("IUP[y]");

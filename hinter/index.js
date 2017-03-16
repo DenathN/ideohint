@@ -136,15 +136,6 @@ function hint(glyph, ppem, strategy) {
 		const p = (y - w0 - BLUEZONE_BOTTOM_CENTER) / (BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER - w0);
 		return w + glyphBottom + (glyphTop - glyphBottom - w) * cheby(p, extreme);
 	}
-	function flexMiddleStem(t, m, b) {
-		const spaceAboveOri = t.y0 - t.w0 - m.y0;
-		const spaceBelowOri = m.y0 - m.w0 - b.y0;
-		if (spaceAboveOri + spaceBelowOri <= 0) return;
-
-		const totalSpaceFlexed = t.center - t.properWidth - b.center - m.properWidth;
-		const y = m.properWidth + b.center + totalSpaceFlexed * (spaceBelowOri / (spaceBelowOri + spaceAboveOri));
-		m.center = xclamp(m.low, y, m.high);
-	}
 
 	function flexCenter(avaliables) {
 		// fix top and bottom stems
@@ -169,9 +160,6 @@ function hint(glyph, ppem, strategy) {
 				avail.high -= 1;
 				if (avail.high < avail.low) avail.high = avail.low;
 			}
-		}
-		for (var j = 0; j < flexes.length; j++) {
-			flexMiddleStem(avaliables[flexes[j][0]], avaliables[flexes[j][1]], avaliables[flexes[j][2]]);
 		}
 		for (let s of avaliables) {
 			if (s.diagLow && s.center >= glyphTop / uppx - 0.5) {
@@ -430,12 +418,22 @@ function hint(glyph, ppem, strategy) {
 	for (var j = 0; j < stems.length; j++) {
 		stemPositions[j] = avaliables[j].center;
 	}
+	var stemPositionsNoTang = avaliables.map(a => xclamp(a.low,
+		Math.round(lerp(a.y0, glyph.stats.ymin, glyph.stats.ymax, glyphBottom, glyphTop) / uppx),
+		a.high));
+
 	stemPositions = uncollide(stemPositions, env,
 		xclamp(2, Math.round(stems.length / strategy.STEADY_STAGES_X * stems.length / ppem), strategy.STEADY_STAGES_MAX), // stages
 		strategy.POPULATION_LIMIT * Math.max(1, stems.length) // population
 	);
 
-	let { y, w } = allocateWidth(stemPositions, env);
+	let idvUncol = new Individual(stemPositions, env);
+	let idvNT = new Individual(stemPositionsNoTang, env);
+
+	let b = idvUncol;
+	if (idvNT.fitness > b.fitness) { b = idvNT; }
+
+	let { y, w } = allocateWidth(b.gene, env);
 	return stemPositionToActions(y, w, stems, uppx, env);
 }
 

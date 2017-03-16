@@ -13,13 +13,15 @@ function rightmostZ(segs) {
 	for (let seg of segs) for (let z of seg) if (!m || z && z.x > m.x) m = z;
 	return m;
 }
-function isDiagonal(hl, ll, hr, lr, strategy) {
+function shouldSplit(hl, ll, hr, lr, strategy) {
 	if (hl === hr || ll === lr) return false;
 	if (hl.y === hr.y || ll.y === lr.y) return false;
 	return Math.abs(hr.y - hl.y) >= Math.abs(hr.x - hl.x) * strategy.SLOPE_FUZZ_R
 		&& Math.abs(lr.y - ll.y) >= Math.abs(lr.x - ll.x) * strategy.SLOPE_FUZZ_R
-		&& Math.abs(hl.x - ll.x) * 6 <= Math.max(Math.abs(hl.x - hr.x), Math.abs(ll.x - lr.x))
-		&& Math.abs(hr.x - lr.x) * 6 <= Math.max(Math.abs(hl.x - hr.x), Math.abs(ll.x - lr.x));
+		&& Math.abs(hl.x - ll.x) * 4 <= Math.max(Math.abs(hl.x - hr.x), Math.abs(ll.x - lr.x))
+		&& Math.abs(hr.x - lr.x) * 4 <= Math.max(Math.abs(hl.x - hr.x), Math.abs(ll.x - lr.x))
+		&& Math.abs(hl.y - hr.y) >= strategy.Y_FUZZ_DIAG
+		&& Math.abs(ll.y - lr.y) >= strategy.Y_FUZZ_DIAG
 }
 function linkIP(segs, hl, hr) {
 	let ans = [];
@@ -41,7 +43,7 @@ function splitDiagonalStem(s, strategy, rid, results) {
 	let ll = leftmostZ(s.low);
 	let hr = rightmostZ(s.high);
 	let lr = rightmostZ(s.low);
-	if (isDiagonal(hl, ll, hr, lr, strategy)) {
+	if (shouldSplit(hl, ll, hr, lr, strategy)) {
 		let hmx = (hl.x + hr.x) / 2;
 		let lmx = (ll.x + lr.x) / 2;
 		let hmy = (hl.y + hr.y) / 2;
