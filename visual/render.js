@@ -90,7 +90,7 @@ function interpretTT(glyphs, strategy, ppem) {
 			}
 			const [y, w, strict, stacked] = action;
 			const yTopTarget = h.ytouch = (y) * uppx;
-			const yBotTarget = l.ytouch = (y - w) * uppx + (stem.posKeyAtTop ? -1 : 1) * stem.keyDX * stem.slope;
+			const yBotTarget = l.ytouch = (y - w) * uppx - stem.keyDX * stem.slope;
 			h.touched = l.touched = true;
 			if (strict || w === 1 && h.y - l.y <= uppx && !stacked) return;
 			if (stem.posKeyAtTop) {

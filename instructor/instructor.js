@@ -185,13 +185,13 @@ function instruct(record, strategy, padding) {
 		for (var k = 0; k < instrs.length; k++) {
 			var [y, w, isStrict, isStacked] = instrs[k];
 			var stem = glyph.stems[k];
-			var y0 = stem.y0, w0 = stem.w0, orient = stem.posKeyAtTop;
+			var y0 = stem.y0, w0 = stem.w0, orient = stem.posKeyAtTop, slope = stem.slope, keyDX = stem.keyDX;
 			if (orient) {
 				var ypos = y * uppx;
 				var ypos0 = roundings.rtg(y0, upm, ppem);
 			} else {
-				var ypos = (y - w) * uppx + stem.keyDX * stem.slope;
-				var ypos0 = roundings.rtg(y0 - w0, upm, ppem);
+				var ypos = (y - w) * uppx - stem.keyDX * stem.slope;
+				var ypos0 = roundings.rtg(y0 - w0 - slope * keyDX, upm, ppem);
 			}
 
 			deltas.push({

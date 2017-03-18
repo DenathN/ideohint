@@ -5,6 +5,10 @@ const decideDeltaShift = require('./delta.js').decideDeltaShift;
 
 const ROUNDING_SEGMENTS = 8;
 
+function showF26D6(x) {
+	return Math.round(x) + '+' + Math.round(64 * (x - Math.round(x))) + '/64'
+}
+
 function formatdelta(delta) {
 	if (delta > 8) return formatdelta(8);
 	if (delta < -8) return formatdelta(-8);
@@ -48,7 +52,7 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 	for (let ppem = 0; ppem < sd.length; ppem++) {
 		if (!sd[ppem]) continue;
 		const [ytouch, wtouch, isStrict, isStacked] = sd[ppem][sid];
-		const pos0 = pos0s ? pos0s[ppem] : s.posKeyAtTop ? s.y0 : s.y0 - s.w0;
+		const pos0 = pos0s ? pos0s[ppem] : s.posKeyAtTop ? s.y0 : s.y0 - s.w0 - s.slope * s.keyDX;
 		const uppx = upm / ppem;
 		if (s.posKeyAtTop) {
 			const psrc = roundings.rtg(pos0, upm, ppem);
@@ -72,13 +76,13 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 			pDsts[ppem] = pdst;
 		} else {
 			const psrc = roundings.rtg(pos0, upm, ppem);
-			const pdst = (ytouch - wtouch) * (upm / ppem) + s.keyDX * s.slope;
+			const pdst = (ytouch - wtouch) * (upm / ppem) - s.keyDX * s.slope;
 			const posdelta = {
 				ppem,
 				delta: decideDelta(ROUNDING_SEGMENTS, psrc, pdst, upm, ppem) / ROUNDING_SEGMENTS
 			};
 			deltaPos.push(posdelta);
-			// console.log(ppem, psrc / uppx, pos0 / uppx, '->', pdst, [ytouch, wtouch], (ytouch - wtouch) * (upm / ppem), posdelta);
+			//console.log(sid, '@', ppem, psrc / uppx, pos0, pos0 / uppx, '->', pdst / uppx, [ytouch, wtouch], (ytouch - wtouch) * (upm / ppem), posdelta);
 			const wsrc = s.w0;
 			const wdst = wtouch * (upm / ppem);
 			deltaADv.push({
@@ -90,7 +94,7 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 					pdst, wdst,
 					upm, ppem) / ROUNDING_SEGMENTS
 			});
-			pDsts[ppem] = pdst;
+			pDsts[ppem] = psrc + posdelta.delta * (upm / ppem);
 		}
 	}
 
@@ -185,7 +189,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 				stem: s,
 				sid: sid,
 				ipz: s.posKey,
-				pOrg: s.posKeyAtTop ? s.y0 : s.y0 - s.w0,
+				pOrg: s.posKeyAtTop ? s.y0 : s.y0 - s.w0 - s.slope * s.keyDX,
 				pDsts: null
 			});
 		}
@@ -230,7 +234,6 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 					const org_range = toF26D6P(refTop.pOrg - refBottom.pOrg, upm, ppem);
 					const cur_range = toF26D6P(refTop.pDsts[ppem] - refBottom.pDsts[ppem], upm, ppem);
 					const rnew = toF26D6P(refBottom.pDsts[ppem], upm, ppem) + cur_range * org_dist / org_range;
-					// console.log(r.ipz, ppem, rnew);
 					return rnew * (upm / ppem);
 				});
 				let { pDsts, buf } = encodeStem(r.stem, r.sid, sd, strategy, pos0s);
