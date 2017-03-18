@@ -18,8 +18,8 @@ function shouldSplit(hl, ll, hr, lr, strategy) {
 	if (hl.y === hr.y || ll.y === lr.y) return false;
 	return Math.abs(hr.y - hl.y) >= Math.abs(hr.x - hl.x) * strategy.SLOPE_FUZZ_R
 		&& Math.abs(lr.y - ll.y) >= Math.abs(lr.x - ll.x) * strategy.SLOPE_FUZZ_R
-		&& Math.abs(hl.x - ll.x) * 4 <= Math.max(Math.abs(hl.x - hr.x), Math.abs(ll.x - lr.x))
-		&& Math.abs(hr.x - lr.x) * 4 <= Math.max(Math.abs(hl.x - hr.x), Math.abs(ll.x - lr.x))
+		&& Math.abs(hl.x - ll.x) * 2.25 < Math.max(Math.abs(hl.x - hr.x), Math.abs(ll.x - lr.x))
+		&& Math.abs(hr.x - lr.x) * 2.25 < Math.max(Math.abs(hl.x - hr.x), Math.abs(ll.x - lr.x))
 		&& Math.abs(hl.y - hr.y) >= strategy.Y_FUZZ_DIAG
 		&& Math.abs(ll.y - lr.y) >= strategy.Y_FUZZ_DIAG
 }

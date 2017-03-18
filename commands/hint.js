@@ -113,7 +113,11 @@ exports.handler = function (argv) {
 						posKey: s.posKey.id,
 						advKey: s.advKey.id,
 						posAlign: s.posAlign,
-						advAlign: s.advAlign
+						advAlign: s.advAlign,
+						diagHigh: s.diagHigh,
+						diagLow: s.diagLow,
+						slope: s.slope,
+						keyDX: s.advKey.x - s.posKey.x
 					};
 				})
 			};

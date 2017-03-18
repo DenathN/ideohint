@@ -83,8 +83,8 @@ function allocateWidth(y0, env) {
 			var y1 = y.slice(0), w1 = w.slice(0);
 			// [1] 0 [1] 0 [1] -> [1] & [1] 1 [1]
 			if (tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY)
-				&& y[j] - w[j] - y[k] < 1
-				&& y[k] - w[k] - y[m] < 1
+				&& y[j] - w[j] - y[k] === 0
+				&& y[k] - w[k] - y[m] === 0
 				&& env.P[j][k] > env.P[k][m]
 				&& env.C[j][k] > env.C[k][m]) {
 				y[k] -= 1;
@@ -92,8 +92,8 @@ function allocateWidth(y0, env) {
 			}
 			// [1] 0 [1] 0 [1] -> [1] 1 [1] & [1]
 			else if (tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY)
-				&& y[j] - w[j] - y[k] < 1
-				&& y[k] - w[k] - y[m] < 1
+				&& y[j] - w[j] - y[k] === 0
+				&& y[k] - w[k] - y[m] === 0
 				&& env.P[j][k] < env.P[k][m]
 				&& env.C[j][k] < env.C[k][m]) {
 				y[k] += 1;
@@ -101,7 +101,7 @@ function allocateWidth(y0, env) {
 			}
 			// [1] 0 [1] 1 [1] -> [1] 1 [1] 0 [1]
 			else if (tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY)
-				&& y[j] - w[j] - y[k] < 1
+				&& y[j] - w[j] - y[k] === 0
 				&& y[k] - w[k] - y[m] >= 1
 				&& env.P[j][k] > env.P[k][m]
 				&& env.C[j][k] > env.C[k][m]) {
@@ -111,7 +111,7 @@ function allocateWidth(y0, env) {
 			// [1] 1 [1] 0 [1] -> [1] 0 [1] 1 [1]
 			else if (tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY)
 				&& y[j] - w[j] - y[k] >= 1
-				&& y[k] - w[k] - y[m] < 1
+				&& y[k] - w[k] - y[m] === 0
 				&& env.P[j][k] < env.P[k][m]
 				&& env.C[j][k] < env.C[k][m]) {
 				y[k] += 1;
@@ -119,14 +119,14 @@ function allocateWidth(y0, env) {
 			}
 			// [1] 0 [1] 2 [1] -> [1] 1 [1] 1 [1]
 			else if (tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY)
-				&& y[j] - w[j] - y[k] < 1
+				&& y[j] - w[j] - y[k] === 0
 				&& y[k] - w[k] - y[m] >= 2) {
 				y[k] -= 1;
 			}
 			// [1] 0 [1] 2 [1] -> [1] 1 [1] 1 [1]
 			else if (tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY)
 				&& y[j] - w[j] - y[k] >= 2
-				&& y[k] - w[k] - y[m] < 1) {
+				&& y[k] - w[k] - y[m] === 0) {
 				y[k] += 1;
 			}
 			// rollback when no space

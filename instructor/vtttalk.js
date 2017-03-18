@@ -1,5 +1,5 @@
 var roundings = require("../roundings");
-
+const toF26D6P = roundings.toF26D6P;
 const decideDelta = require('./delta.js').decideDelta;
 const decideDeltaShift = require('./delta.js').decideDeltaShift;
 
@@ -49,6 +49,7 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 		if (!sd[ppem]) continue;
 		const [ytouch, wtouch, isStrict, isStacked] = sd[ppem][sid];
 		const pos0 = pos0s ? pos0s[ppem] : s.posKeyAtTop ? s.y0 : s.y0 - s.w0;
+		const uppx = upm / ppem;
 		if (s.posKeyAtTop) {
 			const psrc = roundings.rtg(pos0, upm, ppem);
 			const pdst = ytouch * (upm / ppem);
@@ -71,12 +72,13 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 			pDsts[ppem] = pdst;
 		} else {
 			const psrc = roundings.rtg(pos0, upm, ppem);
-			const pdst = (ytouch - wtouch) * (upm / ppem);
+			const pdst = (ytouch - wtouch) * (upm / ppem) + s.keyDX * s.slope;
 			const posdelta = {
 				ppem,
 				delta: decideDelta(ROUNDING_SEGMENTS, psrc, pdst, upm, ppem) / ROUNDING_SEGMENTS
 			};
 			deltaPos.push(posdelta);
+			// console.log(ppem, psrc / uppx, pos0 / uppx, '->', pdst, [ytouch, wtouch], (ytouch - wtouch) * (upm / ppem), posdelta);
 			const wsrc = s.w0;
 			const wdst = wtouch * (upm / ppem);
 			deltaADv.push({
@@ -223,8 +225,14 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 			if (r.pDsts) continue;
 			if (r.pOrg > refBottom.pOrg && r.pOrg < refTop.pOrg) {
 				talk(`/* !!IDH!! StemDef ${r.sid} INTERPOLATE */`)
-				let por = (r.pOrg - refBottom.pOrg) / (refTop.pOrg - refBottom.pOrg);
-				let pos0s = table(pmin, pmax, ppem => refBottom.pDsts[ppem] + (refTop.pDsts[ppem] - refBottom.pDsts[ppem]) * por);
+				let pos0s = table(pmin, pmax, ppem => {
+					const org_dist = toF26D6P(r.pOrg - refBottom.pOrg, upm, ppem)
+					const org_range = toF26D6P(refTop.pOrg - refBottom.pOrg, upm, ppem);
+					const cur_range = toF26D6P(refTop.pDsts[ppem] - refBottom.pDsts[ppem], upm, ppem);
+					const rnew = toF26D6P(refBottom.pDsts[ppem], upm, ppem) + cur_range * org_dist / org_range;
+					// console.log(r.ipz, ppem, rnew);
+					return rnew * (upm / ppem);
+				});
 				let { pDsts, buf } = encodeStem(r.stem, r.sid, sd, strategy, pos0s);
 				talk(buf);
 				r.pDsts = pDsts;

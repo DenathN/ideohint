@@ -3,6 +3,9 @@
 function toF26D6(x) {
 	return Math.round(x * 64);
 }
+function toF26D6P(x, upm, ppem) {
+	return toF26D6(x / upm * ppem) / 64;
+}
 // from freetype
 function rtg(x, upm, ppem) {
 	var distance = toF26D6(x / upm * ppem);
@@ -67,6 +70,8 @@ function rdtg(x, upm, ppem) {
 function Rdtg(upm, ppem) {
 	return function (x) { return rdtg(x, upm, ppem) };
 }
+
+exports.toF26D6P = toF26D6P;
 exports.rtg = rtg;
 exports.rtg1 = rtg1;
 exports.rutg = rutg;

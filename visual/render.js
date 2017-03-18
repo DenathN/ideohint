@@ -90,7 +90,7 @@ function interpretTT(glyphs, strategy, ppem) {
 			}
 			const [y, w, strict, stacked] = action;
 			const yTopTarget = h.ytouch = (y) * uppx;
-			const yBotTarget = l.ytouch = (y - w) * uppx;
+			const yBotTarget = l.ytouch = (y - w) * uppx + (stem.posKeyAtTop ? -1 : 1) * stem.keyDX * stem.slope;
 			h.touched = l.touched = true;
 			if (strict || w === 1 && h.y - l.y <= uppx && !stacked) return;
 			if (stem.posKeyAtTop) {
@@ -114,12 +114,14 @@ function interpretTT(glyphs, strategy, ppem) {
 			stem.posAlign.forEach(function (pt) {
 				pt = glyph.indexedPoints[pt.id]
 				pt.touched = true;
-				pt.ytouch = glyph.indexedPoints[stem.posKey.id].ytouch
+				const key = glyph.indexedPoints[stem.posKey.id];
+				pt.ytouch = key.ytouch + pt.y - key.y;
 			})
 			stem.advAlign.forEach(function (pt) {
 				pt = glyph.indexedPoints[pt.id]
 				pt.touched = true;
-				pt.ytouch = glyph.indexedPoints[stem.advKey.id].ytouch
+				const key = glyph.indexedPoints[stem.advKey.id];
+				pt.ytouch = key.ytouch + pt.y - key.y;
 			})
 		});
 		// diagaligns
@@ -172,7 +174,7 @@ function interpretTT(glyphs, strategy, ppem) {
 const SUPERSAMPLING = 8;
 const SAMPLING_Y = 4;
 const DPI = 2;
-const GAMMA = 2.4;
+const GAMMA = 2;
 function RenderPreviewForPPEM(glyphs, strategy, hdc, basex, basey, ppem) {
 	const uppx = strategy.UPM / ppem;
 

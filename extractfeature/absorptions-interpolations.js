@@ -19,6 +19,14 @@ function shortAbsorptionByKeys(shortAbsorptions, strategy, pts, keys, inSameRadi
 		shortAbsorptionPointByKeys(shortAbsorptions, strategy, pts[k], keys, inSameRadical, priority);
 	}
 }
+
+function compareZ(key, pt, f) {
+	while (key.linkedKey) key = key.linkedKey;
+	return f(key, pt);
+}
+function cLT(key, pt) { return key.y < pt.y }
+function cGT(key, pt) { return key.y > pt.y }
+
 var COEFF_EXT = 1;
 function interpolateByKeys(interpolations, shortAbsorptions, strategy, pts, keys, inSameRadical, priority) {
 	for (var k = 0; k < pts.length; k++) {
@@ -26,13 +34,13 @@ function interpolateByKeys(interpolations, shortAbsorptions, strategy, pts, keys
 		if (pt.touched || pt.donttouch) continue;
 		var upperK = null, upperdist = 0xFFFF;
 		var lowerK = null, lowerdist = 0xFFFF;
-		for (var m = keys.length - 1; m >= 0; m--) if (keys[m].y <= pt.y) {
+		for (var m = keys.length - 1; m >= 0; m--) if (compareZ(keys[m], pt, cLT)) {
 			if (!lowerK || Math.hypot(keys[m].x - pt.x, COEFF_EXT * (keys[m].y - pt.y)) < lowerdist) {
 				lowerK = keys[m];
 				lowerdist = Math.hypot(keys[m].x - pt.x, COEFF_EXT * (keys[m].y - pt.y));
 			}
 		}
-		for (var m = keys.length - 1; m >= 0; m--) if (keys[m].y >= pt.y) {
+		for (var m = keys.length - 1; m >= 0; m--) if (compareZ(keys[m], pt, cGT)) {
 			if (!upperK || Math.hypot(keys[m].x - pt.x, COEFF_EXT * (keys[m].y - pt.y)) < upperdist) {
 				upperK = keys[m];
 				upperdist = Math.hypot(keys[m].x - pt.x, COEFF_EXT * (keys[m].y - pt.y));
@@ -169,7 +177,7 @@ module.exports = function (glyph, strategy) {
 		if (contourExtrema.length > 1) {
 			var topbot = [pmin, pmax];
 			var extrema = contourExtrema.slice(1, -1).filter(function (z) {
-				return !z.touched && !z.donttouch && z.yExtrema;
+				return !z.touched && !z.donttouch && (z.yExtrema || z.xStrongExtrema);
 			});
 			var midex = [];
 			for (var m = 0; m < extrema.length; m++) {

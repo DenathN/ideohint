@@ -190,7 +190,7 @@ function instruct(record, strategy, padding) {
 				var ypos = y * uppx;
 				var ypos0 = roundings.rtg(y0, upm, ppem);
 			} else {
-				var ypos = (y - w) * uppx;
+				var ypos = (y - w) * uppx + stem.keyDX * stem.slope;
 				var ypos0 = roundings.rtg(y0 - w0, upm, ppem);
 			}
 

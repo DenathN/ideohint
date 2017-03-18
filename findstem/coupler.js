@@ -29,7 +29,23 @@ function isVertical(radical, u, v) {
 
 function approSlope(z1, z2, strategy) {
 	const slope = (z1.y - z2.y) / (z1.x - z2.x)
+	return slope >= 0 ? slope <= strategy.SLOPE_FUZZ_POS : slope >= -strategy.SLOPE_FUZZ_NEG;
+}
+
+function approSlopeT(z1, z2, strategy) {
+	const slope = (z1.y - z2.y) / (z1.x - z2.x)
 	return slope >= 0 ? slope <= strategy.SLOPE_FUZZ : slope >= -strategy.SLOPE_FUZZ_NEG;
+}
+
+function tryPushSegment(s, ss, strategy) {
+	while (s.length > 1) {
+		if (approSlopeT(s[0], s[s.length - 1], strategy)) {
+			ss.push(s);
+			return;
+		} else {
+			s = s.shift();
+		}
+	}
 }
 
 // Stemfinding
@@ -48,7 +64,7 @@ function findHorizontalSegments(radicals, strategy) {
 					segment.push(contour.points[k]);
 					lastPoint = contour.points[k];
 				} else {
-					if (segment.length > 1) segments.push(segment);
+					tryPushSegment(segment, segments, strategy);
 					lastPoint = contour.points[k];
 					segment = [lastPoint];
 					segment.radical = r;
@@ -58,7 +74,7 @@ function findHorizontalSegments(radicals, strategy) {
 				segment.push(contour.points[0]);
 				segment.push(contour.points[contour.points.length - 1]);
 			}
-			if (segment.length > 1) segments.push(segment);
+			tryPushSegment(segment, segments, strategy);
 		}
 	}
 
