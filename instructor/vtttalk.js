@@ -82,7 +82,6 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 				delta: decideDelta(ROUNDING_SEGMENTS, psrc, pdst, upm, ppem) / ROUNDING_SEGMENTS
 			};
 			deltaPos.push(posdelta);
-			//console.log(sid, '@', ppem, psrc / uppx, pos0, pos0 / uppx, '->', pdst / uppx, [ytouch, wtouch], (ytouch - wtouch) * (upm / ppem), posdelta);
 			const wsrc = s.w0;
 			const wdst = wtouch * (upm / ppem);
 			deltaADv.push({
@@ -228,13 +227,12 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 			if (!r.stem) continue;
 			if (r.pDsts) continue;
 			if (r.pOrg > refBottom.pOrg && r.pOrg < refTop.pOrg) {
-				talk(`/* !!IDH!! StemDef ${r.sid} INTERPOLATE */`)
+				talk(`/* !!IDH!! StemDef ${r.sid} INTERPOLATE */`);
 				let pos0s = table(pmin, pmax, ppem => {
-					const org_dist = toF26D6P(r.pOrg - refBottom.pOrg, upm, ppem)
-					const org_range = toF26D6P(refTop.pOrg - refBottom.pOrg, upm, ppem);
-					const cur_range = toF26D6P(refTop.pDsts[ppem] - refBottom.pDsts[ppem], upm, ppem);
-					const rnew = toF26D6P(refBottom.pDsts[ppem], upm, ppem) + cur_range * org_dist / org_range;
-					return rnew * (upm / ppem);
+					const org_dist = r.pOrg - refBottom.pOrg;
+					const org_range = refTop.pOrg - refBottom.pOrg;
+					const cur_range = refTop.pDsts[ppem] - refBottom.pDsts[ppem];
+					return refBottom.pDsts[ppem] + cur_range * org_dist / org_range;
 				});
 				let { pDsts, buf } = encodeStem(r.stem, r.sid, sd, strategy, pos0s);
 				talk(buf);

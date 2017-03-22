@@ -18,6 +18,8 @@ function checkExtrema(prev, z, next) {
 			|| (z.on && !prev.on && !next.on && z.x === prev.x && z.x === next.x)
 		if (z.xStrongExtrema) {
 			z.atleft = z.x < prev.x - 1 && z.x < next.x - 1;
+			const cross = (z.x - prev.x) * (next.y - z.y) - (z.y - prev.y) * (next.x - z.x);
+			z.turn = cross > 0;
 		}
 	}
 }

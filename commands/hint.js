@@ -9,6 +9,9 @@ var hint = require("../hinter").hint;
 var paramfileLib = require("../paramfile");
 var strategyLib = require("../strategy");
 
+const { lerp, xlerp, xclamp } = require('../support/common');
+
+
 exports.command = "hint";
 exports.describe = "Hint a feature file (hgf).";
 exports.builder = function (yargs) {
@@ -92,7 +95,19 @@ exports.handler = function (argv) {
 			var data = pendings[glyphIndex];
 			var glyph = data[2];
 			var stemActions = [];
-			for (var ppem = strategy.PPEM_MAX; ppem >= strategy.PPEM_MIN; ppem--) {
+			let d = 0xffff;
+			for (let j = 0; j < glyph.stems.length; j++) for (let k = 0; k < j; k++) {
+				if (glyph.directOverlaps[j][k]) {
+					let d1 = glyph.stems[j].y - glyph.stems[j].width - glyph.stems[k].y;
+					if (d1 < d) d = d1;
+				}
+			}
+			if (d < 1) d = 1;
+			const cutoff = xclamp(strategy.PPEM_MIT,
+				Math.round(strategy.UPM * strategy.SPARE_PIXLS / d),
+				strategy.PPEM_MAX);
+
+			for (var ppem = cutoff; ppem >= strategy.PPEM_MIN; ppem--) {
 				const uppx = strategy.UPM / ppem;
 				const actions = hint(glyph, ppem, strategy);
 				stemActions[ppem] = actions;

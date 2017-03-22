@@ -297,11 +297,11 @@ function hint(glyph, ppem, strategy) {
 						: TOP_CUT,
 				// spatial part
 				atGlyphTop(stem) ? 0 : uppx);
-			/*
-			if (stem.hasGlyphFoldAbove && !stem.hasGlyphStemAbove || stem.hasEntireContourAbove) {
+
+			if (stem.hasEntireContourAbove) {
 				highlimit = Math.min(glyphTop - 2 * uppx, highlimit);
 			}
-			*/
+
 
 			const center0 = cy(y0, w0, w, atGlyphTop(stem) && stem.diagHigh || atGlyphBottom(stem) && stem.diagLow, stem.posKeyAtTop);
 			const maxshift = xclamp(1, ppem / 16, 2);

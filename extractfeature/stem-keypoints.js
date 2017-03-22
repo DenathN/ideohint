@@ -44,10 +44,7 @@ module.exports = function (glyph, strategy, dov, P) {
 		let jh = -1, jl = -1;
 		for (let j = 0; j < s.high.length; j++) {
 			for (let k = 0; k < s.high[j].length; k++) {
-				if (s.high[j][k] === highkey) {
-					jh = j;
-					continue;
-				}
+				if (s.high[j][k] === highkey) { jh = j; continue; }
 				s.high[j][k].linkedKey = highkey;
 				if (!(s.high[j][k].id >= 0)) { continue; }
 				if (k === 0) {
@@ -61,10 +58,7 @@ module.exports = function (glyph, strategy, dov, P) {
 		highnonkey = highnonkey.filter((v, j) => j !== jh);
 		for (let j = 0; j < s.low.length; j++) {
 			for (let k = 0; k < s.low[j].length; k++) {
-				if (s.low[j][k] === lowkey) {
-					jl = j;
-					continue;
-				}
+				if (s.low[j][k] === lowkey) { jl = j; continue; }
 				s.low[j][k].linkedKey = lowkey;
 				if (!(s.low[j][k].id >= 0)) { continue; }
 				if (k === s.low[j].length - 1) {

@@ -128,7 +128,7 @@ controls.VQ = function (ol, key, strategy, initVal, callback) {
 	}
 
 	if (initVal && initVal instanceof Array) {
-		for (let k of initVal) {
+		for (let k of initVal) if (vqModel[k[0]]) {
 			vqModel[k[0]].focus = true;
 			vqModel[k[0]].val = k[1];
 		}

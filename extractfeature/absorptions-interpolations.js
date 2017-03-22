@@ -8,6 +8,7 @@ function shortAbsorptionPointByKeys(shortAbsorptions, strategy, pt, keys, inSame
 	for (var m = 0; m < keys.length; m++) {
 		var key = keys[m];
 		if (key.blued && key.yStrongExtrema && (Math.hypot(pt.y - key.y, pt.x - key.x) <= strategy.ABSORPTION_LIMIT && pt.xStrongExtrema) && key.id !== pt.id) {
+			while (key.linkedKey) key = key.linkedKey;
 			shortAbsorptions.push([key.id, pt.id, priority + (pt.yExtrema ? 1 : 0)]);
 			pt.touched = true;
 			return;
@@ -47,8 +48,8 @@ function interpolateByKeys(interpolations, shortAbsorptions, strategy, pts, keys
 			}
 		}
 		if (lowerK && upperK) {
-			if (upperK.linkedKey) upperK = upperK.linkedKey;
-			if (lowerK.linkedKey) lowerK = lowerK.linkedKey;
+			while (upperK.linkedKey) upperK = upperK.linkedKey;
+			while (lowerK.linkedKey) lowerK = lowerK.linkedKey;
 			if (!upperK.phantom && !lowerK.phantom) {
 				if (upperK.y > lowerK.y + strategy.Y_FUZZ) {
 					interpolations.push([upperK.id, lowerK.id, pt.id, priority]);
@@ -90,8 +91,9 @@ function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalS
 		}
 		// And it should have at least one segment in the glyph's outline.'
 		if (!reject && candidate) {
-			let key = candidate.linkedKey ? candidate.linkedKey : candidate;
-			shortAbsorptions.push([candidate.id, z.id, priority + (z.yExtrema ? 1 : 0)]);
+			let key = candidate;
+			while (key.linkedKey) key = key.linkedKey;
+			shortAbsorptions.push([key.id, z.id, priority + (z.yExtrema ? 1 : 0)]);
 			z.touched = true;
 		}
 	}
@@ -177,7 +179,7 @@ module.exports = function (glyph, strategy) {
 		if (contourExtrema.length > 1) {
 			var topbot = [pmin, pmax];
 			var extrema = contourExtrema.slice(1, -1).filter(function (z) {
-				return !z.touched && !z.donttouch && (z.yExtrema || z.xStrongExtrema);
+				return !z.touched && !z.donttouch && (z.yExtrema || z.xStrongExtrema && z.turn);
 			});
 			var midex = [];
 			for (var m = 0; m < extrema.length; m++) {

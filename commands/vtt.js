@@ -75,7 +75,7 @@ exports.handler = function (argv) {
 						<glyf>
 					`);
 				let buffer = "";
-				for (let {gid, hash} of arr) {
+				for (let { gid, hash } of arr) {
 					buffer += (`
 						<TTGlyph ID="${gid}">
 							<instructions>
@@ -94,6 +94,7 @@ ${activeInstructions[hash]}
 				controlStream.write(`  </glyf></ttFont>`);
 				console.log("Please assign these CVT items in Visual TrueType:");
 				console.log("/* ----------------------- */");
+				console.log(`${GREEN}${cvtPadding} : 0 /* BLUEZONE_TOP_CENTER */${RESTORE}`);
 				console.log(`${GREEN}${cvtPadding + 1} : ${strategy.BLUEZONE_TOP_CENTER} /* BLUEZONE_TOP_CENTER */${RESTORE}`);
 				console.log(`${GREEN}${cvtPadding + 2} : ${strategy.BLUEZONE_BOTTOM_CENTER} /* BLUEZONE_BOTTOM_CENTER */ ${RESTORE}`);
 				console.log("/* ---------------------- */");
