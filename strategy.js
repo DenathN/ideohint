@@ -9,7 +9,7 @@ var DefaultStrategy = function () {
 		BLUEZONE_WIDTH: 15,
 		PPEM_INCREASE_GLYPH_LIMIT: 18,
 		PPEM_MIN: 12,
-		PPEM_MIT: 16,
+		PPEM_MIT: 18,
 		SPARE_PIXLS: 3,
 		PPEM_MAX: 40,
 		PPEM_LOCK_BOTTOM: 28,
