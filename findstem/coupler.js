@@ -34,7 +34,8 @@ function approSlope(z1, z2, strategy) {
 
 function approSlopeT(z1, z2, strategy) {
 	const slope = (z1.y - z2.y) / (z1.x - z2.x)
-	return slope >= 0 ? slope <= strategy.SLOPE_FUZZ : slope >= -strategy.SLOPE_FUZZ_NEG;
+	return Math.abs(z2.x - z1.x) >= strategy.Y_FUZZ * 2
+		&& (slope >= 0 ? slope <= strategy.SLOPE_FUZZ : slope >= -strategy.SLOPE_FUZZ_NEG);
 }
 
 function tryPushSegment(s, ss, strategy) {

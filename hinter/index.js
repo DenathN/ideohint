@@ -40,7 +40,7 @@ function hint(glyph, ppem, strategy) {
 	const PPEM_INCREASE_GLYPH_LIMIT = strategy.PPEM_INCREASE_GLYPH_LIMIT;
 
 	const CANONICAL_STEM_WIDTH = toVQ(strategy.CANONICAL_STEM_WIDTH, ppem);
-	const CANONICAL_STEM_WIDTH_DENSE = toVQ(strategy.CANONICAL_STEM_WIDTH, ppem);
+	const CANONICAL_STEM_WIDTH_DENSE = toVQ(strategy.CANONICAL_STEM_WIDTH_DENSE, ppem);
 
 	const TOP_CUT = Math.round(toVQ(strategy.TOP_CUT, ppem)) * uppx;
 	const BOTTOM_CUT = Math.round(toVQ(strategy.BOTTOM_CUT, ppem)) * uppx;
