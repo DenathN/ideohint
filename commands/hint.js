@@ -95,6 +95,7 @@ exports.handler = function (argv) {
 			var data = pendings[glyphIndex];
 			var glyph = data[2];
 			var stemActions = [];
+			var xExpansion = []
 			let d = 0xffff;
 			for (let j = 0; j < glyph.stems.length; j++) for (let k = 0; k < j; k++) {
 				if (glyph.directOverlaps[j][k]) {
@@ -110,7 +111,8 @@ exports.handler = function (argv) {
 			for (var ppem = cutoff; ppem >= strategy.PPEM_MIN; ppem--) {
 				const uppx = strategy.UPM / ppem;
 				const actions = hint(glyph, ppem, strategy);
-				stemActions[ppem] = actions;
+				stemActions[ppem] = actions.y;
+				xExpansion[ppem] = actions.x;
 			}
 			currentProgress = showProgressBar(currentProgress, glyphIndex, pendings.length);
 
@@ -120,6 +122,8 @@ exports.handler = function (argv) {
 				topBluePoints: glyph.topBluePoints,
 				ipsacalls: getIpsaCalls(glyph),
 				diagAligns: glyph.diagAligns,
+				xIP: glyph.xIP,
+				xExpansion: xExpansion,
 				stems: glyph.stems.map(function (s) {
 					return {
 						y0: s.y,

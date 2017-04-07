@@ -21,7 +21,7 @@ function formatdelta(delta) {
 		return "" + u;
 	}
 }
-function sanityDelta(z, d) {
+function sanityDelta(z, d, tag) {
 	var deltas = d.filter((x) => x.delta);
 	if (!deltas.length) return "";
 	let buf = [];
@@ -36,8 +36,14 @@ function sanityDelta(z, d) {
 			curdelta = x.delta;
 		}
 	}
-	if (curdelta) buf.push(formatdelta(curdelta) + "@" + (ppemend > ppemstart ? ppemstart + ".." + ppemend : ppemstart));
-	return `YDelta(${z},${buf.join(',')})`;
+	if (curdelta) {
+		buf.push(formatdelta(curdelta) + "@" + (ppemend > ppemstart ? ppemstart + ".." + ppemend : ppemstart));
+	}
+	if (buf.length) {
+		return `${tag || 'YDelta'}(${z},${buf.join(',')})`;
+	} else {
+		return '';
+	}
 }
 
 function encodeStem(s, sid, sd, strategy, pos0s) {
@@ -137,6 +143,44 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	const upm = strategy.UPM;
 	let buf = "";
 	function talk(s) { buf += s + "\n"; }
+
+	//// X
+
+	if (si.xIP && si.xIP.length > 1) {
+		const zmin = si.xIP[0];
+		const zmax = si.xIP[si.xIP.length - 1];
+		let deltaL = [];
+		let deltaR = [];
+		for (let ppem = 0; ppem < sd.length; ppem++) {
+			if (!si.xExpansion[ppem]) continue;
+			const xL0 = zmin.x;
+			const xL1 = strategy.UPM / 2 + (xL0 - strategy.UPM / 2) * si.xExpansion[ppem];
+			deltaL.push({
+				ppem,
+				delta: decideDelta(ROUNDING_SEGMENTS, xL0, xL1, upm, ppem) / ROUNDING_SEGMENTS
+			});
+
+			const xR0 = zmax.x;
+			const xR1 = strategy.UPM / 2 + (xR0 - strategy.UPM / 2) * si.xExpansion[ppem];
+			deltaR.push({
+				ppem,
+				delta: decideDelta(ROUNDING_SEGMENTS, xR0, xR1, upm, ppem) / ROUNDING_SEGMENTS
+			});
+		}
+		const tkL = sanityDelta(zmin.id, deltaL, 'XDelta');
+		const tkR = sanityDelta(zmax.id, deltaR, 'XDelta');
+		if (tkL || tkR) {
+			talk(`XAnchor(${zmin.id})`);
+			talk(tkL);
+			talk(`XAnchor(${zmax.id})`);
+			talk(tkR);
+			if (si.xIP.length > 2) {
+				talk(`XInterpolate(${si.xIP.map(z => z.id).join(',')})`);
+			}
+		}
+	}
+
+	//// Y
 
 	talk('/* !!IDH!! ANCHOR BOTTOM */');
 	// bottom

@@ -91,7 +91,8 @@ var DefaultStrategy = function () {
 		TOP_CUT_DIAGH: 0,
 		BOTTOM_CUT_DIAGL: 0,
 		TOP_CUT_DIAG_DIST: 0,
-		BOTTOM_CUT_DIAG_DIST: 0
+		BOTTOM_CUT_DIAG_DIST: 0,
+		X_EXPAND: 0
 	};
 };
 exports.defaultStrategy = DefaultStrategy();
