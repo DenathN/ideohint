@@ -170,6 +170,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 		const tkL = sanityDelta(zmin.id, deltaL, 'XDelta');
 		const tkR = sanityDelta(zmax.id, deltaR, 'XDelta');
 		if (tkL || tkR) {
+			talk('/**');
 			talk(`XAnchor(${zmin.id})`);
 			talk(tkL);
 			talk(`XAnchor(${zmax.id})`);
@@ -177,6 +178,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 			if (si.xIP.length > 2) {
 				talk(`XInterpolate(${si.xIP.map(z => z.id).join(',')})`);
 			}
+			talk('**/');
 		}
 	}
 
