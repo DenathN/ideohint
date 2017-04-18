@@ -96,6 +96,9 @@ The hinting parameters are stored in `hinting` section. They include:
 
   * **BLUEZONE_TOP_CENTER** and **BLUEZONE_TOP_LIMIT** : Center and lower limit of the top blue zone. Use characters like “木” to decide the value of **BLUEZONE_TOP_CENTER**.
   * **BLUEZONE_BOTTOM_CENTER** and **BLUEZONE_BOTTOM_LIMIT** : Center and lower limit of the top blue zone. Use characters like “木” to decide the value.
+* **Stem Width Parameters**
+    - **CANONICAL_STEM_WIDTH** : The “Canonical” stroke width among the entire font. Measured in a loose character like “里”. This parameter can be either a constant number, or a size-dependent value, in the same format of a list of PPEM-value pairs (see example above).
+    - **CANONICAL_STEM_WIDTH_DENSE**: The “Canonical” stroke width of dense characters like “襄”. Useful in bold weights. Can be either a constant number, or a size-dependent value. For lighter width, it should be identical to **CANONICAL_STEM_WIDTH**. 
 * **Stem Restriction Parameters**
   * **TOP_CUT**: Required space for topmost, flat stems, like the topmost stroke in “里”, to the glyph top. In pixels.
   * **BOTTOM_CUT**: Required space for bottommost, flat stems, like the bottommost stroke in “里”, to the glyph bottom. In pixels.
@@ -111,9 +114,6 @@ The hinting parameters are stored in `hinting` section. They include:
     * **GRAVITY**: Tend to move middle stems upward or downward. 0 for “natural”, positive for upward, negative for downward.
     * **CONCENTRATE**: Tend to aggregate middle stems or distribute them to the character's top and bottom. Positive for aggregation, negative for distribution.
     * **CHEBYSHEV_4** and **CHEBYSHEV_5**: Fine tuning of stem distribution.
-* **Stem Width Parameters**
-    * **CANONICAL_STEM_WIDTH** : The “Canonical” stroke width among the entire font. Measured in a loose character like “里”. Can be either a constant number, or a size-dependent value, in the same format as **BLUEZONE_TOP_BAR**.
-    * **CANONICAL_STEM_WIDTH_DENSE**: The “Canonical” stroke width of dense characters like “襄”. Useful in bold weights. Can be either a constant number, or a size-dependent value, in the same format as **BLUEZONE_TOP_BAR**. For lighter width, it should be identical to **CANONICAL_STEM_WIDTH**. 
 * **Stem Detection Parameters**
 
     * **ABSORPTION_LIMIT**: The limit when a horizontal extremum being linked to a point aligned to the top or bottom blue zone. Useful when preserving diagonal strokes’ width. Preferred value: slightly larger than **MAX_STEM_WIDTH**.
