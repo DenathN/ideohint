@@ -1,5 +1,5 @@
-var roundings = require('../roundings');
-
+const roundings = require('../roundings');
+const BG_COLOR = 'white';
 
 function interpolate(a, b, c) {
 	if (c.y <= a.y) c.ytouch = c.y - a.y + a.ytouch;
@@ -77,10 +77,11 @@ function interpretTT(glyphs, strategy, ppem) {
 		// Top blues
 		features.topBluePoints.forEach(function (pid) {
 			glyph.indexedPoints[pid].touched = true;
-			glyph.indexedPoints[pid].ytouch = Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER) + rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER));
+			glyph.indexedPoints[pid].ytouch = rtg(strategy.BLUEZONE_TOP_CENTER);
+			//glyph.indexedPoints[pid].ytouch = Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER) + rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER));
 		})
 		// Stems
-		actions.forEach(function (action, j) {
+		actions.y.forEach(function (action, j) {
 			var h, l;
 			const stem = features.stems[j];
 			if (stem.posKeyAtTop) {
@@ -248,13 +249,15 @@ function RenderPreviewForPPEM(glyphs, strategy, hdc, basex, basey, ppem) {
 
 let renderHandle = { handle: null }
 
-function renderPreview(hPreview, glyphs, strategy) {
+function renderPreview(canvas, glyphs, strategy) {
+	if (!canvas) return;
+	const hPreview = canvas.getContext('2d');
 	hPreview.font = (12 * DPI) + 'px sans-serif'
 	let y = 10 * DPI;
 	let ppem = strategy.PPEM_MIN;
 	function renderView() {
 		// fill with white
-		hPreview.fillStyle = 'white';
+		hPreview.fillStyle = BG_COLOR;
 		hPreview.fillRect(0, y, 128 + glyphs.length * DPI * ppem, y + DPI * ppem)
 		// render 
 		RenderPreviewForPPEM(glyphs, strategy, hPreview, 128, y, ppem)
@@ -273,5 +276,23 @@ function renderPreview(hPreview, glyphs, strategy) {
 	setTimeout(renderView, 0);
 }
 
+function clean(canvas) {
+	if (!canvas) return;
+	const hPreview = canvas.getContext('2d');
+	hPreview.fillStyle = BG_COLOR;
+	hPreview.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function renderLoading(canvas) {
+	if (!canvas) return;
+	const hPreview = canvas.getContext('2d');
+	hPreview.fillStyle = BG_COLOR;
+	hPreview.fillRect(0, 0, canvas.width, canvas.height);
+	hPreview.font = "24px sans-serif"
+	hPreview.fillStyle = "black";
+	hPreview.fillText("Loading...", 24, 24);
+}
+
 exports.renderPreview = renderPreview;
-exports.renderHandle = renderHandle;
+exports.clean = clean;
+exports.renderLoading = renderLoading;

@@ -1,12 +1,17 @@
 "use strict"
 
-var fs = require('fs');
-var readline = require('readline');
-var stream = require('stream');
-var devnull = require('dev-null');
-var yargs = require('yargs');
-var nodeStatic = require("node-static");
-var querystring = require('querystring');
+const fs = require('fs');
+const readline = require('readline');
+const stream = require('stream');
+const devnull = require('dev-null');
+const yargs = require('yargs');
+const nodeStatic = require("node-static");
+
+const url = require('url');
+const querystring = require('querystring');
+
+const pf = require('../paramfile');
+const libstrg = require('../strategy')
 
 
 exports.command = "visual <input>";
@@ -41,24 +46,10 @@ function processPost(request, response, callback) {
 	}
 }
 
-
-exports.handler = function (argv) {
-
-	var parameterFile = require('../paramfile').from(argv);
-	var strategy = require('../strategy').from(argv, parameterFile);
-	var defaultStrategy = require('../strategy').defaultStrategy;
-
-	var instream = fs.createReadStream(argv.input);
-	var w = argv.w || "我能吞下玻璃而不伤身体";
-
-	var started = false;
-
-	var curChar = null;
-	var readingSpline = false;
-
-	var matches = [];
-
-	var rl = readline.createInterface(instream, devnull());
+function acquireCharacters(hgl, w, callback) {
+	const instream = fs.createReadStream(hgl);
+	let matches = [];
+	const rl = readline.createInterface(instream, devnull());
 	rl.on('line', function (line) {
 		var data = JSON.parse(line);
 		var gid = data[0];
@@ -68,47 +59,62 @@ exports.handler = function (argv) {
 			}
 		}
 	});
+	rl.on('close', function () { callback(matches) });
+}
 
+function startServer(argv) {
+	const fileServer = new nodeStatic.Server(require('path').resolve(__dirname, "../visual"));
+	const port = process.env.PORT || 9527;
 
-	rl.on('close', startServer);
+	// Start a web server which displays an user interface for parameter adjustment
+	require('http').createServer(function (request, response) {
+		if (request.method == 'POST') {
+			return processPost(request, response, function (data) {
+				if (request.url === "/save" && data.to) {
+					fs.writeFileSync(data.to, data.content);
+					console.log("> Parameters saved to", data.to);
+					response.writeHead(200, { 'Content-Type': 'text/plain' });
+					response.end();
+				} else {
+					response.writeHead(405, { 'Content-Type': 'text/plain' });
+					response.end();
+				}
+			});
+		}
+		request.addListener("end", function () {
+			const requrl = url.parse(request.url);
+			if (requrl.pathname === "/config") {
+				const parameterFile = pf.from(argv);
+				const strategy = libstrg.from(argv, parameterFile);
+				const defaultStrategy = libstrg.defaultStrategy;
 
-	function startServer() {
-		var fileServer = new nodeStatic.Server(require('path').resolve(__dirname, "../visual"));
-		var port = process.env.PORT || 9527;
-		// Start a web server which displays an user interface for parameter adjustment
-		require('http').createServer(function (request, response) {
-			if (request.method == 'POST') {
-				return processPost(request, response, function (data) {
-					if (request.url === "/save") {
-						if (argv.parameters) {
-							fs.writeFileSync(argv.parameters, data.content);
-							console.log("parameters saved to", argv.parameters);
-							response.writeHead(200, { 'Content-Type': 'text/plain' });
-							response.end();
-						}
-					} else {
-						response.writeHead(405, { 'Content-Type': 'text/plain' });
-						response.end();
-					}
-				});
-			}
-			request.addListener("end", function () {
-				if (request.url === "/characters.json") {
+				response.setHeader("Content-Type", "application/json;charset=UTF-8");
+				response.end(JSON.stringify({
+					input: argv.input,
+					w: (typeof argv.w === 'string' ? argv.w : "如月更紗"),
+					paramPath: argv.parameters,
+					strategy: strategy,
+					defaultStrategy: defaultStrategy
+				}));
+			} else if (requrl.pathname === '/chars') {
+				const q = querystring.parse(requrl.query);
+				const sample = q.w || "如月更紗";
+				console.log("> Loading sample " + sample)
+				acquireCharacters(argv.input, sample, function (matches) {
 					response.setHeader("Content-Type", "application/json;charset=UTF-8");
 					response.end(JSON.stringify(matches));
-				} else if (request.url === "/strategy.json") {
-					response.setHeader("Content-Type", "application/json;charset=UTF-8");
-					response.end(JSON.stringify({
-						start: strategy,
-						default: defaultStrategy
-					}));
-				} else {
-					fileServer.serve(request, response);
-				}
-			}).resume();
-		}).listen(port);
-		console.log("Server listening at port " + port);
-	}
+				});
+			} else {
+				fileServer.serve(request, response);
+			}
+		}).resume();
+	}).listen(port);
+	console.log("> Server listening at port " + port);
+}
+
+exports.handler = function (argv) {
+
+	startServer(argv);
 
 	(function () {
 		var stdin = process.stdin;

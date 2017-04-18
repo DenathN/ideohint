@@ -25,7 +25,6 @@ function toVQ(v, ppem) {
 
 function hint(glyph, ppem, strategy) {
 	var stems = glyph.stems;
-	if (!stems.length) return [];
 
 	// Hinting parameters
 	const upm = strategy.UPM || 1000;
@@ -50,6 +49,7 @@ function hint(glyph, ppem, strategy) {
 	const BOTTOM_CUT_DIAG_DIST = Math.round(toVQ(strategy.BOTTOM_CUT_DIAG_DIST, ppem)) * uppx;
 
 	const X_EXPAND = 1 + Math.round(toVQ(strategy.X_EXPAND, ppem)) / 100;
+	if (!stems.length) return { y: [], x: { expand: X_EXPAND } };
 
 	const RISE = toVQ(strategy.RISE, ppem) / 200;
 	const SINK = toVQ(strategy.SINK, ppem) / 200;
@@ -97,8 +97,8 @@ function hint(glyph, ppem, strategy) {
 
 
 	const glyphBottom = round(BLUEZONE_BOTTOM_CENTER);
-	const oPixelTop = round(BLUEZONE_TOP_CENTER);
-	const glyphTop = glyphBottom + round(BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER);
+	const glyphTop = round(BLUEZONE_TOP_CENTER);
+	// const glyphTop = glyphBottom + round(BLUEZONE_TOP_CENTER - BLUEZONE_BOTTOM_CENTER);
 
 	function atRadicalTop(stem) {
 		return !stem.hasSameRadicalStemAbove
@@ -438,7 +438,7 @@ function hint(glyph, ppem, strategy) {
 	let { y, w } = allocateWidth(b.gene, env);
 	return {
 		y: stemPositionToActions(y, w, stems, uppx, env),
-		x: X_EXPAND
+		x: { expand: X_EXPAND }
 	}
 }
 

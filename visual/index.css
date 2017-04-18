@@ -9,19 +9,30 @@ h1 {
 	display: flex;
 }
 
-
 #adjusters {
 	flex: none;
 	width: 56em;
 	padding-right: 1em
 }
 
+#adjusters > table {
+	width: 100%;
+}
+
+#adjusters > table .pane,#adjusters > table .pane input, #adjusters > table .pane button {
+	font-size: 1em;
+}
+
+#adjusters > table .pane.loader {
+	text-align: right;
+}
 
 #adjusters ol {
 	list-style: none;
 	width: 100%;
-	padding: 0;
-	margin: 0 0 1em 0;
+	padding: 0.5em 0 0 0;
+	margin: 0.5em 0 0 0;
+	border-top: 1px solid #ddd;
 }
 
 

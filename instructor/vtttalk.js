@@ -190,6 +190,10 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 		talk(`YAnchor(${z.id},${padding + 2})`);
 	}
 	talk('/* !!IDH!! ANCHOR TOP */');
+	for (let z of si.blue.bottomZs) {
+		talk(`YAnchor(${z.id},${padding + 1})`);
+	}
+	/*
 	// top
 	for (let j = 0; j < si.blue.topZs.length; j++) {
 		const z = si.blue.topZs[j];
@@ -210,6 +214,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 			talk(`YLink(${si.blue.topZs[0].id}, ${z.id}, ${padding}, ${isXML ? '&lt;' : '<'})`)
 		}
 	}
+	*/
 	// ip decider
 	let candidates = [];
 	initCandidates: {

@@ -112,7 +112,7 @@ exports.handler = function (argv) {
 				const uppx = strategy.UPM / ppem;
 				const actions = hint(glyph, ppem, strategy);
 				stemActions[ppem] = actions.y;
-				xExpansion[ppem] = actions.x;
+				xExpansion[ppem] = actions.x.expand;
 			}
 			currentProgress = showProgressBar(currentProgress, glyphIndex, pendings.length);
 

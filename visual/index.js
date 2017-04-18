@@ -1,23 +1,23 @@
-var monoip = require('../support/monotonic-interpolate');
-const renderPreview = require('./render').renderPreview;
+const monoip = require('../support/monotonic-interpolate');
+const Renderer = require('./render')
 
 // models
-var defaultStrategy;
-var strategy;
-var input;
-var glyphs;
+let config = {};
+let input;
+let canvas;
 
 const render = function () {
 	var worker = null;
 	function render() {
 		if (worker) { worker.terminate(); }
+		if (!input || !input.length) return;
 		worker = new Worker('./worker-hint.packed.js');
 		worker.onmessage = function (message) {
 			worker = null;
 			console.log(message.data);
-			renderPreview(document.getElementById('preview').getContext('2d'), message.data, strategy);
+			Renderer.renderPreview(canvas, message.data, config.strategy);
 		}
-		worker.postMessage({ input, strategy });
+		worker.postMessage({ input, strategy: config.strategy });
 	};
 	return render
 }();
@@ -160,50 +160,74 @@ controls.VQ = function (ol, key, strategy, initVal, callback) {
 
 function createAdjusters() {
 	var container = document.getElementById('adjusters');
-	function update() {
-		setTimeout(render, 100);
-		var buf = ['[hinting]'];
-		for (var k in strategy) {
-			if (strategy[k] !== defaultStrategy[k] && k !== 'gears') {
-				buf.push(k + " = " + JSON.stringify(strategy[k]));
+	saveloadpanels: {
+		const table = document.createElement("table");
+		const tr = document.createElement("tr");
+		savebutton: {
+			const pane = document.createElement("td");
+			pane.className = "saver pane"
+			const save = document.createElement('button');
+			save.innerHTML = 'Save Parameters';
+			save.onclick = function (e) {
+				$.post('/save', {
+					to: config.paramPath,
+					content: resultPanel.innerText
+				}, function () { });
+				e.preventDefault();
+				e.stopPropagation();
 			}
+			pane.appendChild(save);
+			pane.appendChild(document.createTextNode(" → " + config.paramPath));
+			tr.appendChild(pane);
 		}
-		resultPanel.innerHTML = buf.join('<br>');
-		return false;
+		initLoadButton: {
+			const pane = document.createElement("td");
+			pane.className = "loader pane"
+
+			const chars = document.createElement('input');
+			chars.value = config.w;
+			const load = document.createElement('button');
+			load.innerHTML = "Load Sample";
+			load.onclick = function (e) {
+				loadSamples(chars.value);
+				e.preventDefault();
+				e.stopPropagation();
+			}
+			pane.appendChild(chars);
+			pane.appendChild(load);
+			tr.appendChild(pane);
+		}
+		table.appendChild(tr);
+		container.appendChild(table);
 	}
-	// Numeric parameters
+	// parameter controllers
 	for (var g = 0; g < strategyControlGroups.length; g++) {
 		var ol = document.createElement('ol')
 		for (var j = 0; j < strategyControlGroups[g].length; j++) {
 			const key = strategyControlGroups[g][j];
 			const keyType = strategyControlTypes[key] || 'NUMERIC';
-			controls[keyType](ol, key, strategy, strategy[key], function (x) {
-				strategy[key] = x;
-				update();
+			controls[keyType](ol, key, config.strategy, config.strategy[key], function (x) {
+				config.strategy[key] = x;
+				setTimeout(render, 0);
 			});
 		}
 		container.appendChild(ol);
 	};
-	var save = document.createElement('button');
-	save.innerHTML = 'Save';
-	save.onclick = function (e) {
-		$.post('/save', { content: resultPanel.innerText }, function () { });
-		e.preventDefault();
-		e.stopPropagation();
-	}
-	// Result panel
-	var resultPanel = document.createElement("pre");
-	container.appendChild(save);
-	container.appendChild(resultPanel);
 
-	setTimeout(update, 0);
 };
-$.getJSON("/characters.json", function (data) {
-	$.getJSON("/strategy.json", function (strg) {
-		console.log(strg);
-		defaultStrategy = strg.default;
-		strategy = strg.start;
+
+function loadSamples(w) {
+	Renderer.renderLoading(canvas);
+	$.getJSON("/chars?w=" + encodeURIComponent(w), function (data) {
 		input = data.filter(x => x);
-		createAdjusters();
+		Renderer.clean(canvas);
+		setTimeout(render, 0);
 	});
+}
+
+$.getJSON("/config", function (conf) {
+	config = conf;
+	canvas = document.getElementById('preview');
+	createAdjusters();
+	loadSamples(config.w);
 });
