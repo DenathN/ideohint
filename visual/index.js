@@ -169,9 +169,15 @@ function createAdjusters() {
 			const save = document.createElement('button');
 			save.innerHTML = 'Save Parameters';
 			save.onclick = function (e) {
+				let buf = ['[hinting]'];
+				for (let k in config.strategy) {
+					if (config.strategy[k] !== config.defaultStrategy[k] && k !== 'gears') {
+						buf.push(k + " = " + JSON.stringify(config.strategy[k]));
+					}
+				}
 				$.post('/save', {
 					to: config.paramPath,
-					content: resultPanel.innerText
+					content: buf.join('\n')
 				}, function () { });
 				e.preventDefault();
 				e.stopPropagation();

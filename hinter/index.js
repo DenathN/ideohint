@@ -29,12 +29,12 @@ function hint(glyph, ppem, strategy) {
 	// Hinting parameters
 	const upm = strategy.UPM || 1000;
 	const uppx = upm / ppem;
-	const STEM_SIDE_MIN_RISE = strategy.STEM_SIDE_MIN_RISE;
-	const STEM_SIDE_MIN_DIST_RISE = strategy.STEM_SIDE_MIN_DIST_RISE;
-	const STEM_CENTER_MIN_RISE = strategy.STEM_CENTER_MIN_RISE;
-	const STEM_SIDE_MIN_DESCENT = strategy.STEM_SIDE_MIN_DESCENT;
-	const STEM_SIDE_MIN_DIST_DESCENT = strategy.STEM_SIDE_MIN_DIST_DESCENT;
-	const STEM_CENTER_MIN_DESCENT = strategy.STEM_CENTER_MIN_DESCENT;
+	const STEM_SIDE_MIN_RISE = Math.min(strategy.STEM_SIDE_MIN_RISE, uppx);
+	const STEM_SIDE_MIN_DIST_RISE = Math.min(strategy.STEM_SIDE_MIN_DIST_RISE, uppx);
+	const STEM_CENTER_MIN_RISE = Math.min(strategy.STEM_CENTER_MIN_RISE, uppx);
+	const STEM_SIDE_MIN_DESCENT = Math.min(strategy.STEM_SIDE_MIN_DESCENT, uppx);
+	const STEM_SIDE_MIN_DIST_DESCENT = Math.min(strategy.STEM_SIDE_MIN_DIST_DESCENT, uppx);
+	const STEM_CENTER_MIN_DESCENT = Math.min(strategy.STEM_CENTER_MIN_DESCENT, uppx);
 
 	const PPEM_INCREASE_GLYPH_LIMIT = strategy.PPEM_INCREASE_GLYPH_LIMIT;
 

@@ -190,7 +190,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 		talk(`YAnchor(${z.id},${padding + 2})`);
 	}
 	talk('/* !!IDH!! ANCHOR TOP */');
-	for (let z of si.blue.bottomZs) {
+	for (let z of si.blue.topZs) {
 		talk(`YAnchor(${z.id},${padding + 1})`);
 	}
 	/*
@@ -229,8 +229,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 			candidates.push({
 				ipz: z.id,
 				pOrg: z.y,
-				pDsts: table(pmin, pmax, ppem => (roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
-					+ roundings.rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)))
+				pDsts: table(pmin, pmax, ppem => roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem))
 			})
 		}
 		for (let sid = 0; sid < si.stems.length; sid++) {

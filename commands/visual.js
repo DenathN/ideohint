@@ -65,7 +65,7 @@ function acquireCharacters(hgl, w, callback) {
 function startServer(argv) {
 	const fileServer = new nodeStatic.Server(require('path').resolve(__dirname, "../visual"));
 	const port = process.env.PORT || 9527;
-
+	let lastSample = typeof argv.w === 'string' ? argv.w : "如月更紗"
 	// Start a web server which displays an user interface for parameter adjustment
 	require('http').createServer(function (request, response) {
 		if (request.method == 'POST') {
@@ -91,7 +91,7 @@ function startServer(argv) {
 				response.setHeader("Content-Type", "application/json;charset=UTF-8");
 				response.end(JSON.stringify({
 					input: argv.input,
-					w: (typeof argv.w === 'string' ? argv.w : "如月更紗"),
+					w: lastSample,
 					paramPath: argv.parameters,
 					strategy: strategy,
 					defaultStrategy: defaultStrategy
@@ -99,6 +99,7 @@ function startServer(argv) {
 			} else if (requrl.pathname === '/chars') {
 				const q = querystring.parse(requrl.query);
 				const sample = q.w || "如月更紗";
+				lastSample = sample;
 				console.log("> Loading sample " + sample)
 				acquireCharacters(argv.input, sample, function (matches) {
 					response.setHeader("Content-Type", "application/json;charset=UTF-8");

@@ -8,13 +8,24 @@ function collidePotential(y, env) {
 		for (var k = 0; k < j; k++) {
 			if (y[j] === y[k]) { p += A[j][k]; } // Alignment
 			else if (y[j] <= y[k] + env.avaliables[j].properWidth) { p += C[j][k]; } // Collide
-			if (avaliables[j].rid && avaliables[j].rid === avaliables[k].rid && y[j] - y[k] > 1) { // diagonal break
-				p += S[j][k];
+			if (avaliables[j].rid && avaliables[j].rid === avaliables[k].rid && y[j] - y[k] > 1) {
+				p += S[j][k];// diagonal break
 			}
 			if (j !== k && sym[j][k]) {
 				if (y[j] !== y[k]) { p += S[j][k]; } // Symmetry break
 			} else {
 				if (y[j] < y[k]) { p += S[j][k]; } // Swap
+				else if (avaliables[j].y0 - avaliables[j].w0 < avaliables[k].y0
+					&& (avaliables[j].properWidth > 1
+						? y[j] - avaliables[j].properWidth >= y[k]
+						: y[j] - avaliables[j].properWidth > y[k])) {
+					// higher stroke being too high for original outline designed like this ↓
+					// ------.
+					//       |   ,-------
+					// ------'   |
+					//           `-------
+					p += S[j][k];
+				}
 			}
 		}
 	}
