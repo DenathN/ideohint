@@ -7,6 +7,9 @@ const devnull = require('dev-null');
 const yargs = require('yargs');
 const nodeStatic = require("node-static");
 
+const krampus = require("krampus");
+const opn = require("opn");
+
 const url = require('url');
 const querystring = require('querystring');
 
@@ -62,9 +65,10 @@ function acquireCharacters(hgl, w, callback) {
 	rl.on('close', function () { callback(matches) });
 }
 
+const IDH_VISUAL_PORT = 7890
+
 function startServer(argv) {
 	const fileServer = new nodeStatic.Server(require('path').resolve(__dirname, "../visual"));
-	const port = process.env.PORT || 9527;
 	let lastSample = typeof argv.w === 'string' ? argv.w : "如月更紗"
 	// Start a web server which displays an user interface for parameter adjustment
 	require('http').createServer(function (request, response) {
@@ -109,13 +113,16 @@ function startServer(argv) {
 				fileServer.serve(request, response);
 			}
 		}).resume();
-	}).listen(port);
-	console.log("> Server listening at port " + port);
+	}).listen(IDH_VISUAL_PORT);
+	console.log("> Server listening at port " + IDH_VISUAL_PORT);
 }
 
 exports.handler = function (argv) {
 
-	startServer(argv);
+	krampus(IDH_VISUAL_PORT).then(function () {
+		startServer(argv)
+		opn('http://localhost:' + IDH_VISUAL_PORT)
+	});
 
 	(function () {
 		var stdin = process.stdin;
@@ -132,7 +139,7 @@ exports.handler = function (argv) {
 		// on any data into stdin
 		stdin.on('data', function (key) {
 			// ctrl-c ( end of text )
-			if (key === '\u0003') {
+			if (key === '\u0003' || key === 'q') {
 				process.exit();
 			}
 			// write the key to stdout all normal like
