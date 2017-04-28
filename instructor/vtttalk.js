@@ -184,37 +184,6 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 
 	//// Y
 
-	talk('/* !!IDH!! ANCHOR BOTTOM */');
-	// bottom
-	for (let z of si.blue.bottomZs) {
-		talk(`YAnchor(${z.id},${padding + 2})`);
-	}
-	talk('/* !!IDH!! ANCHOR TOP */');
-	for (let z of si.blue.topZs) {
-		talk(`YAnchor(${z.id},${padding + 1})`);
-	}
-	/*
-	// top
-	for (let j = 0; j < si.blue.topZs.length; j++) {
-		const z = si.blue.topZs[j];
-		if (j === 0) {
-			talk(`YAnchor(${z.id},${padding + 1})`);
-			let deltas = [];
-			for (let ppem = pmin; ppem <= pmax; ppem++) {
-				let source = roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem);
-				let vtop = roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
-					+ roundings.rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem);
-				deltas.push({
-					ppem,
-					delta: decideDelta(ROUNDING_SEGMENTS, source, vtop, upm, ppem) / ROUNDING_SEGMENTS
-				})
-			}
-			talk(sanityDelta(z.id, deltas));
-		} else {
-			talk(`YLink(${si.blue.topZs[0].id}, ${z.id}, ${padding}, ${isXML ? '&lt;' : '<'})`)
-		}
-	}
-	*/
 	// ip decider
 	let candidates = [];
 	initCandidates: {
@@ -222,6 +191,8 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 			candidates.push({
 				ipz: z.id,
 				pOrg: z.y,
+				kind: 3,
+				talk: `YAnchor(${z.id},${padding + 2})`,
 				pDsts: table(pmin, pmax, ppem => roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem))
 			})
 		}
@@ -229,6 +200,8 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 			candidates.push({
 				ipz: z.id,
 				pOrg: z.y,
+				kind: 2,
+				talk: `YAnchor(${z.id},${padding + 1})`,
 				pDsts: table(pmin, pmax, ppem => roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem))
 			})
 		}
@@ -238,6 +211,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 				stem: s,
 				sid: sid,
 				ipz: s.posKey,
+				kind: 1,
 				pOrg: s.posKeyAtTop ? s.y0 : s.y0 - s.w0 - s.slope * s.keyDX,
 				pDsts: null
 			});
@@ -263,9 +237,16 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 		}
 		const ipAnchorZs = [];
 		for (let r of candidates) {
-			if (!r.stem) continue;
-			if (r.pDsts) continue;
-			if (r.pOrg > refBottom.pOrg && r.pOrg < refTop.pOrg) {
+			if ((r === refTop || r === refBottom) && r.talk) {
+				talk(r.talk);
+				return;
+			}
+			if (r.stem) {
+				if (r.pDsts) continue;
+				if (r.pOrg > refBottom.pOrg && r.pOrg < refTop.pOrg) {
+					ipAnchorZs.push(r.ipz);
+				}
+			} else {
 				ipAnchorZs.push(r.ipz);
 			}
 		}
