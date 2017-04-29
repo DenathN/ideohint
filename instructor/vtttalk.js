@@ -239,7 +239,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 		for (let r of candidates) {
 			if ((r === refTop || r === refBottom) && r.talk) {
 				talk(r.talk);
-				return;
+				continue;
 			}
 			if (r.stem) {
 				if (r.pDsts) continue;

@@ -88,7 +88,7 @@ exports.handler = function (argv) {
 					for (let k in otd.TSI_23.glyphs) {
 						if (!otd.glyf[k] || !otd.glyf[k].contours || !glyfcor[k]) continue;
 						let data = activeInstructions[glyfcor[k]];
-						otd.TSI_23.glyphs[k] = talk(data, strategy, cvtPadding, false).replace(/\n/g, '\r'); // VTT uses single CR, very strange.
+						otd.TSI_23.glyphs[k] = (talk(data, strategy, cvtPadding, false) || '').replace(/\n/g, '\r'); // VTT uses single CR, very strange.
 					}
 				}
 				if (otd.TSI_01 && otd.TSI_01.extra && otd.TSI_01.extra.cvt) {
