@@ -31,7 +31,7 @@ exports.extractFeature = function (glyph, strategy) {
 	const dominancePriority = analyzeDominance(glyph.stems);
 	const xIP = analyzeXInterpolate(glyph);
 	return {
-		stats: glyph.stats,
+		stats: Object.assign(glyph.stats, { nRadicals: glyph.radicals.length }),
 		stems: glyph.stems.map(getStemKeyInfo).sort(byyori),
 		stemOverlaps: glyph.stemOverlaps,
 		directOverlaps: directOverlaps,

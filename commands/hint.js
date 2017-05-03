@@ -105,9 +105,9 @@ exports.handler = function (argv) {
 			}
 			if (d < 1) d = 1;
 			const cutoff = xclamp(strategy.PPEM_MIT,
-				Math.round(strategy.UPM * strategy.SPARE_PIXLS / d),
+				Math.round(Math.max(strategy.UPM * strategy.SPARE_PIXLS / d, glyph.xIP.length * 4 / 3)),
 				strategy.PPEM_MAX);
-
+			//console.log(cutoff);
 			for (var ppem = cutoff; ppem >= strategy.PPEM_MIN; ppem--) {
 				const uppx = strategy.UPM / ppem;
 				const actions = hint(glyph, ppem, strategy);
