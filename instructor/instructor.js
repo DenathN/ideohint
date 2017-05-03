@@ -144,26 +144,6 @@ function instruct(record, strategy, padding) {
 		invocations.push([[glyph.topBluePoints[k], cvtTopID], ["MIAP[rnd]"]]);
 	}
 	pushInvokes(tt, invocations, STACK_DEPTH);
-	/*
-	// Normal cases:
-	// Padding + 3 + ppem is the CVT index of top blue zone center.
-	tt.push("PUSHB_1", pmin, "MPPEM", "LTEQ", "PUSHB_1", pmax, "MPPEM", "GTEQ", "AND", "IF");
-	tt.push("MPPEM");
-	pushargs(tt, padding + 3);
-	tt.push("ADD");
-	for (var k = 0; k < glyph.topBluePoints.length; k++) {
-		tt.push("DUP");
-		pushargs(tt, glyph.topBluePoints[k]);
-		tt.push("SWAP", "MIAP[0]"); // Don't round top absorptions
-	}
-	tt.push("CLEAR");
-	tt.push("ELSE");
-	for (var k = 0; k < glyph.topBluePoints.length; k++) {
-		invocations.push([[glyph.topBluePoints[k], cvtTopID], ["MIAP[rnd]"]]);
-	}
-	pushInvokes(tt, invocations, STACK_DEPTH);
-	tt.push("EIF");
-	*/
 
 	// Microsoft eats my deltas, I have to add additional MDAPs
 	// cf. http://www.microsoft.com/typography/cleartype/truetypecleartype.aspx#Toc227035721

@@ -185,7 +185,10 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	//// Y
 
 	// ip decider
+	const pDstsBot = table(pmin, pmax, ppem => roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem));
+	const pDstsTop = table(pmin, pmax, ppem => roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem));
 	let candidates = [];
+
 	initCandidates: {
 		for (let z of si.blue.bottomZs) {
 			candidates.push({
@@ -193,7 +196,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 				pOrg: z.y,
 				kind: 3,
 				talk: `YAnchor(${z.id},${padding + 2})`,
-				pDsts: table(pmin, pmax, ppem => roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem))
+				pDsts: pDstsBot
 			})
 		}
 		for (let z of si.blue.topZs) {
@@ -202,7 +205,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 				pOrg: z.y,
 				kind: 2,
 				talk: `YAnchor(${z.id},${padding + 1})`,
-				pDsts: table(pmin, pmax, ppem => roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem))
+				pDsts: pDstsTop
 			})
 		}
 		for (let sid = 0; sid < si.stems.length; sid++) {
@@ -222,18 +225,32 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	const refBottom = candidates[0];
 	if (refTop && refBottom) {
 		if (!refTop.pDsts) {
-			talk(`/* !!IDH!! StemDef ${refTop.sid} TOP */`)
-			talk(`YAnchor(${refTop.ipz})`);
-			let { pDsts, buf } = encodeStem(refTop.stem, refTop.sid, sd, strategy, null);
-			refTop.pDsts = pDsts;
-			talk(buf);
+			talk(`/* !!IDH!! StemDef ${refTop.sid} TOP */`);
+			let { pDsts: pDsts1, buf: buf1 } = encodeStem(refTop.stem, refTop.sid, sd, strategy, null);
+			let { pDsts: pDsts2, buf: buf2 } = encodeStem(refTop.stem, refTop.sid, sd, strategy, pDstsTop);
+			if (buf1.length < buf2.length) {
+				talk(`YAnchor(${refTop.ipz})`);
+				refTop.pDsts = pDsts1;
+				talk(buf1);
+			} else {
+				talk(`YAnchor(${refTop.ipz},${padding + 1})`);
+				refTop.pDsts = pDsts2;
+				talk(buf2);
+			}
 		}
 		if (!refBottom.pDsts) {
-			talk(`/* !!IDH!! StemDef ${refBottom.sid} BOTTOM */`)
-			talk(`YAnchor(${refBottom.ipz})`);
-			let { pDsts, buf } = encodeStem(refBottom.stem, refBottom.sid, sd, strategy, null);
-			refBottom.pDsts = pDsts;
-			talk(buf);
+			talk(`/* !!IDH!! StemDef ${refBottom.sid} BOTTOM */`);
+			let { pDsts: pDsts1, buf: buf1 } = encodeStem(refBottom.stem, refBottom.sid, sd, strategy, null);
+			let { pDsts: pDsts2, buf: buf2 } = encodeStem(refBottom.stem, refBottom.sid, sd, strategy, pDstsBot);
+			if (buf1.length < buf2.length) {
+				talk(`YAnchor(${refBottom.ipz})`);
+				refBottom.pDsts = pDsts1;
+				talk(buf1);
+			} else {
+				talk(`YAnchor(${refBottom.ipz},${padding + 2})`);
+				refBottom.pDsts = pDsts2;
+				talk(buf2);
+			}
 		}
 		const ipAnchorZs = [];
 		for (let r of candidates) {
