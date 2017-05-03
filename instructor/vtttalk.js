@@ -134,13 +134,18 @@ function table(min, max, f) {
 // si : size-inpendent actions
 // sd : size-dependent actions
 // strategy : strategy object
-// padding : CVT padding value, padding + 1 -> bottom anchor; padding + 2 -> top anchor
+// padding : CVT padding value, padding + 2 -> bottom anchor; padding + 1 -> top anchor
 function produceVTTTalk(record, strategy, padding, isXML) {
 	const sd = record.sd;
 	const si = record.si;
 	const pmin = record.pmin;
 	const pmax = record.pmax;
 	const upm = strategy.UPM;
+
+	const cvtZeroId = padding;
+	const cvtTopId = padding + 1;
+	const cvtBottomId = padding + 2
+
 	let buf = "";
 	function talk(s) { buf += s + "\n"; }
 
@@ -195,7 +200,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 				ipz: z.id,
 				pOrg: z.y,
 				kind: 3,
-				talk: `YAnchor(${z.id},${padding + 2})`,
+				talk: `YAnchor(${z.id},${cvtBottomId})`,
 				pDsts: pDstsBot
 			})
 		}
@@ -204,7 +209,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 				ipz: z.id,
 				pOrg: z.y,
 				kind: 2,
-				talk: `YAnchor(${z.id},${padding + 1})`,
+				talk: `YAnchor(${z.id},${cvtTopId})`,
 				pDsts: pDstsTop
 			})
 		}
@@ -233,7 +238,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 				refTop.pDsts = pDsts1;
 				talk(buf1);
 			} else {
-				talk(`YAnchor(${refTop.ipz},${padding + 1})`);
+				talk(`YAnchor(${refTop.ipz},${cvtTopId})`);
 				refTop.pDsts = pDsts2;
 				talk(buf2);
 			}
@@ -247,7 +252,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 				refBottom.pDsts = pDsts1;
 				talk(buf1);
 			} else {
-				talk(`YAnchor(${refBottom.ipz},${padding + 2})`);
+				talk(`YAnchor(${refBottom.ipz},${cvtBottomId})`);
 				refBottom.pDsts = pDsts2;
 				talk(buf2);
 			}
