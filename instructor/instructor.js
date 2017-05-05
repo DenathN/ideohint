@@ -168,6 +168,7 @@ function instruct(record, strategy, padding) {
 		var instrs = actions[ppem];
 		var deltas = [];
 		for (var k = 0; k < instrs.length; k++) {
+			if (!instrs[k]) continue;
 			var [y, w, isStrict, isStacked] = instrs[k];
 			var stem = glyph.stems[k];
 			var y0 = stem.y0, w0 = stem.w0, orient = stem.posKeyAtTop, slope = stem.slope, keyDX = stem.keyDX;

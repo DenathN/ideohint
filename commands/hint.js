@@ -107,11 +107,15 @@ exports.handler = function (argv) {
 			const cutoff = xclamp(strategy.PPEM_MIT,
 				Math.round(Math.max(strategy.UPM * strategy.SPARE_PIXLS / d, glyph.xIP.length * 4 / 3)),
 				strategy.PPEM_MAX);
-			//console.log(cutoff);
-			for (var ppem = cutoff; ppem >= strategy.PPEM_MIN; ppem--) {
+			for (var ppem = strategy.PPEM_MAX; ppem >= strategy.PPEM_MIN; ppem--) {
 				const uppx = strategy.UPM / ppem;
 				const actions = hint(glyph, ppem, strategy);
 				stemActions[ppem] = actions.y;
+				if (ppem > cutoff) {
+					for (let j = 1; j < stemActions[ppem].length - 1; j++) {
+						stemActions[ppem][j] = null;
+					}
+				}
 				xExpansion[ppem] = actions.x.expand;
 			}
 			currentProgress = showProgressBar(currentProgress, glyphIndex, pendings.length);

@@ -1,10 +1,11 @@
 var fs = require("fs");
 var roundings = require("../roundings");
-function pushWhenAbsent (a, x) {
+const { mix } = require('../support/common');
+function pushWhenAbsent(a, x) {
 	a.push(x);
 }
 
-function createCvt (src, strategy, padding) {
+function createCvt(src, strategy, padding) {
 	var MAX_SW = 5;
 	var cvt = (src || []).slice(0);
 	padding = padding || 0;
@@ -43,3 +44,10 @@ exports.getPadding = function (argv, parameterFile) {
 	}
 };
 exports.createCvt = createCvt;
+exports.getVTTAux = function (bot, top) {
+	const p = 1 / 20;
+	return {
+		yBotBar: Math.round(mix(bot, top, p)),
+		yTopBar: Math.round(mix(top, bot, p))
+	}
+}

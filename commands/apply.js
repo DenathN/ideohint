@@ -92,15 +92,19 @@ exports.handler = function (argv) {
 					}
 				}
 				if (otd.TSI_01 && otd.TSI_01.extra && otd.TSI_01.extra.cvt) {
+					const { yBotBar, yTopBar } = cvtlib.getVTTAux(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER)
 					otd.TSI_01.extra.cvt = otd.TSI_01.extra.cvt
 						.replace(new RegExp(`${cvtPadding}` + '\\s*:\\s*-?\\d+'), '')
 						.replace(new RegExp(`${cvtPadding + 1}` + '\\s*:\\s*-?\\d+'), '')
 						.replace(new RegExp(`${cvtPadding + 2}` + '\\s*:\\s*-?\\d+'), '')
-						+ `${cvtPadding} : ${0}`
-						+ '\n'
-						+ `${cvtPadding + 1} : ${strategy.BLUEZONE_TOP_CENTER}`
-						+ '\n'
-						+ `${cvtPadding + 2} : ${strategy.BLUEZONE_BOTTOM_CENTER}`
+						+ `
+/* IDEOHINT */
+${cvtPadding} : ${0}
+${cvtPadding + 1} : ${strategy.BLUEZONE_TOP_CENTER}
+${cvtPadding + 2} : ${strategy.BLUEZONE_BOTTOM_CENTER}
+${cvtPadding + 3} : ${yTopBar}
+${cvtPadding + 4} : ${yBotBar}
+`
 				}
 				var outStream = argv.o ? fs.createWriteStream(argv.o, { encoding: "utf-8" }) : process.stdout;
 				stringifyToStream(otd, outStream, outStream === process.stdout)();
