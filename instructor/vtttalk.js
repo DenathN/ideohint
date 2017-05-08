@@ -220,7 +220,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 				pOrg: z.y,
 				kind: 3,
 				talk: `YAnchor(${z.id},${cvtBottomDId})`,
-				pDsts: pDstsBot
+				pDsts: pDstsBotD
 			})
 		} else {
 			candidates.push({
@@ -239,7 +239,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 				pOrg: z.y,
 				kind: 2,
 				talk: `YAnchor(${z.id},${cvtTopDId})`,
-				pDsts: pDstsTop
+				pDsts: pDstsTopD
 			})
 		} else {
 			candidates.push({
