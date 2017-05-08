@@ -12,7 +12,7 @@ const earlyAdjust = require("./early");
 const allocateWidth = require("./allocate-width");
 const stemPositionToActions = require("./actions");
 
-const { lerp, xlerp, xclamp } = require('../support/common');
+const { mix, lerp, xlerp, xclamp } = require('../support/common');
 const monoip = require('../support/monotonic-interpolate');
 
 function toVQ(v, ppem) {
@@ -262,6 +262,7 @@ function hint(glyph, ppem, strategy) {
 	// - the stem's proper width (in pixels).
 	// - key spatial relationships.
 	var avaliables = function (stems) {
+		const Y_MIDDLE = mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 0.5);
 		var avaliables = [];
 		var tws = decideWidths(stems, glyph.dominancePriority);
 		// Decide avaliability space
@@ -306,12 +307,13 @@ function hint(glyph, ppem, strategy) {
 
 
 			const center0 = cy(y0, w0, w, atGlyphTop(stem) && stem.diagHigh || atGlyphBottom(stem) && stem.diagLow, stem.posKeyAtTop);
-			const maxshift = xclamp(1, ppem / 16, 2);
+			const maxShiftU = y0 - w0 / 2 > Y_MIDDLE ? 1 : xclamp(1, ppem / 16, 2);
+			const maxShiftD = y0 - w0 / 2 < Y_MIDDLE ? 1 : xclamp(1, ppem / 16, 2);
 			const lowlimitW = Math.max(glyphBottom + w, tws[j] > 1 ? lowlimit - uppx : lowlimit);
-			const lowW = xclamp(lowlimitW, round(center0 - maxshift * uppx), highlimit);
-			const highW = xclamp(lowlimitW, round(center0 + maxshift * uppx), highlimit);
-			const low = xclamp(lowlimit, round(center0 - maxshift * uppx), highlimit);
-			const high = xclamp(lowlimit, round(center0 + maxshift * uppx), highlimit);
+			const lowW = xclamp(lowlimitW, round(center0 - maxShiftD * uppx), highlimit);
+			const highW = xclamp(lowlimitW, round(center0 + maxShiftU * uppx), highlimit);
+			const low = xclamp(lowlimit, round(center0 - maxShiftD * uppx), highlimit);
+			const high = xclamp(lowlimit, round(center0 + maxShiftU * uppx), highlimit);
 			const center = xclamp(low, center0, high);
 
 			const ablationCoeff = (atGlyphTop(stem) || atGlyphBottom(stem))

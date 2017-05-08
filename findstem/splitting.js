@@ -1,18 +1,9 @@
 "use strict"
 
 const Point = require('../types').Point;
+const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ } = require('../support/common');
 
-// diagonal split
-function leftmostZ(segs) {
-	let m = segs[0][0];
-	for (let seg of segs) for (let z of seg) if (!m || z && z.x < m.x) m = z;
-	return m;
-}
-function rightmostZ(segs) {
-	let m = segs[0][0];
-	for (let seg of segs) for (let z of seg) if (!m || z && z.x > m.x) m = z;
-	return m;
-}
+
 function shouldSplit(hl, ll, hr, lr, strategy) {
 	if (hl === hr || ll === lr) return false;
 	if (hl.y === hr.y || ll.y === lr.y) return false;
@@ -22,6 +13,16 @@ function shouldSplit(hl, ll, hr, lr, strategy) {
 		&& Math.abs(hr.x - lr.x) * 2.25 < Math.max(Math.abs(hl.x - hr.x), Math.abs(ll.x - lr.x))
 		&& Math.abs(hl.y - hr.y) >= strategy.Y_FUZZ_DIAG
 		&& Math.abs(ll.y - lr.y) >= strategy.Y_FUZZ_DIAG
+}
+function contained(z1, z2, segs, strategy) {
+	const fuzz = 1;
+	for (let seg of segs) for (let z of seg) {
+		if (z.y > z1.y + fuzz && z.y > z2.y + fuzz
+			|| z.y < z1.y - fuzz && z.y < z2.y - fuzz) {
+			return false;
+		}
+	}
+	return true;
 }
 function linkIP(segs, hl, hr) {
 	let ans = [];
@@ -43,7 +44,9 @@ function splitDiagonalStem(s, strategy, rid, results) {
 	let ll = leftmostZ(s.low);
 	let hr = rightmostZ(s.high);
 	let lr = rightmostZ(s.low);
-	if (shouldSplit(hl, ll, hr, lr, strategy)) {
+	if (shouldSplit(hl, ll, hr, lr, strategy)
+		&& contained(ll, lr, s.low, strategy)
+		&& contained(hl, hr, s.high, strategy)) {
 		let hmx = (hl.x + hr.x) / 2;
 		let lmx = (ll.x + lr.x) / 2;
 		let hmy = (hl.y + hr.y) / 2;

@@ -224,11 +224,12 @@ function createAdjusters() {
 
 function loadSamples(w) {
 	Renderer.renderLoading(canvas);
-	$.getJSON("/chars?w=" + encodeURIComponent(w), function (data) {
-		input = data.filter(x => x);
-		Renderer.clean(canvas);
-		setTimeout(render, 0);
-	});
+	$.getJSON("/chars?w=" + encodeURIComponent(w) + "&f=" + encodeURIComponent(config.input),
+		function (data) {
+			input = data.filter(x => x);
+			Renderer.clean(canvas);
+			setTimeout(render, 0);
+		});
 }
 
 $.getJSON("/config", function (conf) {

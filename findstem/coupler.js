@@ -6,11 +6,13 @@ const minmaxOfSeg = require("./seg").minmaxOfSeg;
 const slopeOf = require("../types").slopeOf;
 const splitDiagonalStems = require('./splitting').splitDiagonalStems;
 const hlkey = require('./hlkey');
+const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ } = require('../support/common');
+
 
 function segmentJoinable(pivot, segment, radical) {
 	for (var k = 0; k < pivot.length; k++) {
 		for (var j = 0; j < segment.length; j++) {
-			if (radical.includesSegment(segment[j], pivot[k])) {
+			if (radical.includesSegmentEdge(segment[j], pivot[k], 2, 2, 1, 1)) {
 				return true;
 			}
 		}
@@ -80,7 +82,6 @@ function findHorizontalSegments(radicals, strategy) {
 	}
 
 	segments = segments.sort(function (p, q) { return p[0].x - q[0].x; });
-
 	// Join segments
 	for (var j = 0; j < segments.length; j++) if (segments[j]) {
 		var pivotRadical = segments[j].radical;
@@ -90,11 +91,16 @@ function findHorizontalSegments(radicals, strategy) {
 
 function uuCouplable(sj, sk, radical, strategy) {
 	let slope = (slopeOf([sj]) + slopeOf([sk])) / 2;
-	let desired = sj[0].y + (sk[0].x - sj[0].x) * slope;
-	let delta = Math.abs(sk[0].x - sj[0].x) * strategy.SLOPE_FUZZ_P + strategy.Y_FUZZ;
-	return Math.abs(sk[0].y - desired) <= delta && segmentJoinable(sj, sk, radical);
+	let ref = leftmostZ([sj]);
+	let focus = leftmostZ([sk]);
+	let desired = ref.y + (focus.x - ref.x) * slope;
+	let delta = Math.abs(focus.x - ref.x) * strategy.SLOPE_FUZZ_P + strategy.Y_FUZZ;
+	//console.log("UU", sj.map(z => z.id), sk.map(z => z.id),
+	//	focus.x, focus.y, desired, segmentJoinable(sj, sk, radical));
+	return Math.abs(focus.y - desired) <= delta && segmentJoinable(sj, sk, radical);
 }
 function udMatchable(sj, sk, radical, strategy) {
+	//console.log("UD", sj.map(z => z.id), sk.map(z => z.id), radical.includesTetragon(sj, sk));
 	return radical.includesTetragon(sj, sk)
 		&& !(!!slopeOf([sj]) !== !!slopeOf([sk])
 			&& Math.abs(slopeOf([sj]) - slopeOf([sk])) >= strategy.SLOPE_FUZZ / 2);

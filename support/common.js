@@ -11,3 +11,14 @@ exports.xlerp = function (x, x1, x2, x3, y1, y2, y3) {
 	}
 }
 exports.xclamp = function (low, x, high) { return x < low ? low : x > high ? high : x; }
+
+exports.leftmostZ_SS = function leftmostZ(segs) {
+	let m = segs[0][0];
+	for (let seg of segs) for (let z of seg) if (!m || z && z.x < m.x) m = z;
+	return m;
+}
+exports.rightmostZ_SS = function rightmostZ(segs) {
+	let m = segs[0][0];
+	for (let seg of segs) for (let z of seg) if (!m || z && z.x > m.x) m = z;
+	return m;
+}

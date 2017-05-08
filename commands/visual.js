@@ -103,9 +103,10 @@ function startServer(argv) {
 			} else if (requrl.pathname === '/chars') {
 				const q = querystring.parse(requrl.query);
 				const sample = q.w || "如月更紗";
+				const file = q.f || argv.input;
 				lastSample = sample;
 				console.log("> Loading sample " + sample)
-				acquireCharacters(argv.input, sample, function (matches) {
+				acquireCharacters(file, sample, function (matches) {
 					response.setHeader("Content-Type", "application/json;charset=UTF-8");
 					response.end(JSON.stringify(matches));
 				});

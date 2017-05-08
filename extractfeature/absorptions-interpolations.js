@@ -85,7 +85,7 @@ function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalS
 				var yDifference = z.y - (zkey.y + (z.x - zkey.x) * (zkey.slope || 0));
 				if (!(yDifference > 0 ? yDifference < strategy.Y_FUZZ * 2 : -yDifference < strategy.Y_FUZZ)) continue;
 				if (candidate && Math.hypot(z.y - candidate.y, z.x - candidate.x) <= Math.hypot(z.y - zkey.y, z.x - zkey.x)) continue;
-				if (!radical.includesSegmentEdge(z, zkey, 1, strategy.SLOPE_FUZZ_K)) continue;
+				if (!radical.includesSegmentEdge(z, zkey, 1, strategy.SLOPE_FUZZ_K, 1, 1)) continue;
 				candidate = zkey;
 			}
 		}

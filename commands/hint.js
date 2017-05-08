@@ -105,7 +105,7 @@ exports.handler = function (argv) {
 			}
 			if (d < 1) d = 1;
 			const cutoff = xclamp(strategy.PPEM_MIT,
-				Math.round(Math.max(strategy.UPM * strategy.SPARE_PIXLS / d, glyph.xIP.length * 4 / 3)),
+				Math.round(strategy.UPM * strategy.SPARE_PIXLS / d),
 				strategy.PPEM_MAX);
 			for (var ppem = strategy.PPEM_MAX; ppem >= strategy.PPEM_MIN; ppem--) {
 				const uppx = strategy.UPM / ppem;

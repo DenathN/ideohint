@@ -22,29 +22,26 @@ Radical.prototype.includesSegment = function (z1, z2) {
 			x: z2.x + (z1.x - z2.x) * (s / SEGMENTS),
 			y: z2.y + (z1.y - z2.y) * (s / SEGMENTS)
 		};
-		if (!this.includes(testz)) {
-			return false;
-		}
+		if (!this.includes(testz)) { return false; }
 	}
 	return true;
 };
-Radical.prototype.includesSegmentEdge = function (z1, z2, um, delta) {
+Radical.prototype.includesSegmentEdge = function (z1, z2, umx, deltax, umy, deltay) {
 	if (this.includesSegment(z1, z2)) {
 		return true;
 	}
-	for (var u1 = -um; u1 <= um; u1++) for (var u2 = -um; u2 <= um; u2++)
-		for (var u3 = -um; u3 <= um; u3++) for (var u4 = -um; u4 <= um; u4++) {
-			var z1a = { x: z1.x + u1 * delta, y: z1.y + u2 * delta };
-			var z2a = { x: z2.x + u3 * delta, y: z2.y + u4 * delta };
+	for (var u1 = -umx; u1 <= umx; u1++) for (var u2 = -umy; u2 <= umy; u2++)
+		for (var u3 = -umx; u3 <= umx; u3++) for (var u4 = -umy; u4 <= umy; u4++) {
+			var z1a = { x: z1.x + u1 * deltax, y: z1.y + u2 * deltay };
+			var z2a = { x: z2.x + u3 * deltax, y: z2.y + u4 * deltay };
 			if (this.includesSegment(z1a, z2a)) {
 				return true;
 			}
 		}
+	//console.log("IXS", z1, z2, umx, deltax, umy, deltay);
 	return false;
 };
 Radical.prototype.includesTetragon = function (s1, s2) {
-	var steps = 32, val = 0, tot = 0;
-
 	for (var u = 0; u < s1.length - 1; u++) {
 		for (var v = 0; v < s2.length - 1; v++) {
 			var p = s1[u], q = s1[u + 1];
@@ -57,14 +54,21 @@ Radical.prototype.includesTetragon = function (s1, s2) {
 				var t = r;
 				r = s; s = t;
 			}
+			const cross1 = r.x > q.x;
+			const cross2 = p.x > s.x;
+			const q1 = (u === 0 || u === s1.length - 1 || v === 0 || v === s2.length - 1) ? 5 : 2;
 			if (
-				!this.includesSegmentEdge(mixz(p, q, 1 / 5), mixz(r, s, 1 / 5), 1, 1)
-				|| !this.includesSegmentEdge(mixz(p, q, 1 / 2), mixz(r, s, 1 / 2), 1, 1)
-				|| !this.includesSegmentEdge(mixz(p, q, 4 / 5), mixz(r, s, 4 / 5), 1, 1)
-				|| !this.includesSegmentEdge(p, s, 2, 1)
-				|| !this.includesSegmentEdge(q, r, 2, 1)
-				|| !this.includesSegmentEdge(p, r, 2, 5)
-				|| !this.includesSegmentEdge(q, s, 2, 5)
+				!this.includesSegmentEdge(mixz(p, q, 1 / 2), mixz(r, s, 1 / 2), 2, 2, 2, 2)
+				|| !(cross1 || this.includesSegmentEdge(p, s, q1, 3, 2, 2))
+				|| !(cross2 || this.includesSegmentEdge(q, r, q1, 3, 2, 2))
+				|| !this.includesSegmentEdge(p, r, q1, 5, 2, 2)
+				|| !this.includesSegmentEdge(q, s, q1, 5, 2, 2)
+				|| !this.includesSegmentEdge(p, mixz(r, s, 1 / 2), q1, 5, 2, 2)
+				|| !this.includesSegmentEdge(q, mixz(r, s, 1 / 2), q1, 5, 2, 2)
+				|| !this.includesSegmentEdge(mixz(p, q, 1 / 2), r, q1, 5, 2, 2)
+				|| !this.includesSegmentEdge(mixz(p, q, 1 / 2), s, q1, 5, 2, 2)
+				|| !this.includesSegmentEdge(mixz(p, q, 1 / 5), mixz(r, s, 1 / 5), q1, 5, 2, 2)
+				|| !this.includesSegmentEdge(mixz(p, q, 4 / 5), mixz(r, s, 4 / 5), q1, 5, 2, 2)
 			) {
 				return false;
 			}

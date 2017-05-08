@@ -2,6 +2,7 @@
 
 const slopeOf = require("../types").slopeOf;
 const hlkey = require('../findstem/hlkey');
+const { mix } = require('../support/common');
 
 function keyptPriority(incoming, current, atr) {
 	if (atr) {
@@ -18,6 +19,13 @@ function atRadicalBottom(s, strategy) {
 		&& !(s.hasRadicalRightAdjacentPointBelow && s.radicalRightAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT)
 }
 
+function atGlyphBottom(stem, strategy) {
+	return atRadicalBottom(stem, strategy) && !stem.hasGlyphStemBelow
+		&& !(stem.hasGlyphPointBelow && stem.glyphCenterDescent > strategy.STEM_CENTER_MIN_DESCENT)
+		&& !(stem.hasGlyphLeftAdjacentPointBelow && stem.glyphLeftAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT)
+		&& !(stem.hasGlyphRightAdjacentPointBelow && stem.glyphRightAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT);
+}
+
 function hasGreaterUpperPromixity(stems, js, dov, P) {
 	var promUp = 0;
 	var promDown = 0;
@@ -25,7 +33,7 @@ function hasGreaterUpperPromixity(stems, js, dov, P) {
 		if (dov[j][js]) promUp += P[j][js];
 		if (dov[js][j]) promDown += P[js][j];
 	}
-	return promUp >= promDown && promDown > 0
+	return promUp > promDown && promDown > 0
 }
 
 module.exports = function (glyph, strategy, dov, P) {
@@ -36,8 +44,10 @@ module.exports = function (glyph, strategy, dov, P) {
 		const { highkey, lowkey, slope } = hlkey.correctYWForStem(s, strategy);
 		highkey.touched = lowkey.touched = true;
 
-		const posKeyShouldAtBottom = atRadicalBottom(s, strategy) && s.hasGlyphStemAbove
-			|| hasGreaterUpperPromixity(glyph.stems, js, dov, P);
+		const posKeyShouldAtBottom = atRadicalBottom(s, strategy) &&
+			(s.hasGlyphStemAbove
+				|| s.y <= mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 0.1))
+		//|| hasGreaterUpperPromixity(glyph.stems, js, dov, P);
 
 		// get non-key points
 		let highnonkey = [], lownonkey = [];

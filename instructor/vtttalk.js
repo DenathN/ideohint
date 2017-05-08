@@ -55,6 +55,7 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 	let deltaPos = [];
 	let deltaADv = [];
 	let pDsts = [];
+	let totalPosDelta = 0
 
 	for (let ppem = 0; ppem < sd.length; ppem++) {
 		const pos0 = pos0s ? pos0s[ppem] : s.posKeyAtTop ? s.y0 : s.y0 - s.w0 - s.slope * s.keyDX;
@@ -71,6 +72,7 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 				ppem,
 				delta: decideDelta(ROUNDING_SEGMENTS, psrc, pdst, upm, ppem) / ROUNDING_SEGMENTS
 			};
+			totalPosDelta += posdelta.delta * posdelta.delta;
 			deltaPos.push(posdelta);
 			const wsrc = s.w0;
 			const wdst = wtouch * (upm / ppem);
@@ -91,6 +93,7 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 				ppem,
 				delta: decideDelta(ROUNDING_SEGMENTS, psrc, pdst, upm, ppem) / ROUNDING_SEGMENTS
 			};
+			totalPosDelta += posdelta.delta * posdelta.delta;
 			deltaPos.push(posdelta);
 			const wsrc = s.w0;
 			const wdst = wtouch * (upm / ppem);
@@ -125,7 +128,8 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 		buf: buf,
 		ipz: s.posKey,
 		pDsts,
-		pOrg: s.posKeyAtTop ? s.y0 : s.y0 - s.w0
+		pOrg: s.posKeyAtTop ? s.y0 : s.y0 - s.w0,
+		totalPosDelta
 	}
 }
 
@@ -243,22 +247,23 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 		if (!refTop.pDsts) {
 			talk(`/* !!IDH!! StemDef ${refTop.sid} TOP */`);
 			let { pDsts: pDsts1, buf: buf1 } = encodeStem(refTop.stem, refTop.sid, sd, strategy, null);
-			let { pDsts: pDsts2, buf: buf2 } = encodeStem(refTop.stem, refTop.sid, sd, strategy, pDstsTopB);
-			if (buf1.length < buf2.length) {
-				talk(`YAnchor(${refTop.ipz})`);
-				refTop.pDsts = pDsts1;
-				talk(buf1);
-			} else {
-				talk(`YAnchor(${refTop.ipz},${cvtTopBarId})`);
-				refTop.pDsts = pDsts2;
-				talk(buf2);
-			}
+			// Top and bottom are slightly different.
+			// let { pDsts: pDsts2, buf: buf2 } = encodeStem(refTop.stem, refTop.sid, sd, strategy, pDstsTopB);
+			// if (buf1.length < buf2.length) {
+			talk(`YAnchor(${refTop.ipz})`);
+			refTop.pDsts = pDsts1;
+			talk(buf1);
+			// } else {
+			// 	talk(`YAnchor(${refTop.ipz},${cvtTopBarId})`);
+			// 	refTop.pDsts = pDsts2;
+			// 	talk(buf2);
+			// }
 		}
 		if (!refBottom.pDsts) {
 			talk(`/* !!IDH!! StemDef ${refBottom.sid} BOTTOM */`);
-			let { pDsts: pDsts1, buf: buf1 } = encodeStem(refBottom.stem, refBottom.sid, sd, strategy, null);
-			let { pDsts: pDsts2, buf: buf2 } = encodeStem(refBottom.stem, refBottom.sid, sd, strategy, pDstsBotB);
-			if (buf1.length < buf2.length) {
+			let { pDsts: pDsts1, buf: buf1, totalPosDelta: tpd1 } = encodeStem(refBottom.stem, refBottom.sid, sd, strategy, null);
+			let { pDsts: pDsts2, buf: buf2, totalPosDelta: tpd2 } = encodeStem(refBottom.stem, refBottom.sid, sd, strategy, pDstsBotB);
+			if (tpd1 < tpd2) {
 				talk(`YAnchor(${refBottom.ipz})`);
 				refBottom.pDsts = pDsts1;
 				talk(buf1);
@@ -269,6 +274,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 			}
 		}
 		const ipAnchorZs = [];
+		const ipZs = [];
 		for (let r of candidates) {
 			if ((r === refTop || r === refBottom) && r.talk) {
 				talk(r.talk);
@@ -280,11 +286,14 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 					ipAnchorZs.push(r.ipz);
 				}
 			} else {
-				ipAnchorZs.push(r.ipz);
+				ipZs.push(r.ipz);
 			}
 		}
 		if (ipAnchorZs.length) {
 			talk(`YIPAnchor(${refBottom.ipz},${ipAnchorZs.join(',')},${refTop.ipz})`);
+		}
+		if (ipZs.length) {
+			talk(`YInterpolate(${refBottom.ipz},${ipZs.join(',')},${refTop.ipz})`);
 		}
 
 		for (let r of candidates) {
