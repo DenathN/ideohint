@@ -46,8 +46,11 @@ exports.getPadding = function (argv, parameterFile) {
 exports.createCvt = createCvt;
 exports.getVTTAux = function (bot, top) {
 	const p = 1 / 20;
+	const pd = 1 / 40;
 	return {
 		yBotBar: Math.round(mix(bot, top, p)),
-		yTopBar: Math.round(mix(top, bot, p))
+		yBotD: Math.round(mix(bot, top, pd)),
+		yTopBar: Math.round(mix(top, bot, p)),
+		yTopD: Math.round(mix(top, bot, pd)),
 	}
 }

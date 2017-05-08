@@ -153,10 +153,12 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	const cvtZeroId = padding;
 	const cvtTopId = padding + 1;
 	const cvtBottomId = padding + 2;
+	const cvtTopDId = padding + 5;
+	const cvtBottomDId = padding + 6;
 	const cvtTopBarId = padding + 3;
 	const cvtBottomBarId = padding + 4;
 
-	const { yBotBar, yTopBar } = getVTTAux(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER)
+	const { yBotBar, yTopBar, yBotD, yTopD } = getVTTAux(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER)
 
 	let buf = "";
 	function talk(s) { buf += s + "\n"; }
@@ -206,26 +208,48 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	const pDstsTop = table(pmin, pmax, ppem => roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem));
 	const pDstsBotB = table(pmin, pmax, ppem => roundings.rtg(yBotBar, upm, ppem));
 	const pDstsTopB = table(pmin, pmax, ppem => roundings.rtg(yTopBar, upm, ppem));
+	const pDstsBotD = table(pmin, pmax, ppem => roundings.rtg(yBotD, upm, ppem));
+	const pDstsTopD = table(pmin, pmax, ppem => roundings.rtg(yTopD, upm, ppem));
 	let candidates = [];
 
 	// Initialize candidates
 	for (let z of si.blue.bottomZs) {
-		candidates.push({
-			ipz: z.id,
-			pOrg: z.y,
-			kind: 3,
-			talk: `YAnchor(${z.id},${cvtBottomId})`,
-			pDsts: pDstsBot
-		})
+		if (Math.abs(z.y - yBotD) < Math.abs(z.y - strategy.BLUEZONE_BOTTOM_CENTER)) {
+			candidates.push({
+				ipz: z.id,
+				pOrg: z.y,
+				kind: 3,
+				talk: `YAnchor(${z.id},${cvtBottomDId})`,
+				pDsts: pDstsBot
+			})
+		} else {
+			candidates.push({
+				ipz: z.id,
+				pOrg: z.y,
+				kind: 3,
+				talk: `YAnchor(${z.id},${cvtBottomId})`,
+				pDsts: pDstsBot
+			})
+		}
 	}
 	for (let z of si.blue.topZs) {
-		candidates.push({
-			ipz: z.id,
-			pOrg: z.y,
-			kind: 2,
-			talk: `YAnchor(${z.id},${cvtTopId})`,
-			pDsts: pDstsTop
-		})
+		if (Math.abs(z.y - yTopD) < Math.abs(z.y - strategy.BLUEZONE_TOP_CENTER)) {
+			candidates.push({
+				ipz: z.id,
+				pOrg: z.y,
+				kind: 2,
+				talk: `YAnchor(${z.id},${cvtTopDId})`,
+				pDsts: pDstsTop
+			})
+		} else {
+			candidates.push({
+				ipz: z.id,
+				pOrg: z.y,
+				kind: 2,
+				talk: `YAnchor(${z.id},${cvtTopId})`,
+				pDsts: pDstsTop
+			})
+		}
 	}
 	for (let sid = 0; sid < si.stems.length; sid++) {
 		const s = si.stems[sid];
@@ -247,17 +271,9 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 		if (!refTop.pDsts) {
 			talk(`/* !!IDH!! StemDef ${refTop.sid} TOP */`);
 			let { pDsts: pDsts1, buf: buf1 } = encodeStem(refTop.stem, refTop.sid, sd, strategy, null);
-			// Top and bottom are slightly different.
-			// let { pDsts: pDsts2, buf: buf2 } = encodeStem(refTop.stem, refTop.sid, sd, strategy, pDstsTopB);
-			// if (buf1.length < buf2.length) {
 			talk(`YAnchor(${refTop.ipz})`);
 			refTop.pDsts = pDsts1;
 			talk(buf1);
-			// } else {
-			// 	talk(`YAnchor(${refTop.ipz},${cvtTopBarId})`);
-			// 	refTop.pDsts = pDsts2;
-			// 	talk(buf2);
-			// }
 		}
 		if (!refBottom.pDsts) {
 			talk(`/* !!IDH!! StemDef ${refBottom.sid} BOTTOM */`);
@@ -353,4 +369,27 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	return buf;
 }
 
+function generateCVT(cvt, cvtPadding, strategy) {
+	const { yBotBar, yTopBar, yBotD, yTopD } = getVTTAux(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER);
+	cvt = cvt
+		.replace(new RegExp(`${cvtPadding}` + '\\s*:\\s*-?\\d+'), '')
+		.replace(new RegExp(`${cvtPadding + 1}` + '\\s*:\\s*-?\\d+'), '')
+		.replace(new RegExp(`${cvtPadding + 2}` + '\\s*:\\s*-?\\d+'), '')
+		.replace(new RegExp(`${cvtPadding + 3}` + '\\s*:\\s*-?\\d+'), '')
+		.replace(new RegExp(`${cvtPadding + 4}` + '\\s*:\\s*-?\\d+'), '')
+		.replace(new RegExp(`${cvtPadding + 5}` + '\\s*:\\s*-?\\d+'), '')
+		.replace(new RegExp(`${cvtPadding + 6}` + '\\s*:\\s*-?\\d+'), '')
+	return cvt + `
+/* IDEOHINT */
+${cvtPadding} : ${0}
+${cvtPadding + 1} : ${strategy.BLUEZONE_TOP_CENTER}
+${cvtPadding + 2} : ${strategy.BLUEZONE_BOTTOM_CENTER}
+${cvtPadding + 3} : ${yTopBar}
+${cvtPadding + 4} : ${yBotBar}
+${cvtPadding + 5} : ${yTopD}
+${cvtPadding + 6} : ${yBotD}
+`
+}
+
 exports.talk = produceVTTTalk;
+exports.generateCVT = generateCVT;
