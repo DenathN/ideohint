@@ -16,6 +16,7 @@ function collidePotential(y, env) {
 			} else {
 				if (y[j] < y[k]) { p += S[j][k]; } // Swap
 				else if (avaliables[j].y0 - avaliables[j].w0 < avaliables[k].y0
+					&& !(avaliables[j].rid && avaliables[j].rid === avaliables[k].rid)
 					&& (avaliables[j].properWidth > 1
 						? y[j] - avaliables[j].properWidth >= y[k]
 						: y[j] - avaliables[j].properWidth > y[k])) {
