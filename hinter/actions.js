@@ -8,7 +8,8 @@ const STACKED = 3;
 const BELOW = 1;
 const ABOVE = 2;
 
-function stemPositionToActions(y, w, stems, uppx, env) {
+function stemPositionToActions(y, w, stems) {
+	const uppx = this.uppx;
 	let actions = [];
 	let stackrel = []
 	for (let j = 0; j < stems.length; j++) {
@@ -23,6 +24,7 @@ function stemPositionToActions(y, w, stems, uppx, env) {
 			const sk = stems[k], yk = actions[k][Y], wk = actions[k][W];
 			if (yj - wj === yk && wk * uppx * 2 >= sk.width
 				&& sj.xmax >= sk.xmax - wk / 2 * uppx && sj.xmin <= sk.xmin + wk / 2 * uppx
+				&& !(sj.xmax <= sk.xmax && sj.xmin >= sk.xmin)
 				&& !(stems[j].rid === stems[k].rid && stems[j].rid)) {
 				stackrel[k][j] = BELOW;
 				actions[k][STACKED] = true;
@@ -42,7 +44,7 @@ function stemPositionToActions(y, w, stems, uppx, env) {
 			const sk = stems[k], yk = actions[k][Y], wk = actions[k][W];
 			if (yk - wk === yj && wk * uppx * 2 >= sk.width
 				&& sj.xmax >= sk.xmax - wk / 2 * uppx && sj.xmin <= sk.xmin + wk / 2 * uppx
-				&& !(sk.xmax >= sj.xmax - wj / 2 * uppx && sk.xmin <= sj.xmin + wj / 2 * uppx)
+				&& !(sk.xmax >= sj.xmax && sk.xmin <= sj.xmin)
 				&& !(stems[j].rid === stems[k].rid && stems[j].rid)) {
 				stackrel[k][j] = ABOVE;
 				actions[k][STACKED] = true;
@@ -55,7 +57,7 @@ function stemPositionToActions(y, w, stems, uppx, env) {
 	}
 	for (let j = 0; j < stems.length; j++) for (let k = 0; k < j; k++) {
 		for (let m = 0; m < stems.length; m++) {
-			if (stackrel[j][m] && stackrel[j][m] === stackrel[k][m] && env.directOverlaps[j][k]) {
+			if (stackrel[j][m] && stackrel[j][m] === stackrel[k][m] && this.directOverlaps[j][k]) {
 				actions[k][W] = 0;
 			}
 		}

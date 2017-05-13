@@ -7,7 +7,7 @@ function collidePotential(y, env) {
 	for (var j = 0; j < n; j++) {
 		for (var k = 0; k < j; k++) {
 			if (y[j] === y[k]) { p += A[j][k]; } // Alignment
-			else if (y[j] <= y[k] + env.avaliables[j].properWidth) { p += C[j][k]; } // Collide
+			else if (y[j] <= y[k] + env.avaliables[j].properWidth) { p += C[j][k] } // Collide
 			if (avaliables[j].rid && avaliables[j].rid === avaliables[k].rid && y[j] - y[k] > 1) {
 				p += S[j][k];// diagonal break
 			}

@@ -94,6 +94,12 @@ exports.handler = function (argv) {
 				if (otd.TSI_01 && otd.TSI_01.extra && otd.TSI_01.extra.cvt) {
 					otd.TSI_01.extra.cvt = generateCVT(otd.TSI_01.extra.cvt, cvtPadding, strategy)
 				}
+				if (argv.padvtt) {
+					if (!otd.TSI_01) {
+						otd.TSI_01 = { glyphs: {}, extra: {} }
+						otd.TSI_23 = { glyphs: {}, extra: {} }
+					}
+				}
 				var outStream = argv.o
 					? fs.createWriteStream(argv.o, { encoding: "utf-8" })
 					: process.stdout;

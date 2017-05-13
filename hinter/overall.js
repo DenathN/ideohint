@@ -1,3 +1,5 @@
+"use strict"
+
 const { hint } = require("./index");
 const { lerp, xlerp, xclamp } = require('../support/common');
 

@@ -8,7 +8,7 @@ var devnull = require("dev-null");
 var paramfileLib = require("../paramfile");
 var strategyLib = require("../strategy");
 
-const decide = require("../hinter/overall");
+const { hintAllSize } = require("../hinter");
 const { progress } = require('./support/progress');
 
 exports.command = "hint";
@@ -54,7 +54,7 @@ exports.handler = function (argv) {
 
 function finish(name, strategy, pendings, outStream) {
 	progress(name, pendings, data => {
-		const decision = decide(data[2], strategy);
+		const decision = hintAllSize(data[2], strategy);
 		const recordLine = [data[0], data[1], decision];
 		outStream.write(JSON.stringify(recordLine) + "\n");
 	})

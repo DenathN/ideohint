@@ -7,7 +7,7 @@ var balance = require("./balance");
 function xclamp(low, x, high) { return x < low ? low : x > high ? high : x; }
 function byFitness(a, b) { return b.fitness - a.fitness };
 
-function uncollide(yInit, env, terminalStrictness, scale) {
+function uncollide(yInit, env, terminalStrictness, scale, allowUnbalanced) {
 	if (!yInit.length) return yInit;
 	var n = yInit.length;
 	var avaliables = env.avaliables;
@@ -19,13 +19,14 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 	var unbalIdv = new Individual(y0, env, true);
 	var population = [initIdv];
 	if (initIdv.collidePotential <= 0) {
-		if (unbalIdv.collidePotential <= 0 && unbalIdv.ablationPotential < initIdv.ablationPotential) {
+		if (allowUnbalanced && unbalIdv.collidePotential <= 0
+			&& unbalIdv.ablationPotential < initIdv.ablationPotential) {
 			return balance(y0, env)
 		} else {
 			return initIdv.gene;
 		}
 	}
-	if (unbalIdv.collidePotential < initIdv.collidePotential) {
+	if (allowUnbalanced && unbalIdv.collidePotential < initIdv.collidePotential) {
 		population.push(unbalIdv);
 	}
 
@@ -33,12 +34,14 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 	// Extereme
 	for (var j = 0; j < n; j++) {
 		for (var k = avaliables[j].low; k <= avaliables[j].high; k++) if (k !== y0[j]) {
-			var y1 = y0.slice(0);
+			const y1 = y0.slice(0);
 			y1[j] = k;
-			let idvBal = new Individual(balance(y1, env), env);
-			let idvUnbal = new Individual(y1, env, true);
+			const idvBal = new Individual(balance(y1, env), env);
+			const idvUnbal = new Individual(y1, env, true);
 			population.push(idvBal);
-			if (idvUnbal.collidePotential < idvBal.collidePotential) { population.push(idvUnbal) }
+			if (allowUnbalanced && idvUnbal.collidePotential < idvBal.collidePotential) {
+				population.push(idvUnbal)
+			}
 		}
 	}
 	// Y-mutant
@@ -49,16 +52,19 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 		return xclamp(avaliables[j].low, y + 1, avaliables[j].high);
 	}), env), env));
 	// Random
-	for (var c = population.length; c < scale; c++) {
+	for (let c = population.length; c < scale; c++) {
 		// fill population with random individuals
-		var ry = new Array(n);
-		for (var j = 0; j < n; j++) {
+		const ry = new Array(n);
+		for (let j = 0; j < n; j++) {
 			ry[j] = xclamp(avaliables[j].low, Math.floor(avaliables[j].low + Math.random() * (avaliables[j].high - avaliables[j].low + 1)), avaliables[j].high);
 		}
-		let idvBal = new Individual(balance(ry, env), env);
-		let idvUnbal = new Individual(ry, env, true);
+		const idvBal = new Individual(balance(ry, env), env);
+		const idvUnbal = new Individual(ry, env, true);
 		population.push(idvBal);
-		if (idvUnbal.collidePotential < idvBal.collidePotential) { population.push(idvUnbal); c++ }
+		if (allowUnbalanced && idvUnbal.collidePotential < idvBal.collidePotential) {
+			population.push(idvUnbal);
+			c++
+		}
 	}
 	// Hall of fame
 	var best = population[0];
@@ -72,7 +78,7 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 
 	// Start evolution
 	for (var s = 0; s < env.strategy.EVOLUTION_STAGES; s++) {
-		population = evolve(p, q, !(s % 2), env);
+		population = evolve(p, q, !(s % 2), env, allowUnbalanced);
 		var elite = population[0];
 		for (var j = 1; j < population.length; j++) if (population[j].fitness > elite.fitness) {
 			elite = population[j];
@@ -85,6 +91,7 @@ function uncollide(yInit, env, terminalStrictness, scale) {
 		}
 		if (steadyStages > terminalStrictness) break;
 	}
+
 	if (best.unbalanced) {
 		return balance(best.gene, env);
 	} else {

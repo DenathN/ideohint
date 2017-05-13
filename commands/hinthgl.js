@@ -11,7 +11,7 @@ var strategyLib = require("../strategy");
 var parseOTD = require("../otdParser").parseOTD;
 var findStems = require("../findstem").findStems;
 var extractFeature = require("../extractfeature").extractFeature;
-const decide = require("../hinter/overall");
+const { hintAllSize } = require("../hinter");
 const { progress } = require('./support/progress');
 
 exports.command = "hinthgl";
@@ -58,7 +58,7 @@ exports.handler = function (argv) {
 function finish(name, strategy, pendings, outStream) {
 	progress(name, pendings, data => {
 		const feat = extractFeature(findStems(parseOTD(data[2]), strategy), strategy);
-		const decision = decide(feat, strategy);
+		const decision = hintAllSize(feat, strategy);
 		const recordLine = [data[0], data[1], decision];
 		outStream.write(JSON.stringify(recordLine) + "\n");
 	})

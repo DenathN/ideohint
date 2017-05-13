@@ -4,7 +4,7 @@ var Individual = require('./individual');
 var balance = require("./balance");
 function xclamp(low, x, high) { return x < low ? low : x > high ? high : x }
 
-function crossover(p, q, r, env, background, c) {
+function crossover(p, q, r, env, background, c, allowUnbalanced) {
 	var avaliables = env.avaliables;
 	var n = p.gene.length;
 	var newgene = new Array(n);
@@ -22,7 +22,7 @@ function crossover(p, q, r, env, background, c) {
 		}
 	}
 	const idBal = new Individual(balance(newgene, env), env);
-	const idUnbal = new Individual(newgene, env, true);
+	const idUnbal = allowUnbalanced ? new Individual(newgene, env, true) : idBal;
 	if (!background[c]) background[c] = p;
 	if (idBal.fitness > p.fitness) {
 		if (idUnbal.fitness > idBal.fitness) {
@@ -37,7 +37,7 @@ function crossover(p, q, r, env, background, c) {
 	}
 };
 // Use a swapchain to avoid re-allochain
-function evolve(p, q, odd, env) {
+function evolve(p, q, odd, env, allowUnbalanced) {
 	var population = odd ? p : q;
 	var background = odd ? q : p;
 	// Crossover
@@ -45,7 +45,7 @@ function evolve(p, q, odd, env) {
 		var original = population[c];
 		var m1 = population[0 | Math.random() * population.length];
 		var m2 = population[0 | Math.random() * population.length];
-		crossover(original, m1, m2, env, background, c);
+		crossover(original, m1, m2, env, background, c, allowUnbalanced);
 	};
 	return background;
 };
