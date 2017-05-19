@@ -8,7 +8,6 @@ const splitDiagonalStems = require('./splitting').splitDiagonalStems;
 const hlkey = require('./hlkey');
 const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ } = require('../support/common');
 
-
 function segmentJoinable(pivot, segment, radical) {
 	for (var k = 0; k < pivot.length; k++) {
 		for (var j = 0; j < segment.length; j++) {
@@ -26,7 +25,9 @@ function isStrictlyHorizontal(u) {
 function isVertical(radical, u, v) {
 	var d1 = minmaxOfSeg(u);
 	var d2 = minmaxOfSeg(v);
-	return Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min) < Math.abs(u[0][0].y - v[0][0].y) * 0.9;
+	let p = leftmostZ(u);
+	let q = leftmostZ(v);
+	return Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min) < Math.abs(p.y - q.y) * 0.9
 }
 
 function approSlope(z1, z2, strategy) {

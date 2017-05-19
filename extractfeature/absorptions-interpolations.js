@@ -1,7 +1,8 @@
 "use strict";
 
+const { adjacent: adjacent } = require('../types/point');
+
 function BY_YORI(p, q) { return p.y - q.y; }
-function adjacent(z1, z2) { return z1.prev === z2 || z2.prev === z1; }
 var STEPS = 10;
 function shortAbsorptionPointByKeys(shortAbsorptions, strategy, pt, keys, inSameRadical, priority) {
 	if (pt.touched || pt.donttouch || !pt.on || !strategy.DO_SHORT_ABSORPTION || !inSameRadical) return;
@@ -77,7 +78,7 @@ function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalS
 			for (var j = 0; j < keyPoints.length; j++) {
 				var zkey = keyPoints[j];
 				if (zkey.id === z.id || !(zkey.id >= 0) || zkey.donttouch) continue;
-				if (zkey.prev === z || z.prev === zkey) { reject = true; break; }
+				if (adjacent(zkey, z)) { reject = true; break; }
 				if (Math.abs(z.y - zkey.y) <= strategy.Y_FUZZ && Math.abs(z.x - zkey.x) <= strategy.Y_FUZZ) { reject = true; break; }
 				// detect whether this sole point is attached to the stem edge.
 				// in most cases, absorbing a lower point should be stricter due to the topology of ideographs

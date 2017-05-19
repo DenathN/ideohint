@@ -42,10 +42,10 @@ function parseOTD(input) {
 		contours.push(currentContour);
 	}
 	var glyph = new Glyph(contours);
+	glyph.unifyZ();
 	glyph.stat();
 	glyph.nPoints = ptindex - 1;
 	glyph.indexedPoints = indexedPoints;
-	glyph.unifyZ();
 	return glyph;
 }
 

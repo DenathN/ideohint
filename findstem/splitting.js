@@ -3,10 +3,14 @@
 const Point = require('../types').Point;
 const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ } = require('../support/common');
 
+function dup(x) { return (JSON.stringify(x)) }
 
 function shouldSplit(hl, ll, hr, lr, strategy) {
 	if (hl === hr || ll === lr) return false;
 	if (hl.y === hr.y || ll.y === lr.y) return false;
+	if ((hl.on && ll.on && !hr.on && !lr.on) || (!hl.on && !ll.on && hr.on && lr.on)) {
+		if (Point.adjacentZ(hl, hr) && Point.adjacentZ(ll, lr)) return false;
+	}
 	return Math.abs(hr.y - hl.y) >= Math.abs(hr.x - hl.x) * strategy.SLOPE_FUZZ_R
 		&& Math.abs(lr.y - ll.y) >= Math.abs(lr.x - ll.x) * strategy.SLOPE_FUZZ_R
 		&& Math.abs(hl.x - ll.x) * 2.25 < Math.max(Math.abs(hl.x - hr.x), Math.abs(ll.x - lr.x))

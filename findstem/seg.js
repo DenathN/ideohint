@@ -1,3 +1,7 @@
+"use strict"
+
+const { adjacent: adjacent } = require('../types/point');
+
 exports.minmaxOfSeg = function (u) {
 	var min = 0xFFFF, max = -0xFFFF;
 	for (var s = 0; s < u.length; s++)for (var k = 0; k < u[s].length; k++) {
@@ -5,10 +9,6 @@ exports.minmaxOfSeg = function (u) {
 		if (u[s][k].x > max) max = u[s][k].x
 	}
 	return { min: min, max: max }
-}
-
-function adjacent(z1, z2) {
-	return z1.prev === z2 || z2.prev === z1;
 }
 
 exports.segmentsPromixity = function (s1, s2) {

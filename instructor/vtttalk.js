@@ -1,7 +1,8 @@
-var roundings = require("../roundings");
+"use strict"
+
+const roundings = require("../roundings");
 const toF26D6P = roundings.toF26D6P;
-const decideDelta = require('./delta.js').decideDelta;
-const decideDeltaShift = require('./delta.js').decideDeltaShift;
+const { decideDelta, decideDeltaShift } = require('./delta.js');
 const { getVTTAux } = require('./cvt');
 
 const ROUNDING_SEGMENTS = 8;

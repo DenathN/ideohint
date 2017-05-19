@@ -61,6 +61,15 @@ Contour.prototype.orient = function () {
 	}
 	setHidden(this.points[0], "prev", pt);
 	setHidden(pt, "next", this.points[0]);
+	// Direct adjancy
+	var pt = this.points[0];
+	for (var j = 0; j < this.points.length - 1; j++) {
+		setHidden(this.points[j], "prevZ", pt);
+		setHidden(pt, "nextZ", this.points[j]);
+		pt = this.points[j];
+	}
+	setHidden(this.points[0], "prevZ", pt);
+	setHidden(pt, "nextZ", this.points[0]);
 };
 var inPoly = function (point, vs) {
 	// ray-casting algorithm based on

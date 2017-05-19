@@ -1,6 +1,6 @@
 "use strict"
 
-function adjacent(z1, z2) { return z1.prev === z2 || z2.prev === z1 }
+const { adjacent: adjacent } = require('../types/point');
 function near(z1, z2, d) {
 	return Math.hypot(z1.x - z2.x, z1.y - z2.y) < d;
 }

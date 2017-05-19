@@ -1,3 +1,5 @@
+"use strict"
+
 var fs = require("fs");
 var roundings = require("../roundings");
 const { mix } = require('../support/common');

@@ -57,23 +57,30 @@ Radical.prototype.includesTetragon = function (s1, s2) {
 			const cross1 = r.x > q.x;
 			const cross2 = p.x > s.x;
 			const q1 = (u === 0 || u === s1.length - 1 || v === 0 || v === s2.length - 1) ? 5 : 2;
-
-			if (p.y === q.y && r.y === s.y && !this.includesSegmentEdge(p, r, 1, 1, 1, 1)) return false;
-			if (p.y === q.y && r.y === s.y && !this.includesSegmentEdge(q, s, 1, 1, 1, 1)) return false;
-			if (
-				!this.includesSegmentEdge(mixz(p, q, 1 / 2), mixz(r, s, 1 / 2), 2, 2, 2, 2)
-				|| !(cross1 || this.includesSegmentEdge(p, s, q1, 3, 2, 2))
-				|| !(cross2 || this.includesSegmentEdge(q, r, q1, 3, 2, 2))
-				|| !this.includesSegmentEdge(p, r, q1, 5, 2, 2)
-				|| !this.includesSegmentEdge(q, s, q1, 5, 2, 2)
-				|| !this.includesSegmentEdge(p, mixz(r, s, 1 / 2), q1, 5, 2, 2)
-				|| !this.includesSegmentEdge(q, mixz(r, s, 1 / 2), q1, 5, 2, 2)
-				|| !this.includesSegmentEdge(mixz(p, q, 1 / 2), r, q1, 5, 2, 2)
-				|| !this.includesSegmentEdge(mixz(p, q, 1 / 2), s, q1, 5, 2, 2)
-				|| !this.includesSegmentEdge(mixz(p, q, 1 / 5), mixz(r, s, 1 / 5), q1, 5, 2, 2)
-				|| !this.includesSegmentEdge(mixz(p, q, 4 / 5), mixz(r, s, 4 / 5), q1, 5, 2, 2)
-			) {
-				return false;
+			if (p.y === q.y && t.y === s.y) {
+				if (!this.includesSegmentEdge(p, r, 1, 1, 1, 1)) return false;
+				if (!this.includesSegmentEdge(q, s, 1, 1, 1, 1)) return false;
+				if (!(cross1 || this.includesSegmentEdge(p, s, 1, 3, 1, 2))) return false;
+				if (!(cross2 || this.includesSegmentEdge(q, r, 1, 3, 1, 2))) return false;
+				if (!this.includesSegmentEdge(mixz(p, q, 1 / 2), mixz(r, s, 1 / 2), 2, 2, 2, 2)) return false;
+				if (!this.includesSegmentEdge(mixz(p, q, 1 / 5), mixz(r, s, 1 / 5), 2, 2, 2, 2)
+					|| !this.includesSegmentEdge(mixz(p, q, 4 / 5), mixz(r, s, 4 / 5), 2, 2, 2, 2)) return false;
+			} else {
+				if (
+					!this.includesSegmentEdge(mixz(p, q, 1 / 2), mixz(r, s, 1 / 2), 2, 2, 2, 2)
+					|| !(cross1 || this.includesSegmentEdge(p, s, q1, 3, 2, 2))
+					|| !(cross2 || this.includesSegmentEdge(q, r, q1, 3, 2, 2))
+					|| !this.includesSegmentEdge(p, r, q1, 5, 2, 2)
+					|| !this.includesSegmentEdge(q, s, q1, 5, 2, 2)
+					|| !this.includesSegmentEdge(p, mixz(r, s, 1 / 2), q1, 5, 2, 2)
+					|| !this.includesSegmentEdge(q, mixz(r, s, 1 / 2), q1, 5, 2, 2)
+					|| !this.includesSegmentEdge(mixz(p, q, 1 / 2), r, q1, 5, 2, 2)
+					|| !this.includesSegmentEdge(mixz(p, q, 1 / 2), s, q1, 5, 2, 2)
+					|| !this.includesSegmentEdge(mixz(p, q, 1 / 5), mixz(r, s, 1 / 5), q1, 5, 2, 2)
+					|| !this.includesSegmentEdge(mixz(p, q, 4 / 5), mixz(r, s, 4 / 5), q1, 5, 2, 2)
+				) {
+					return false;
+				}
 			}
 		}
 	}
