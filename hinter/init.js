@@ -190,19 +190,27 @@ class Hinter {
 
 	uncollide(y) {
 		const { avaliables, strategy, ppem, uppx } = this;
-		let y1 = uncollide(y, this,
+		const y1 = uncollide(y, this,
 			xclamp(2, Math.round(this.nStems / strategy.STEADY_STAGES_X * this.nStems / ppem), strategy.STEADY_STAGES_MAX), // stages
 			strategy.POPULATION_LIMIT * Math.max(1, this.nStems), // population
 			true
 		);
 		if (this.shouldTwopass()) {
-			y1 = uncollide(y1, this,
+			const idvPass1 = this.createIndividual(y1);
+			const y2 = uncollide(y1, this,
 				xclamp(2, Math.round(this.nStems / strategy.STEADY_STAGES_X * this.nStems / ppem), strategy.STEADY_STAGES_MAX), // stages
 				strategy.POPULATION_LIMIT * Math.max(1, this.nStems), // population
 				false
 			);
+			const idvPass2 = this.createIndividual(y2);
+			if (idvPass1.fitness < idvPass2.fitness) {
+				return y2;
+			} else {
+				return y1;
+			}
+		} else {
+			return y1;
 		}
-		return y1;
 	}
 
 	createIndividual(y) {
@@ -233,7 +241,8 @@ class Hinter {
 
 function decideAvail(stems) {
 	const { upm, ppem, uppx, strategy } = this;
-	const Y_MIDDLE = mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 0.5);
+	const Y_UPTHIRD = mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 2 / 3);
+	const Y_DOWNTHIRD = mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 1 / 3);
 	var avaliables = [];
 	var tws = decideWidths.call(this, stems, this.dominancePriority);
 	// Decide avaliability space
@@ -282,8 +291,9 @@ function decideAvail(stems) {
 			this.atGlyphTop(stem) && stem.diagHigh
 			|| this.atGlyphBottom(stem) && stem.diagLow,
 			stem.posKeyAtTop);
-		const maxShiftU = xclamp(0.75, ppem / 16, y0 - w0 / 2 > Y_MIDDLE ? 1 : 2);
-		const maxShiftD = xclamp(0.75, ppem / 16, y0 - w0 / 2 < Y_MIDDLE ? 1 : 2);
+		const maxShiftU = xclamp(0.75, ppem / 16,
+			xclamp(1, lerp(y0 - w0 / 2, strategy.BLUEZONE_TOP_CENTER, strategy.BLUEZONE_BOTTOM_CENTER, 1, 3), 2));
+		const maxShiftD = xclamp(0.75, ppem / 16, xclamp(1, lerp(y0 - w0 / 2, strategy.BLUEZONE_TOP_CENTER, strategy.BLUEZONE_BOTTOM_CENTER, 3, 1), 2));
 		const lowlimitW = Math.max(this.glyphBottom + w, tws[j] > 1 ? lowlimit - uppx : lowlimit);
 		const lowW = xclamp(lowlimitW, this.round(center0 - maxShiftD * uppx), highlimit);
 		const highW = xclamp(lowlimitW, this.round(center0 + maxShiftU * uppx), highlimit);

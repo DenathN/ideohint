@@ -130,6 +130,7 @@ module.exports = function calculateCollisionMatrices(strategy, stems, overlapRat
 				symmetryCoeff += 2;
 			}
 			A[j][k] = Math.round(strategy.COEFF_A_MULTIPLIER * ovr * coeffA * promixityCoeff * slopesCoeff);
+			if (!isFinite(A[j][k])) debugger;
 			C[j][k] = Math.round(strategy.COEFF_C_MULTIPLIER * (1 + ovr * coeffC * symmetryCoeff) * slopesCoeff * promixityCoeff);
 			if (stems[j].rid && stems[j].rid === stems[k].rid) {
 				C[j][k] = 0;

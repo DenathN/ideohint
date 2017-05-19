@@ -123,6 +123,9 @@ exports.handler = function (argv) {
 	krampus(IDH_VISUAL_PORT).then(function () {
 		startServer(argv)
 		opn('http://localhost:' + IDH_VISUAL_PORT)
+	}).catch(function () {
+		startServer(argv)
+		opn('http://localhost:' + IDH_VISUAL_PORT)
 	});
 
 	(function () {
