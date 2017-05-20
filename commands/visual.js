@@ -54,11 +54,12 @@ function acquireCharacters(hgl, w, callback) {
 	let matches = [];
 	const rl = readline.createInterface(instream, devnull());
 	rl.on('line', function (line) {
-		var data = JSON.parse(line);
-		var gid = data[0];
+		if (!line.trim()) return;
+		var data = JSON.parse(line.trim());
+		var gid = data.name;
 		if (gid.slice(0, 3) === 'uni') {
 			for (var j = 0; j < w.length; j++) if (parseInt(gid.slice(3), 16) === w.charCodeAt(j)) {
-				matches[j] = data[2];
+				matches.push(data.contours);
 			}
 		}
 	});

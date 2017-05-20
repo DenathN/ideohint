@@ -8,11 +8,14 @@ var devnull = require("dev-null");
 var paramfileLib = require("../paramfile");
 var strategyLib = require("../strategy");
 
+var parseOTD = require("../otdParser").parseOTD;
+var findStems = require("../findstem").findStems;
+var extractFeature = require("../extractfeature").extractFeature;
 const { hintAllSize } = require("../hinter");
 const { progress } = require('./support/progress');
 
-exports.command = "hint";
-exports.describe = "Hint a feature file (hgf).";
+exports.command = "hint"
+exports.describe = "Hint a glyph list file (hgl).";
 exports.builder = function (yargs) {
 	return yargs.alias("o", "output-into")
 		.alias("?", "help")
@@ -54,9 +57,10 @@ exports.handler = function (argv) {
 
 function finish(name, strategy, pendings, outStream) {
 	progress(name, pendings, data => {
-		const decision = hintAllSize(data[2], strategy);
-		const recordLine = [data[0], data[1], decision];
-		outStream.write(JSON.stringify(recordLine) + "\n");
+		const contours = data.contours;
+		const feat = extractFeature(findStems(parseOTD(contours), strategy), strategy);
+		data.ideohint_decision = hintAllSize(feat, strategy);
+		outStream.write(JSON.stringify(data) + "\n");
 	})
 	if (process.stdout !== outStream) outStream.end();
 }

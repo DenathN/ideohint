@@ -84,7 +84,14 @@ exports.handler = function (argv) {
 			var k = data.key, glyph = data.value;
 			if (!glyph.contours || !glyph.contours.length || (hasCmap && !keep[k])) return;
 			var h = hashContours(glyph.contours);
-			outstream.write(JSON.stringify([k, h, glyph.contours]) + "\n");
+
+			outstream.write(JSON.stringify({
+				name: k,
+				hash: h,
+				contours: glyph.contours
+			}) + "\n");
+			// outstream.write("\n");
+			//outstream.write(JSON.stringify([k, h, glyph.contours]) + "\n");
 		});
 		sParseGlyf.on("end", function () {
 			outstream.end();

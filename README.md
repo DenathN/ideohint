@@ -46,9 +46,9 @@ ideohint otd2hgl input.otd -o output.hgl [--ideo-only]
 
 When `--ideo-only` is present, only ideographs in the input font (identified via `cmap` table) will be preserved and hinted.
 
-### `extract`, `hint` and `apply`
+### `hint` and `apply`
 
-These three sub-commands do the main hinting part. `extract` will extract features from the glyph list, `hint` will generate TrueType instructions using the features, and `apply` will apply the instructions into yoru font. All thres sub-commands accept **strategy parameters** and **CVT padding**, which are important in the hinting process.
+These three sub-commands do the main hinting part. `hint` will generate TrueType instructions using the HGL files, and `apply` will apply the instructions into yoru font. All thres sub-commands accept **strategy parameters** and **CVT padding**, which are important in the hinting process.
 
 #### Strategy Parameters
 
@@ -137,9 +137,8 @@ An example workflow of hinting a complete font may be (assuming you are using `t
 ttfautohint input.ttf step1.ttf
 otfccdump step1.ttf -o step2.otd
 ideohint otd2hgl step2.otd -o step3.hgl --ideo-only
-ideohint extract step3.hgl -o step4.hgf --parameters params.toml
-ideohint hint    step4.hgf -o step5.hgi --parameters params.toml
-ideohint apply   step5.hgi step2.otd -o output.otd --parameters params.toml
+ideohint hint    step3.hgl -o step4.hgi --parameters params.toml
+ideohint apply   step4.hgi step2.otd -o output.otd --parameters params.toml
 otfccbuild output.otd -o output.ttf
 ```
 
@@ -150,15 +149,15 @@ Since `extract` and `hint` may take a lot of time, we have a few extra parameter
 * `-d` - blocks of work to divide into.
 * `-m` - which block of work to process.
 
-You can use these parameters to slice the input into multiple parallel tasks, and produce multiple outputs. To merge the outputs, use `ideohint merge`, which works for both `hgf` and `hgi`.
+You can use these parameters to slice the input into multiple parallel tasks, and produce multiple outputs. To merge the outputs, use `ideohint merge`, which works for both `hgl` and `hgi`.
 
 An example:
 
 ``` bash
-ideohint hint -d 10 -m 0 large.hgf -o part0.hgi <parameters>
-ideohint hint -d 10 -m 1 large.hgf -o part1.hgi <parameters>
+ideohint hint -d 10 -m 0 large.hgl -o part0.hgi <parameters>
+ideohint hint -d 10 -m 1 large.hgl -o part1.hgi <parameters>
 ......
-ideohint hint -d 10 -m 9 large.hgf -o part2.hgi <parameters>
+ideohint hint -d 10 -m 9 large.hgl -o part2.hgi <parameters>
 ideohint merge -o large.hgi part0.hgi part1.hgi ... part9.hgi
 ```
 

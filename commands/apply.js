@@ -45,9 +45,10 @@ exports.handler = function (argv) {
 	var glyfcor = {};
 
 	rl.on("line", function (line) {
-		if (!line) return;
-		var data = JSON.parse(line.trim());
-		activeInstructions[data[1]] = data[2];
+		const dataStr = line.trim();
+		if (!dataStr) return;
+		var data = JSON.parse(dataStr);
+		activeInstructions[data.hash] = data.ideohint_decision;
 	});
 	rl.on("close", function () { pass_weaveOTD(activeInstructions); });
 

@@ -18,14 +18,15 @@ exports.handler = function (argv) {
 	var nTotal = 0;
 	argv.parts.forEach(function (file) {
 		var d = fs.readFileSync(file, 'utf-8').trim().split('\n');
-		for (var j = 0; j < d.length; j++) if (d[j].trim()) {
-			var data = JSON.parse(d[j].trim());
+		for (var j = 0; j < d.length; j++) {
+			const dataStr = d[j].trim();
+			if (!dataStr) continue;
+			const data = JSON.parse(dataStr);
 			nRead += 1;
-			if (!buf[data[1]]) {
-				buf[data[1]] = true;
-				outStream.write(d[j] + '\n');
-				nTotal += 1;
-			}
+			if (buf[data.hash]) continue;
+			buf[data.hash] = true;
+			outStream.write(dataStr + '\n');
+			nTotal += 1;
 		}
 	});
 	process.stderr.write(nRead + " records found; " + nTotal + " records after merging.\n");
