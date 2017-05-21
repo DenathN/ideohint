@@ -75,7 +75,7 @@ function findHorizontalSegments(radicals, strategy) {
 				}
 			}
 			if (approSlope(contour.points[0], lastPoint, strategy)) {
-				if (segments[0][0] === contour.points[0]) {
+				if (segments[0] && segments[0][0] === contour.points[0]) {
 					const firstSeg = segment.concat(segments.shift());
 					firstSeg.radical = r;
 					tryPushSegment(firstSeg, segments, strategy);
