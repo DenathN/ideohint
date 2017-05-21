@@ -58,6 +58,7 @@ exports.handler = function (argv) {
 function finish(name, strategy, pendings, outStream) {
 	progress(name, pendings, data => {
 		const contours = data.contours;
+		if (!contours) return;
 		const feat = extractFeature(findStems(parseOTD(contours), strategy), strategy);
 		data.ideohint_decision = hintAllSize(feat, strategy);
 		outStream.write(JSON.stringify(data) + "\n");
