@@ -57,7 +57,7 @@ Radical.prototype.includesTetragon = function (s1, s2) {
 			const cross1 = r.x > q.x;
 			const cross2 = p.x > s.x;
 			const q1 = (u === 0 || u === s1.length - 1 || v === 0 || v === s2.length - 1) ? 5 : 2;
-			if (p.y === q.y && r.y === s.y) {
+			if (p.y === q.y || r.y === s.y) {
 				if (!this.includesSegmentEdge(p, r, 1, 1, 1, 1)) return false;
 				if (!this.includesSegmentEdge(q, s, 1, 1, 1, 1)) return false;
 				if (!(cross1 || this.includesSegmentEdge(p, s, 1, 3, 1, 2))) return false;
