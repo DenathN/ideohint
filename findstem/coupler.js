@@ -8,6 +8,16 @@ const splitDiagonalStems = require('./splitting').splitDiagonalStems;
 const hlkey = require('./hlkey');
 const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ } = require('../support/common');
 
+const monoip = require('../support/monotonic-interpolate');
+function toVQ(v, ppem) {
+	if (v && v instanceof Array) {
+		return monoip(v)(ppem)
+	} else {
+		return v;
+	}
+}
+
+
 function segmentJoinable(pivot, segment, radical) {
 	for (var k = 0; k < pivot.length; k++) {
 		for (var j = 0; j < segment.length; j++) {
@@ -22,12 +32,13 @@ function segmentJoinable(pivot, segment, radical) {
 function isStrictlyHorizontal(u) {
 	return u[0][0].y === u[u.length - 1][u[u.length - 1].length - 1].y;
 }
-function isVertical(radical, u, v) {
+function isVertical(radical, u, v, mh) {
 	var d1 = minmaxOfSeg(u);
 	var d2 = minmaxOfSeg(v);
 	let p = leftmostZ(u);
 	let q = leftmostZ(v);
-	return Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min) < Math.abs(p.y - q.y) * 0.9
+	return Math.abs(p.y - q.y) > mh
+		|| Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min) < Math.abs(p.y - q.y) * 0.9
 }
 
 function approSlope(z1, z2, strategy) {
@@ -116,10 +127,8 @@ function udMatchable(sj, sk, radical, strategy) {
 }
 
 function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
-	var candidate = {
-		high: [],
-		low: []
-	};
+	var candidate = { high: [], low: [] };
+	const maxh = toVQ(strategy.CANONICAL_STEM_WIDTH, strategy.PPEM_MAX) * 1.5;
 	var strat, end, delta;
 	if (up[j]) {
 		candidate.high.push(j);
@@ -184,7 +193,7 @@ function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
 			var segOverlap = overlapInfo(highEdge, lowEdge, strategy);
 			var hasEnoughOverlap = (segOverlap.len / segOverlap.la >= strategy.COLLISION_MIN_OVERLAP_RATIO
 				|| segOverlap.len / segOverlap.lb >= strategy.COLLISION_MIN_OVERLAP_RATIO);
-			if (hasEnoughOverlap && !isVertical(radical, highEdge, lowEdge)) {
+			if (hasEnoughOverlap && !isVertical(radical, highEdge, lowEdge, maxh)) {
 				succeed = true;
 				candidates.push({
 					high: highEdge,
