@@ -76,11 +76,6 @@ exports.hintAllSize = function(featData, strategy) {
 		const uppx = strategy.UPM / ppem;
 		const actions = hint(featData, ppem, strategy, ppem > cutoff);
 		stemActions[ppem] = actions.y;
-		if (ppem > cutoff) {
-			for (let j = 2; j < stemActions[ppem].length - 2; j++) {
-				stemActions[ppem][j] = null;
-			}
-		}
 		xExpansion[ppem] = actions.x.expand;
 	}
 
