@@ -71,11 +71,20 @@ exports.hintAllSize = function(featData, strategy) {
 			}
 		}
 	if (d < 1) d = 1;
-	const cutoff = xclamp(strategy.PPEM_MIT, Math.round(strategy.UPM * strategy.SPARE_PIXLS / d), strategy.PPEM_MAX);
+	const cutoff = xclamp(
+		strategy.PPEM_MIT,
+		Math.round(strategy.UPM * strategy.SPARE_PIXLS / d),
+		strategy.PPEM_MAX
+	);
 	for (let ppem = strategy.PPEM_MAX; ppem >= strategy.PPEM_MIN; ppem--) {
 		const uppx = strategy.UPM / ppem;
 		const actions = hint(featData, ppem, strategy, ppem > cutoff);
 		stemActions[ppem] = actions.y;
+		if (ppem > cutoff) {
+			for (let j = 1; j < stemActions[ppem].length - 1; j++) {
+				stemActions[ppem][j] = null;
+			}
+		}
 		xExpansion[ppem] = actions.x.expand;
 	}
 
@@ -103,5 +112,10 @@ exports.hintAllSize = function(featData, strategy) {
 			};
 		})
 	};
-	return { si: sideIndependent, sd: stemActions, pmin: strategy.PPEM_MIN, pmax: strategy.PPEM_MAX };
+	return {
+		si: sideIndependent,
+		sd: stemActions,
+		pmin: strategy.PPEM_MIN,
+		pmax: strategy.PPEM_MAX
+	};
 };
