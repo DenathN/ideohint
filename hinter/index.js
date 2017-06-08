@@ -82,6 +82,15 @@ exports.hintAllSize = function(featData, strategy) {
 		stemActions[ppem] = actions.y;
 		if (ppem > cutoff) {
 			for (let j = 1; j < stemActions[ppem].length - 1; j++) {
+				if (featData.stems[j].rid && featData.stems[j].rid === featData.stems[0].rid) {
+					continue;
+				}
+				if (
+					featData.stems[j].rid &&
+					featData.stems[j].rid === featData.stems[featData.stems.length - 1].rid
+				) {
+					continue;
+				}
 				stemActions[ppem][j] = null;
 			}
 		}
