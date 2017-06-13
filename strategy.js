@@ -3,7 +3,7 @@
 var toml = require("toml");
 var fs = require("fs");
 
-var DefaultStrategy = function () {
+var DefaultStrategy = function() {
 	return {
 		UPM: 1000,
 		BLUEZONE_WIDTH: 15,
@@ -46,6 +46,7 @@ var DefaultStrategy = function () {
 		MUTANT_PROBABLITY: 0.05,
 		STEADY_STAGES_X: 4,
 		STEADY_STAGES_MAX: 20,
+		CANONICAL_STEM_WIDTH_LIMIT_X: 1.5,
 
 		COEFF_A_MULTIPLIER: 10,
 		COEFF_A_SAME_RADICAL: 4,
@@ -61,7 +62,7 @@ var DefaultStrategy = function () {
 		COEFF_C_SHAPE_LOST_XX: 250,
 		COEFF_C_FEATURE_LOSS: 12,
 		COEFF_C_SAME_RADICAL: 6,
-		COEFF_S: 1E8,
+		COEFF_S: 1e8,
 		COEFF_DISTORT: 5,
 		COEFF_PBS_MIN_PROMIX: 3,
 		COEFF_TOP_BOT_PROMIX: 5,
@@ -81,8 +82,10 @@ var DefaultStrategy = function () {
 		WIDTH_ALLOCATION_PASSES: 5,
 		STACK_DEPTH: 200,
 
-		RISE: 0, SINK: 0,
-		RISE_DIAGH: 0, SINK_DIAGL: 0,
+		RISE: 0,
+		SINK: 0,
+		RISE_DIAGH: 0,
+		SINK_DIAGL: 0,
 		GRAVITY: 0,
 		CONCENTRATE: 0,
 		CHEBYSHEV_4: 0,
@@ -97,7 +100,7 @@ var DefaultStrategy = function () {
 	};
 };
 exports.defaultStrategy = DefaultStrategy();
-exports.from = function (argv, parameterFile) {
+exports.from = function(argv, parameterFile) {
 	var strategy = DefaultStrategy();
 	if (parameterFile && parameterFile.hinting) {
 		for (var k in parameterFile.hinting) {
