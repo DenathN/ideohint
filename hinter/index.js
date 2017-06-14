@@ -105,11 +105,9 @@ exports.hintAllSize = function(featData, strategy) {
 		xExpansion: xExpansion,
 		stems: featData.stems.map(function(s) {
 			return {
-				y0: s.y,
-				w0: s.width,
 				posKeyAtTop: s.posKeyAtTop,
-				posKey: s.posKey.id,
-				advKey: s.advKey.id,
+				posKey: s.posKey,
+				advKey: s.advKey,
 				posAlign: s.posAlign,
 				advAlign: s.advAlign,
 				diagHigh: s.diagHigh,

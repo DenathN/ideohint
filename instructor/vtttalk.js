@@ -1,14 +1,14 @@
-"use strict"
+"use strict";
 
 const roundings = require("../roundings");
 const toF26D6P = roundings.toF26D6P;
-const { decideDelta, decideDeltaShift } = require('./delta.js');
-const { getVTTAux } = require('./cvt');
+const { decideDelta, decideDeltaShift } = require("./delta.js");
+const { getVTTAux } = require("./cvt");
 
 const ROUNDING_SEGMENTS = 8;
 
 function showF26D6(x) {
-	return Math.round(x) + '+' + Math.round(64 * (x - Math.round(x))) + '/64'
+	return Math.round(x) + "+" + Math.round(64 * (x - Math.round(x))) + "/64";
 }
 
 function formatdelta(delta) {
@@ -16,7 +16,9 @@ function formatdelta(delta) {
 	if (delta < -8) return formatdelta(-8);
 	let u = Math.round(delta * ROUNDING_SEGMENTS);
 	let d = ROUNDING_SEGMENTS;
-	while (!(u % 2) && !(d % 2) && d > 1) { u /= 2, d /= 2; }
+	while (!(u % 2) && !(d % 2) && d > 1) {
+		(u /= 2), (d /= 2);
+	}
 	if (d > 1) {
 		return u + "/" + d;
 	} else {
@@ -24,7 +26,7 @@ function formatdelta(delta) {
 	}
 }
 function sanityDelta(z, d, tag) {
-	var deltas = d.filter((x) => x.delta);
+	var deltas = d.filter(x => x.delta);
 	if (!deltas.length) return "";
 	let buf = [];
 	let ppemstart = 0, ppemend = 0;
@@ -33,18 +35,27 @@ function sanityDelta(z, d, tag) {
 		if (x.ppem === ppemend + 1 && x.delta === curdelta) {
 			ppemend += 1;
 		} else {
-			if (curdelta) buf.push(formatdelta(curdelta) + "@" + (ppemend > ppemstart ? ppemstart + ".." + ppemend : ppemstart));
+			if (curdelta)
+				buf.push(
+					formatdelta(curdelta) +
+						"@" +
+						(ppemend > ppemstart ? ppemstart + ".." + ppemend : ppemstart)
+				);
 			ppemstart = ppemend = x.ppem;
 			curdelta = x.delta;
 		}
 	}
 	if (curdelta) {
-		buf.push(formatdelta(curdelta) + "@" + (ppemend > ppemstart ? ppemstart + ".." + ppemend : ppemstart));
+		buf.push(
+			formatdelta(curdelta) +
+				"@" +
+				(ppemend > ppemstart ? ppemstart + ".." + ppemend : ppemstart)
+		);
 	}
 	if (buf.length) {
-		return `${tag || 'YDelta'}(${z},${buf.join(',')})`;
+		return `${tag || "YDelta"}(${z},${buf.join(",")})`;
 	} else {
-		return '';
+		return "";
 	}
 }
 
@@ -54,29 +65,37 @@ function encodeAnchor(z, ref, chosen, pmin, pmax, strategy) {
 	for (let ppem = pmin; ppem <= pmax; ppem++) {
 		deltas.push({
 			ppem,
-			delta: decideDelta(ROUNDING_SEGMENTS, ref[ppem], chosen[ppem], upm, ppem) / ROUNDING_SEGMENTS
-		})
+			delta: decideDelta(ROUNDING_SEGMENTS, ref[ppem], chosen[ppem], upm, ppem) /
+				ROUNDING_SEGMENTS
+		});
 	}
 	return sanityDelta(z, deltas);
 }
 function encodeStem(s, sid, sd, strategy, pos0s) {
 	let buf = "";
 	const upm = strategy.UPM;
-	function talk(s) { buf += s + "\n"; }
+	function talk(s) {
+		buf += s + "\n";
+	}
 
 	let deltaPos = [];
 	let deltaADv = [];
 	let pDsts = [];
-	let totalPosDelta = 0
+	let totalPosDelta = 0;
 
 	for (let ppem = 0; ppem < sd.length; ppem++) {
-		const pos0 = pos0s ? pos0s[ppem] : s.posKeyAtTop ? s.y0 : s.y0 - s.w0 - s.slope * s.keyDX;
+		const pos0 = pos0s
+			? pos0s[ppem]
+			: s.posKeyAtTop ? s.posKey.y : s.posKey.y - s.slope * s.keyDX;
 		if (!sd[ppem] || !sd[ppem][sid]) {
 			pDsts[ppem] = roundings.rtg(pos0, upm, ppem);
 			continue;
-		};
+		}
 		const [ytouch, wtouch, isStrict, isStacked] = sd[ppem][sid];
 		const uppx = upm / ppem;
+		const wsrc = s.posKeyAtTop
+			? s.posKey.y - s.advKey.y + (s.advKey.x - s.posKey.x) * s.slope
+			: s.advKey.y - s.posKey.y + (s.posKey.x - s.advKey.x) * s.slope;
 		if (s.posKeyAtTop) {
 			const psrc = roundings.rtg(pos0, upm, ppem);
 			const pdst = ytouch * (upm / ppem);
@@ -86,16 +105,21 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 			};
 			totalPosDelta += posdelta.delta * posdelta.delta;
 			deltaPos.push(posdelta);
-			const wsrc = s.w0;
 			const wdst = wtouch * (upm / ppem);
 			deltaADv.push({
 				ppem,
 				delta: decideDeltaShift(
-					ROUNDING_SEGMENTS, -1,
-					isStrict, isStacked,
-					pdst, wsrc,
-					pdst, wdst,
-					upm, ppem) / ROUNDING_SEGMENTS
+					ROUNDING_SEGMENTS,
+					-1,
+					isStrict,
+					isStacked,
+					pdst,
+					wsrc,
+					pdst,
+					wdst,
+					upm,
+					ppem
+				) / ROUNDING_SEGMENTS
 			});
 			pDsts[ppem] = pdst;
 		} else {
@@ -107,47 +131,54 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 			};
 			totalPosDelta += posdelta.delta * posdelta.delta;
 			deltaPos.push(posdelta);
-			const wsrc = s.w0;
 			const wdst = wtouch * (upm / ppem);
 			deltaADv.push({
 				ppem,
 				delta: decideDeltaShift(
-					ROUNDING_SEGMENTS, 1,
-					isStrict, isStacked,
-					pdst, wsrc,
-					pdst, wdst,
-					upm, ppem) / ROUNDING_SEGMENTS
+					ROUNDING_SEGMENTS,
+					1,
+					isStrict,
+					isStacked,
+					pdst,
+					wsrc,
+					pdst,
+					wdst,
+					upm,
+					ppem
+				) / ROUNDING_SEGMENTS
 			});
 			pDsts[ppem] = psrc + posdelta.delta * (upm / ppem);
 		}
 	}
 
-	talk(sanityDelta(s.posKey, deltaPos));
+	talk(sanityDelta(s.posKey.id, deltaPos));
 	if (strategy.SIGNIFICANT_LINK_ARROW) {
-		talk(`YNoRound(${s.advKey})`);
-		talk(`YDist(${s.posKey},${s.advKey})`);
+		talk(`YNoRound(${s.advKey.id})`);
+		talk(`YDist(${s.posKey.id},${s.advKey.id})`);
 	} else {
-		talk(`YShift(${s.posKey},${s.advKey}) /* !IMPORTANT */`);
+		talk(`YShift(${s.posKey.id},${s.advKey.id}) /* !IMPORTANT */`);
 	}
-	talk(sanityDelta(s.advKey, deltaADv));
+	talk(sanityDelta(s.advKey.id, deltaADv));
 	for (let zp of s.posAlign) {
-		talk(`YShift(${s.posKey},${zp})`);
+		talk(`YShift(${s.posKey.id},${zp.id})`);
 	}
 	for (let zp of s.advAlign) {
-		talk(`YShift(${s.advKey},${zp})`);
+		talk(`YShift(${s.advKey.id},${zp.id})`);
 	}
 	return {
 		buf: buf,
-		ipz: s.posKey,
+		ipz: s.posKey.id,
 		pDsts,
-		pOrg: s.posKeyAtTop ? s.y0 : s.y0 - s.w0,
+		pOrg: s.posKey.y,
 		totalPosDelta
-	}
+	};
 }
 
 function table(min, max, f) {
 	let a = [];
-	for (let j = min; j <= max; j++) { a[j] = f(j) }
+	for (let j = min; j <= max; j++) {
+		a[j] = f(j);
+	}
 	return a;
 }
 
@@ -170,10 +201,15 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	const cvtTopBarId = padding + 3;
 	const cvtBottomBarId = padding + 4;
 
-	const { yBotBar, yTopBar, yBotD, yTopD } = getVTTAux(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER)
+	const { yBotBar, yTopBar, yBotD, yTopD } = getVTTAux(
+		strategy.BLUEZONE_BOTTOM_CENTER,
+		strategy.BLUEZONE_TOP_CENTER
+	);
 
 	let buf = "";
-	function talk(s) { buf += s + "\n"; }
+	function talk(s) {
+		buf += s + "\n";
+	}
 
 	//// X
 
@@ -198,26 +234,30 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 				delta: decideDelta(ROUNDING_SEGMENTS, xR0, xR1, upm, ppem) / ROUNDING_SEGMENTS
 			});
 		}
-		const tkL = sanityDelta(zmin.id, deltaL, 'XDelta');
-		const tkR = sanityDelta(zmax.id, deltaR, 'XDelta');
+		const tkL = sanityDelta(zmin.id, deltaL, "XDelta");
+		const tkR = sanityDelta(zmax.id, deltaR, "XDelta");
 		if (tkL || tkR) {
-			talk('/**');
+			talk("/**");
 			talk(`XAnchor(${zmin.id})`);
 			talk(tkL);
 			talk(`XAnchor(${zmax.id})`);
 			talk(tkR);
 			if (si.xIP.length > 2) {
-				talk(`XInterpolate(${si.xIP.map(z => z.id).join(',')})`);
+				talk(`XInterpolate(${si.xIP.map(z => z.id).join(",")})`);
 			}
-			talk('**/');
+			talk("**/");
 		}
 	}
 
 	//// Y
 
 	// ip decider
-	const pDstsBot = table(pmin, pmax, ppem => roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem));
-	const pDstsTop = table(pmin, pmax, ppem => roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem));
+	const pDstsBot = table(pmin, pmax, ppem =>
+		roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
+	);
+	const pDstsTop = table(pmin, pmax, ppem =>
+		roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem)
+	);
 	const pDstsBotB = table(pmin, pmax, ppem => roundings.rtg(yBotBar, upm, ppem));
 	const pDstsTopB = table(pmin, pmax, ppem => roundings.rtg(yTopBar, upm, ppem));
 	const pDstsBotD = table(pmin, pmax, ppem => roundings.rtg(yBotD, upm, ppem));
@@ -235,7 +275,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 YAnchor(${z.id},${cvtBottomDId})
 ${encodeAnchor(z.id, pDstsBotD, pDstsBot, pmin, pmax, strategy)}`,
 				pDsts: pDstsBot
-			})
+			});
 		} else {
 			candidates.push({
 				ipz: z.id,
@@ -243,7 +283,7 @@ ${encodeAnchor(z.id, pDstsBotD, pDstsBot, pmin, pmax, strategy)}`,
 				kind: 3,
 				talk: `YAnchor(${z.id},${cvtBottomId})`,
 				pDsts: pDstsBot
-			})
+			});
 		}
 	}
 	for (let z of si.blue.topZs) {
@@ -256,7 +296,7 @@ ${encodeAnchor(z.id, pDstsBotD, pDstsBot, pmin, pmax, strategy)}`,
 YAnchor(${z.id},${cvtTopDId})
 ${encodeAnchor(z.id, pDstsTopD, pDstsTop, pmin, pmax, strategy)}`,
 				pDsts: pDstsTop
-			})
+			});
 		} else {
 			candidates.push({
 				ipz: z.id,
@@ -264,7 +304,7 @@ ${encodeAnchor(z.id, pDstsTopD, pDstsTop, pmin, pmax, strategy)}`,
 				kind: 2,
 				talk: `YAnchor(${z.id},${cvtTopId})`,
 				pDsts: pDstsTop
-			})
+			});
 		}
 	}
 	for (let sid = 0; sid < si.stems.length; sid++) {
@@ -272,13 +312,13 @@ ${encodeAnchor(z.id, pDstsTopD, pDstsTop, pmin, pmax, strategy)}`,
 		candidates.push({
 			stem: s,
 			sid: sid,
-			ipz: s.posKey,
+			ipz: s.posKey.id,
 			kind: 1,
-			pOrg: s.posKeyAtTop ? s.y0 : s.y0 - s.w0 - s.slope * s.keyDX,
+			pOrg: s.posKeyAtTop ? s.posKey.y : s.posKey.y - s.slope * s.keyDX,
 			pDsts: null
 		});
 	}
-	candidates = candidates.sort((a, b) => (a.pOrg - b.pOrg));
+	candidates = candidates.sort((a, b) => a.pOrg - b.pOrg);
 
 	// Stems
 	const refTop = candidates[candidates.length - 1];
@@ -286,15 +326,33 @@ ${encodeAnchor(z.id, pDstsTopD, pDstsTop, pmin, pmax, strategy)}`,
 	if (refTop && refBottom) {
 		if (!refTop.pDsts) {
 			talk(`/* !!IDH!! StemDef ${refTop.sid} TOP */`);
-			let { pDsts: pDsts1, buf: buf1 } = encodeStem(refTop.stem, refTop.sid, sd, strategy, null);
+			let { pDsts: pDsts1, buf: buf1 } = encodeStem(
+				refTop.stem,
+				refTop.sid,
+				sd,
+				strategy,
+				null
+			);
 			talk(`YAnchor(${refTop.ipz})`);
 			refTop.pDsts = pDsts1;
 			talk(buf1);
 		}
 		if (!refBottom.pDsts) {
 			talk(`/* !!IDH!! StemDef ${refBottom.sid} BOTTOM */`);
-			let { pDsts: pDsts1, buf: buf1, totalPosDelta: tpd1 } = encodeStem(refBottom.stem, refBottom.sid, sd, strategy, null);
-			let { pDsts: pDsts2, buf: buf2, totalPosDelta: tpd2 } = encodeStem(refBottom.stem, refBottom.sid, sd, strategy, pDstsBotB);
+			let { pDsts: pDsts1, buf: buf1, totalPosDelta: tpd1 } = encodeStem(
+				refBottom.stem,
+				refBottom.sid,
+				sd,
+				strategy,
+				null
+			);
+			let { pDsts: pDsts2, buf: buf2, totalPosDelta: tpd2 } = encodeStem(
+				refBottom.stem,
+				refBottom.sid,
+				sd,
+				strategy,
+				pDstsBotB
+			);
 			if (tpd1 < tpd2) {
 				talk(`YAnchor(${refBottom.ipz})`);
 				refBottom.pDsts = pDsts1;
@@ -322,10 +380,10 @@ ${encodeAnchor(z.id, pDstsTopD, pDstsTop, pmin, pmax, strategy)}`,
 			}
 		}
 		if (ipAnchorZs.length) {
-			talk(`YIPAnchor(${refBottom.ipz},${ipAnchorZs.join(',')},${refTop.ipz})`);
+			talk(`YIPAnchor(${refBottom.ipz},${ipAnchorZs.join(",")},${refTop.ipz})`);
 		}
 		if (ipZs.length) {
-			talk(`YInterpolate(${refBottom.ipz},${ipZs.join(',')},${refTop.ipz})`);
+			talk(`YInterpolate(${refBottom.ipz},${ipZs.join(",")},${refTop.ipz})`);
 		}
 
 		for (let r of candidates) {
@@ -343,7 +401,7 @@ ${encodeAnchor(z.id, pDstsTopD, pDstsTop, pmin, pmax, strategy)}`,
 				talk(buf);
 				r.pDsts = pDsts;
 			} else {
-				talk(`/* !!IDH!! StemDef ${r.sid} DIRECT */`)
+				talk(`/* !!IDH!! StemDef ${r.sid} DIRECT */`);
 				talk(`YAnchor(${r.ipz})`);
 				let { pDsts, buf } = encodeStem(r.stem, r.sid, sd, strategy, null);
 				talk(buf);
@@ -356,17 +414,20 @@ ${encodeAnchor(z.id, pDstsTopD, pDstsTop, pmin, pmax, strategy)}`,
 		if (!da.zs.length) continue;
 		talk(`XAnchor(${da.l})`);
 		talk(`XAnchor(${da.r})`);
-		talk(`DAlign(${da.l},${da.zs.join(',')},${da.r})`);
+		talk(`DAlign(${da.l},${da.zs.join(",")},${da.r})`);
 	}
 	/** IPSA calls */
 	var l = 0;
 	for (let j = 1; j < si.ipsacalls.length; j++) {
-		if (si.ipsacalls[l] && si.ipsacalls[j]
-			&& si.ipsacalls[l].length > 2
-			&& si.ipsacalls[l].length < 16
-			&& si.ipsacalls[j].length > 2
-			&& si.ipsacalls[l][0] === si.ipsacalls[j][0]
-			&& si.ipsacalls[l][1] === si.ipsacalls[j][1]) {
+		if (
+			si.ipsacalls[l] &&
+			si.ipsacalls[j] &&
+			si.ipsacalls[l].length > 2 &&
+			si.ipsacalls[l].length < 16 &&
+			si.ipsacalls[j].length > 2 &&
+			si.ipsacalls[l][0] === si.ipsacalls[j][0] &&
+			si.ipsacalls[l][1] === si.ipsacalls[j][1]
+		) {
 			si.ipsacalls[l].push(si.ipsacalls[j][2]);
 			si.ipsacalls[j] = null;
 		} else {
@@ -375,8 +436,9 @@ ${encodeAnchor(z.id, pDstsTopD, pDstsTop, pmin, pmax, strategy)}`,
 	}
 	for (let c of si.ipsacalls) {
 		if (!c) continue;
-		if (c.length >= 3) { // ip
-			if (c[0] !== c[1]) talk(`YInterpolate(${c[0]},${c.slice(2).join(',')},${c[1]})`);
+		if (c.length >= 3) {
+			// ip
+			if (c[0] !== c[1]) talk(`YInterpolate(${c[0]},${c.slice(2).join(",")},${c[1]})`);
 		} else {
 			talk(`YShift(${c[0]},${c[1]})`);
 		}
@@ -386,16 +448,21 @@ ${encodeAnchor(z.id, pDstsTopD, pDstsTop, pmin, pmax, strategy)}`,
 }
 
 function generateCVT(cvt, cvtPadding, strategy) {
-	const { yBotBar, yTopBar, yBotD, yTopD } = getVTTAux(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER);
+	const { yBotBar, yTopBar, yBotD, yTopD } = getVTTAux(
+		strategy.BLUEZONE_BOTTOM_CENTER,
+		strategy.BLUEZONE_TOP_CENTER
+	);
 	cvt = cvt
-		.replace(new RegExp(`${cvtPadding}` + '\\s*:\\s*-?\\d+'), '')
-		.replace(new RegExp(`${cvtPadding + 1}` + '\\s*:\\s*-?\\d+'), '')
-		.replace(new RegExp(`${cvtPadding + 2}` + '\\s*:\\s*-?\\d+'), '')
-		.replace(new RegExp(`${cvtPadding + 3}` + '\\s*:\\s*-?\\d+'), '')
-		.replace(new RegExp(`${cvtPadding + 4}` + '\\s*:\\s*-?\\d+'), '')
-		.replace(new RegExp(`${cvtPadding + 5}` + '\\s*:\\s*-?\\d+'), '')
-		.replace(new RegExp(`${cvtPadding + 6}` + '\\s*:\\s*-?\\d+'), '')
-	return cvt + `
+		.replace(new RegExp(`${cvtPadding}` + "\\s*:\\s*-?\\d+"), "")
+		.replace(new RegExp(`${cvtPadding + 1}` + "\\s*:\\s*-?\\d+"), "")
+		.replace(new RegExp(`${cvtPadding + 2}` + "\\s*:\\s*-?\\d+"), "")
+		.replace(new RegExp(`${cvtPadding + 3}` + "\\s*:\\s*-?\\d+"), "")
+		.replace(new RegExp(`${cvtPadding + 4}` + "\\s*:\\s*-?\\d+"), "")
+		.replace(new RegExp(`${cvtPadding + 5}` + "\\s*:\\s*-?\\d+"), "")
+		.replace(new RegExp(`${cvtPadding + 6}` + "\\s*:\\s*-?\\d+"), "");
+	return (
+		cvt +
+		`
 /* IDEOHINT */
 ${cvtPadding} : ${0}
 ${cvtPadding + 1} : ${strategy.BLUEZONE_TOP_CENTER}
@@ -405,6 +472,7 @@ ${cvtPadding + 4} : ${yBotBar}
 ${cvtPadding + 5} : ${yTopD}
 ${cvtPadding + 6} : ${yBotD}
 `
+	);
 }
 
 exports.talk = produceVTTTalk;

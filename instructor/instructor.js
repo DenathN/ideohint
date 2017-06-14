@@ -144,8 +144,8 @@ function instruct(record, strategy, padding) {
 	// cf. http://www.microsoft.com/typography/cleartype/truetypecleartype.aspx#Toc227035721
 	if (glyph.stems.length) {
 		for (var k = 0; k < glyph.stems.length; k++) {
-			invocations.push([[glyph.stems[k].posKey], ["MDAP[rnd]"]]);
-			invocations.push([[glyph.stems[k].advKey], ["MDRP[0]"]]);
+			invocations.push([[glyph.stems[k].posKey.id], ["MDAP[rnd]"]]);
+			invocations.push([[glyph.stems[k].advKey.id], ["MDRP[0]"]]);
 		}
 	}
 
@@ -166,12 +166,13 @@ function instruct(record, strategy, padding) {
 				if (!instrs[k]) continue;
 				var [y, w, isStrict, isStacked] = instrs[k];
 				var stem = glyph.stems[k];
-				var y0 = stem.y0,
-					w0 = stem.w0,
-					orient = stem.posKeyAtTop,
-					slope = stem.slope,
-					keyDX = stem.keyDX;
-				if (orient) {
+				const y0 = stem.posKeyAtTop ? stem.posKey.y : stem.advKey.y;
+				const w0 = stem.posKeyAtTop
+					? stem.posKey.y - stem.advKey.y + (stem.advKey.x - stem.posKey.x) * stem.slope
+					: stem.advKey.y - stem.posKey.y + (stem.posKey.x - stem.advKey.x) * stem.slope;
+				const slope = stem.slope;
+				const keyDX = stem.keyDX;
+				if (stem.posKeyAtTop) {
 					var ypos = y * uppx;
 					var ypos0 = roundings.rtg(y0, upm, ppem);
 				} else {
@@ -180,7 +181,7 @@ function instruct(record, strategy, padding) {
 				}
 
 				deltas.push({
-					id: stem.posKey,
+					id: stem.posKey.id,
 					deltas: encodeDelta(decideDelta(GEAR, ypos0, ypos, upm, ppem), ppem)
 				});
 
@@ -188,11 +189,11 @@ function instruct(record, strategy, padding) {
 				var targetAdvance = w * (upm / ppem);
 
 				deltas.push({
-					id: stem.advKey,
+					id: stem.advKey.id,
 					deltas: encodeDelta(
 						decideDeltaShift(
 							GEAR,
-							orient ? -1 : 1,
+							stem.posKeyAtTop ? -1 : 1,
 							isStrict,
 							isStacked,
 							ypos0,
@@ -235,8 +236,8 @@ function instruct(record, strategy, padding) {
 	if (glyph.stems.length) {
 		for (var k = 0; k < glyph.stems.length; k++) {
 			largeMdrpInvokes.push(
-				[[glyph.stems[k].posKey], ["SRP0"]],
-				[[glyph.stems[k].advKey], ["MDRP[0]"]]
+				[[glyph.stems[k].posKey.id], ["SRP0"]],
+				[[glyph.stems[k].advKey.id], ["MDRP[0]"]]
 			);
 		}
 	}
@@ -247,19 +248,14 @@ function instruct(record, strategy, padding) {
 	var isalInvocations = [];
 	for (var j = 0; j < glyph.stems.length; j++) {
 		[
-			[glyph.stems[j].posKey, glyph.stems[j].posAlign],
-			[glyph.stems[j].advKey, glyph.stems[j].advAlign]
+			[glyph.stems[j].posKey.id, glyph.stems[j].posAlign],
+			[glyph.stems[j].advKey.id, glyph.stems[j].advAlign]
 		].forEach(function(x) {
-			if (x[1].length) {
-				isalInvocations.push([
-					x[1].concat([x[0]]),
-					["SRP0"].concat(
-						x[1].map(function(x) {
-							return "MDRP[0]";
-						})
-					)
-				]);
-			}
+			if (!x[1].length) return;
+			isalInvocations.push([
+				x[1].map(z => z.id).concat([x[0]]),
+				["SRP0"].concat(x[1].map(x => "MDRP[0]"))
+			]);
 		});
 	}
 	var isks = [];

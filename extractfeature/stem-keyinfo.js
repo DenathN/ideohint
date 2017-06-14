@@ -1,6 +1,6 @@
-"use strict"
+"use strict";
 
-module.exports = function (s) {
+module.exports = function(s) {
 	return {
 		xmin: s.xmin,
 		xmax: s.xmax,
@@ -71,13 +71,13 @@ module.exports = function (s) {
 
 		posKey: { id: s.posKey.id, y: s.posKey.y, x: s.posKey.x },
 		advKey: { id: s.advKey.id, y: s.advKey.y, x: s.advKey.x },
-		posAlign: s.posAlign.map(function (x) { return x.id }),
-		advAlign: s.advAlign.map(function (x) { return x.id }),
+		posAlign: s.posAlign.map(z => ({ id: z.id, x: z.x, y: z.y })),
+		advAlign: s.advAlign.map(z => ({ id: z.id, x: z.x, y: z.y })),
 		diagHigh: !!s.diagHigh,
 		diagLow: !!s.diagLow,
 		posKeyAtTop: !!s.posKeyAtTop,
 		rid: s.rid || 0,
 		slope: s.slope,
 		keyDX: s.advKey.x - s.posKey.x
-	}
-}
+	};
+};

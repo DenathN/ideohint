@@ -79,12 +79,12 @@ function interpretTT(glyphs, strategy, ppem) {
 		var actions = glyphs[j].hints[ppem];
 
 		// Bottom blues
-		features.blue.bottomZs.forEach(function(z) {
+		features.blueZoned.bottomZs.forEach(function(z) {
 			glyph.indexedPoints[z.id].touched = true;
 			glyph.indexedPoints[z.id].ytouch = rtg(strategy.BLUEZONE_BOTTOM_CENTER);
 		});
 		// Top blues
-		features.blue.topZs.forEach(function(z) {
+		features.blueZoned.topZs.forEach(function(z) {
 			glyph.indexedPoints[z.id].touched = true;
 			glyph.indexedPoints[z.id].ytouch = rtg(strategy.BLUEZONE_TOP_CENTER);
 			//glyph.indexedPoints[pid].ytouch = Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER) + rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER));
