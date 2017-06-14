@@ -1,5 +1,5 @@
-const roundings = require('../roundings');
-const BG_COLOR = 'white';
+const roundings = require("../roundings");
+const BG_COLOR = "white";
 
 function interpolate(a, b, c) {
 	if (c.y <= a.y) c.ytouch = c.y - a.y + a.ytouch;
@@ -18,46 +18,55 @@ function IUPy(contours) {
 	for (var j = 0; j < contours.length; j++) {
 		var contour = contours[j];
 		var k = 0;
-		while (k < contour.points.length && !contour.points[k].touched) k++;
+		while (k < contour.points.length && !contour.points[k].touched)
+			k++;
 		if (contour.points[k]) {
 			// Found a touched point in contour
 			// Copy coordinates for first/last point
 			if (contour.points[0].touched && !contour.points[contour.points.length - 1].touched) {
 				contour.points[contour.points.length - 1].touched = true;
 				contour.points[contour.points.length - 1].ytouch = contour.points[0].ytouch;
-			} else if (!contour.points[0].touched && contour.points[contour.points.length - 1].touched) {
+			} else if (
+				!contour.points[0].touched && contour.points[contour.points.length - 1].touched
+			) {
 				contour.points[0].touched = true;
 				contour.points[0].ytouch = contour.points[contour.points.length - 1].ytouch;
 			}
 			var kleft = k, k0 = k;
-			var untoucheds = []
+			var untoucheds = [];
 			for (var k = 0; k <= contour.points.length; k++) {
 				var ki = (k + k0) % contour.points.length;
 				if (contour.points[ki].touched) {
 					var pleft = contour.points[kleft];
 					var pright = contour.points[ki];
-					var lower = pleft.y < pright.y ? pleft : pright
-					var higher = pleft.y < pright.y ? pright : pleft
-					for (var w = 0; w < untoucheds.length; w++) interpolate(lower, higher, untoucheds[w]);
+					var lower = pleft.y < pright.y ? pleft : pright;
+					var higher = pleft.y < pright.y ? pright : pleft;
+					for (var w = 0; w < untoucheds.length; w++)
+						interpolate(lower, higher, untoucheds[w]);
 					untoucheds = [];
 					kleft = ki;
 				} else {
-					untoucheds.push(contour.points[ki])
+					untoucheds.push(contour.points[ki]);
 				}
 			}
 		}
 	}
 }
 function untouchAll(contours) {
-	for (var j = 0; j < contours.length; j++) for (var k = 0; k < contours[j].points.length; k++) {
-		contours[j].points[k].touched = false;
-		contours[j].points[k].donttouch = false;
-		contours[j].points[k].ytouch = contours[j].points[k].y;
-	}
+	for (var j = 0; j < contours.length; j++)
+		for (var k = 0; k < contours[j].points.length; k++) {
+			contours[j].points[k].touched = false;
+			contours[j].points[k].donttouch = false;
+			contours[j].points[k].ytouch = contours[j].points[k].y;
+		}
 }
 
-function BY_PRIORITY_SHORT(p, q) { return q[2] - p[2] }
-function BY_PRIORITY_IP(p, q) { return q[3] - p[3] }
+function BY_PRIORITY_SHORT(p, q) {
+	return q[2] - p[2];
+}
+function BY_PRIORITY_IP(p, q) {
+	return q[3] - p[3];
+}
 
 function interpretTT(glyphs, strategy, ppem) {
 	const rtg = roundings.Rtg(strategy.UPM, ppem);
@@ -70,60 +79,70 @@ function interpretTT(glyphs, strategy, ppem) {
 		var actions = glyphs[j].hints[ppem];
 
 		// Bottom blues
-		features.bottomBluePoints.forEach(function (pid) {
-			glyph.indexedPoints[pid].touched = true;
-			glyph.indexedPoints[pid].ytouch = rtg(strategy.BLUEZONE_BOTTOM_CENTER)
-		})
+		features.blue.bottomZs.forEach(function(z) {
+			glyph.indexedPoints[z.id].touched = true;
+			glyph.indexedPoints[z.id].ytouch = rtg(strategy.BLUEZONE_BOTTOM_CENTER);
+		});
 		// Top blues
-		features.topBluePoints.forEach(function (pid) {
-			glyph.indexedPoints[pid].touched = true;
-			glyph.indexedPoints[pid].ytouch = rtg(strategy.BLUEZONE_TOP_CENTER);
+		features.blue.topZs.forEach(function(z) {
+			glyph.indexedPoints[z.id].touched = true;
+			glyph.indexedPoints[z.id].ytouch = rtg(strategy.BLUEZONE_TOP_CENTER);
 			//glyph.indexedPoints[pid].ytouch = Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER) + rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER));
-		})
+		});
 		// Stems
-		actions.y.forEach(function (action, j) {
+		actions.y.forEach(function(action, j) {
 			var h, l;
 			const stem = features.stems[j];
 			if (stem.posKeyAtTop) {
-				h = glyph.indexedPoints[stem.posKey.id], l = glyph.indexedPoints[stem.advKey.id]
+				(h = glyph.indexedPoints[stem.posKey.id]), (l =
+					glyph.indexedPoints[stem.advKey.id]);
 			} else {
-				h = glyph.indexedPoints[stem.advKey.id], l = glyph.indexedPoints[stem.posKey.id]
+				(h = glyph.indexedPoints[stem.advKey.id]), (l =
+					glyph.indexedPoints[stem.posKey.id]);
 			}
 			const [y, w, strict, stacked] = action;
-			const yTopTarget = h.ytouch = (y) * uppx;
-			const yBotTarget = l.ytouch = (y - w) * uppx - stem.keyDX * stem.slope;
+			const yTopTarget = (h.ytouch = y * uppx);
+			const yBotTarget = (l.ytouch = (y - w) * uppx - stem.keyDX * stem.slope);
 			h.touched = l.touched = true;
-			if (strict || w === 1 && h.y - l.y <= uppx && !stacked) return;
+			if (strict || (w === 1 && h.y - l.y <= uppx && !stacked)) return;
 			if (stem.posKeyAtTop) {
-				const dir = w * uppx > h.y - l.y ? (1 / 16) * uppx : (-1 / 16) * uppx;
-				while (rtg(yBotTarget) === rtg(l.ytouch) && (stacked || (dir > 0
-					? yTopTarget - l.ytouch > h.y - l.y
-					: yTopTarget - l.ytouch < h.y - l.y))) {
+				const dir = w * uppx > h.y - l.y ? 1 / 16 * uppx : -1 / 16 * uppx;
+				while (
+					rtg(yBotTarget) === rtg(l.ytouch) &&
+					(stacked ||
+						(dir > 0
+							? yTopTarget - l.ytouch > h.y - l.y
+							: yTopTarget - l.ytouch < h.y - l.y))
+				) {
 					l.ytouch += dir;
 				}
 			} else {
-				const dir = w * uppx > h.y - l.y ? (-1 / 16) * uppx : (1 / 16) * uppx;
-				while (rtg(yTopTarget) === rtg(h.ytouch) && (stacked || (dir > 0
-					? h.ytouch - yBotTarget < h.y - l.y
-					: h.ytouch - yBotTarget > h.y - l.y))) {
+				const dir = w * uppx > h.y - l.y ? -1 / 16 * uppx : 1 / 16 * uppx;
+				while (
+					rtg(yTopTarget) === rtg(h.ytouch) &&
+					(stacked ||
+						(dir > 0
+							? h.ytouch - yBotTarget < h.y - l.y
+							: h.ytouch - yBotTarget > h.y - l.y))
+				) {
 					h.ytouch += dir;
 				}
 			}
 		});
 		// Alignments
-		glyph.stems.forEach(function (stem) {
-			stem.posAlign.forEach(function (pt) {
-				pt = glyph.indexedPoints[pt.id]
+		glyph.stems.forEach(function(stem) {
+			stem.posAlign.forEach(function(pt) {
+				pt = glyph.indexedPoints[pt.id];
 				pt.touched = true;
 				const key = glyph.indexedPoints[stem.posKey.id];
 				pt.ytouch = key.ytouch + pt.y - key.y;
-			})
-			stem.advAlign.forEach(function (pt) {
-				pt = glyph.indexedPoints[pt.id]
+			});
+			stem.advAlign.forEach(function(pt) {
+				pt = glyph.indexedPoints[pt.id];
 				pt.touched = true;
 				const key = glyph.indexedPoints[stem.advKey.id];
 				pt.ytouch = key.ytouch + pt.y - key.y;
-			})
+			});
 		});
 		// diagaligns
 		for (let da of features.diagAligns) {
@@ -133,43 +152,45 @@ function interpretTT(glyphs, strategy, ppem) {
 		}
 		// IPs
 		var g = [];
-		features.shortAbsorptions.forEach(function (s) {
+		features.shortAbsorptions.forEach(function(s) {
 			var priority = s[2];
-			if (!g[priority]) g[priority] = {
-				interpolations: [],
-				absorptions: [],
-				pri: priority
-			}
+			if (!g[priority])
+				g[priority] = {
+					interpolations: [],
+					absorptions: [],
+					pri: priority
+				};
 			g[priority].absorptions.push(s);
 		});
-		features.interpolations.forEach(function (s) {
+		features.interpolations.forEach(function(s) {
 			var priority = s[3];
-			if (!g[priority]) g[priority] = {
-				interpolations: [],
-				absorptions: [],
-				pri: priority
-			}
+			if (!g[priority])
+				g[priority] = {
+					interpolations: [],
+					absorptions: [],
+					pri: priority
+				};
 			g[priority].interpolations.push(s);
 		});
-		g.reverse().forEach(function (group) {
+		g.reverse().forEach(function(group) {
 			if (!group) return;
-			group.absorptions.forEach(function (group) {
-				var a = glyph.indexedPoints[group[0]]
-				var b = glyph.indexedPoints[group[1]]
+			group.absorptions.forEach(function(group) {
+				var a = glyph.indexedPoints[group[0]];
+				var b = glyph.indexedPoints[group[1]];
 				b.touched = true;
 				b.ytouch = b.y + a.ytouch - a.y;
 			});
-			group.interpolations.forEach(function (group) {
-				var a = glyph.indexedPoints[group[0]]
-				var b = glyph.indexedPoints[group[1]]
-				var c = glyph.indexedPoints[group[2]]
-				interpolateIP(a, b, c)
+			group.interpolations.forEach(function(group) {
+				var a = glyph.indexedPoints[group[0]];
+				var b = glyph.indexedPoints[group[1]];
+				var c = glyph.indexedPoints[group[2]];
+				interpolateIP(a, b, c);
 			});
 		});
 
 		// IUPy
 		IUPy(glyph.contours);
-	};
+	}
 }
 
 const SUPERSAMPLING = 8;
@@ -184,36 +205,49 @@ function RenderPreviewForPPEM(glyphs, strategy, hdc, basex, basey, ppem) {
 	// Create a temp canvas
 	const hpixels = ppem * glyphs.length;
 	const vpixels = ppem + 1;
-	var eTemp = document.createElement('canvas')
+	var eTemp = document.createElement("canvas");
 	eTemp.width = hpixels * 3 * SUPERSAMPLING;
 	eTemp.height = vpixels * SAMPLING_Y;
-	var hTemp = eTemp.getContext('2d')
+	var hTemp = eTemp.getContext("2d");
 	hTemp.fillStyle = "white";
 	hTemp.fillRect(0, 0, eTemp.width, eTemp.height);
 
-	function txp(x) { return (x / uppx) * 3 * SUPERSAMPLING }
-	function typ(y) { return ((-y / uppx + Math.round(strategy.BLUEZONE_TOP_CENTER / uppx)) + 1) * SAMPLING_Y }
+	function txp(x) {
+		return x / uppx * 3 * SUPERSAMPLING;
+	}
+	function typ(y) {
+		return (-y / uppx + Math.round(strategy.BLUEZONE_TOP_CENTER / uppx) + 1) * SAMPLING_Y;
+	}
 	// Fill
-	hTemp.fillStyle = 'black';
+	hTemp.fillStyle = "black";
 	for (var m = 0; m < glyphs.length; m++) {
 		hTemp.beginPath();
 		for (var j = 0; j < glyphs[m].glyph.contours.length; j++) {
 			var contour = glyphs[m].glyph.contours[j];
-			hTemp.moveTo(txp(contour.points[0].xtouch + m * strategy.UPM), typ(contour.points[0].ytouch))
+			hTemp.moveTo(
+				txp(contour.points[0].xtouch + m * strategy.UPM),
+				typ(contour.points[0].ytouch)
+			);
 			for (var k = 1; k < contour.points.length; k++) {
 				if (contour.points[k].on || !contour.points[k + 1]) {
-					hTemp.lineTo(txp(contour.points[k].xtouch + m * strategy.UPM), typ(contour.points[k].ytouch))
+					hTemp.lineTo(
+						txp(contour.points[k].xtouch + m * strategy.UPM),
+						typ(contour.points[k].ytouch)
+					);
 				} else {
 					hTemp.quadraticCurveTo(
-						txp(contour.points[k].xtouch + m * strategy.UPM), typ(contour.points[k].ytouch),
-						txp(contour.points[k + 1].xtouch + m * strategy.UPM), typ(contour.points[k + 1].ytouch))
+						txp(contour.points[k].xtouch + m * strategy.UPM),
+						typ(contour.points[k].ytouch),
+						txp(contour.points[k + 1].xtouch + m * strategy.UPM),
+						typ(contour.points[k + 1].ytouch)
+					);
 					k += 1;
 				}
 			}
 			hTemp.closePath();
 		}
-		hTemp.fill('nonzero');
-	};
+		hTemp.fill("nonzero");
+	}
 
 	// Downsampling
 	const ori = hTemp.getImageData(0, 0, eTemp.width, eTemp.height);
@@ -225,70 +259,81 @@ function RenderPreviewForPPEM(glyphs, strategy, hdc, basex, basey, ppem) {
 	for (var j = 0; j < vpixels; j++) {
 		let aa = hAA.createImageData(hpixels, 1);
 		for (var k = 0; k < hpixels; k++) {
-			aa.data[k * 4] = 0xFF, aa.data[k * 4 + 1] = 0, aa.data[k * 4 + 2] = 0, aa.data[k * 4 + 3] = 0xFF;
+			(aa.data[k * 4] = 0xff), (aa.data[k * 4 + 1] = 0), (aa.data[k * 4 + 2] = 0), (aa.data[
+				k * 4 + 3
+			] = 0xff);
 			for (var component = 0; component < 3; component++) {
 				let coverage = 0;
-				for (let ssy = 0; ssy < SAMPLING_Y; ssy++)for (let ss = -SUPERSAMPLING; ss < SUPERSAMPLING * 2; ss++) {
-					const origRow = j * SAMPLING_Y + ssy;
-					let origCol = (k * 3 + component) * SUPERSAMPLING + ss;
-					if (origCol < 0) origCol = 0;
-					if (origCol >= eTemp.width) origCol = eTemp.width - 1;
-					const origPixelId = eTemp.width * origRow + origCol;
-					const raw = ori.data[origPixelId * 4];
-					coverage += raw < 128 ? 1 : 0;
-				}
+				for (let ssy = 0; ssy < SAMPLING_Y; ssy++)
+					for (let ss = -SUPERSAMPLING; ss < SUPERSAMPLING * 2; ss++) {
+						const origRow = j * SAMPLING_Y + ssy;
+						let origCol = (k * 3 + component) * SUPERSAMPLING + ss;
+						if (origCol < 0) origCol = 0;
+						if (origCol >= eTemp.width) origCol = eTemp.width - 1;
+						const origPixelId = eTemp.width * origRow + origCol;
+						const raw = ori.data[origPixelId * 4];
+						coverage += raw < 128 ? 1 : 0;
+					}
 				const alpha = coverage / (3 * SUPERSAMPLING * SAMPLING_Y);
 				aa.data[k * 4 + component] = 255 * Math.pow(1 - alpha, 1 / GAMMA);
 			}
 		}
 		hAA.putImageData(aa, 0, j);
-	};
+	}
 	hdc.imageSmoothingEnabled = false;
 	hdc.drawImage(eAA, basex, basey, eAA.width * DPI, eAA.height * DPI);
-};
+}
 
-let renderHandle = { handle: null }
+let renderHandle = { handle: null };
 
 function renderPreview(canvas, glyphs, strategy) {
 	if (!canvas) return;
-	const hPreview = canvas.getContext('2d');
-	hPreview.font = (12 * DPI) + 'px sans-serif'
+	const hPreview = canvas.getContext("2d");
+	hPreview.font = 12 * DPI + "px sans-serif";
 	let y = 10 * DPI;
 	let ppem = strategy.PPEM_MIN;
 	function renderView() {
 		// fill with white
 		hPreview.fillStyle = BG_COLOR;
-		hPreview.fillRect(0, y, 128 + glyphs.length * DPI * ppem, y + DPI * ppem)
-		// render 
-		RenderPreviewForPPEM(glyphs, strategy, hPreview, 128, y, ppem)
-		hPreview.fillStyle = 'black';
-		hPreview.fillText(ppem + '', 0, y + ppem * (strategy.BLUEZONE_TOP_CENTER / strategy.UPM) * DPI)
+		hPreview.fillRect(0, y, 128 + glyphs.length * DPI * ppem, y + DPI * ppem);
+		// render
+		RenderPreviewForPPEM(glyphs, strategy, hPreview, 128, y, ppem);
+		hPreview.fillStyle = "black";
+		hPreview.fillText(
+			ppem + "",
+			0,
+			y + ppem * (strategy.BLUEZONE_TOP_CENTER / strategy.UPM) * DPI
+		);
 		y += Math.round(ppem * 1.2) * DPI;
 		ppem += 1;
 		if (ppem <= strategy.PPEM_MAX) {
-			if (renderHandle.handle) { clearTimeout(renderHandle.handle); }
+			if (renderHandle.handle) {
+				clearTimeout(renderHandle.handle);
+			}
 			setTimeout(renderView, 0);
 		} else {
 			renderHandle.handle = null;
 		}
 	}
-	if (renderHandle.handle) { clearTimeout(renderHandle.handle); }
+	if (renderHandle.handle) {
+		clearTimeout(renderHandle.handle);
+	}
 	setTimeout(renderView, 0);
 }
 
 function clean(canvas) {
 	if (!canvas) return;
-	const hPreview = canvas.getContext('2d');
+	const hPreview = canvas.getContext("2d");
 	hPreview.fillStyle = BG_COLOR;
 	hPreview.fillRect(0, 0, canvas.width, canvas.height);
 }
 
 function renderLoading(canvas) {
 	if (!canvas) return;
-	const hPreview = canvas.getContext('2d');
+	const hPreview = canvas.getContext("2d");
 	hPreview.fillStyle = BG_COLOR;
 	hPreview.fillRect(0, 0, canvas.width, canvas.height);
-	hPreview.font = "24px sans-serif"
+	hPreview.font = "24px sans-serif";
 	hPreview.fillStyle = "black";
 	hPreview.fillText("Loading...", 24, 24);
 }

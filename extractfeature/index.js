@@ -1,21 +1,23 @@
-"use strict"
+"use strict";
 
-const analyzeStemKeyPoints = require('./stem-keypoints');
-const analyzeInterpolations = require('./absorptions-interpolations');
-const analyzeBlueZonePoints = require('./bluezone');
-const analyzeDirectOverlaps = require('./overlap').analyzeDirectOverlaps;
-const analyzeEdgeTouches = require('./overlap').analyzeEdgeTouches;
-const transitionClosure = require('./overlap').transitionClosure;
-const analyzeTriplets = require('./triplet').analyzeTriplets;
-const analyzeBlanks = require('./triplet').analyzeBlanks;
-const analyzeFlex = require('./flex');
-const getStemKeyInfo = require('./stem-keyinfo');
-const analyzeDominance = require('./dominance');
-const analyzeXInterpolate = require('./xinterpolate');
+const analyzeStemKeyPoints = require("./stem-keypoints");
+const analyzeInterpolations = require("./absorptions-interpolations");
+const analyzeBlueZonePoints = require("./bluezone");
+const analyzeDirectOverlaps = require("./overlap").analyzeDirectOverlaps;
+const analyzeEdgeTouches = require("./overlap").analyzeEdgeTouches;
+const transitionClosure = require("./overlap").transitionClosure;
+const analyzeTriplets = require("./triplet").analyzeTriplets;
+const analyzeBlanks = require("./triplet").analyzeBlanks;
+const analyzeFlex = require("./flex");
+const getStemKeyInfo = require("./stem-keyinfo");
+const analyzeDominance = require("./dominance");
+const analyzeXInterpolate = require("./xinterpolate");
 
-function byyori(a, b) { return a.y - b.y }
+function byyori(a, b) {
+	return a.y - b.y;
+}
 
-exports.extractFeature = function (glyph, strategy) {
+exports.extractFeature = function(glyph, strategy) {
 	const directOverlaps = analyzeDirectOverlaps(glyph, strategy, true);
 	const strictOverlaps = analyzeDirectOverlaps(glyph, strategy, false);
 	analyzeStemKeyPoints(glyph, strategy, directOverlaps, glyph.collisionMatrices.promixity);
@@ -42,13 +44,11 @@ exports.extractFeature = function (glyph, strategy) {
 		strictTriplets: strictTriplets,
 		flexes: flexes,
 		collisionMatrices: glyph.collisionMatrices,
-		topBluePoints: blueZonePoints.top,
-		bottomBluePoints: blueZonePoints.bottom,
 		blueZoned: blueZonePoints,
 		interpolations: iss.interpolations,
 		shortAbsorptions: iss.shortAbsorptions,
 		diagAligns: iss.diagAligns,
 		dominancePriority: dominancePriority,
 		xIP: xIP
-	}
-}
+	};
+};

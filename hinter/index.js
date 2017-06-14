@@ -99,8 +99,6 @@ exports.hintAllSize = function(featData, strategy) {
 
 	let sideIndependent = {
 		blue: featData.blueZoned,
-		bottomBluePoints: featData.bottomBluePoints,
-		topBluePoints: featData.topBluePoints,
 		ipsacalls: getIpsaCalls(featData),
 		diagAligns: featData.diagAligns,
 		xIP: featData.xIP,

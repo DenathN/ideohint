@@ -6,8 +6,8 @@ const pushargs = require("./invoke").pushargs;
 const invokesToInstrs = require("./invoke").invokesToInstrs;
 const pushInvokes = require("./invoke").pushInvokes;
 
-const decideDelta = require('./delta.js').decideDelta;
-const decideDeltaShift = require('./delta.js').decideDeltaShift;
+const decideDelta = require("./delta.js").decideDelta;
+const decideDeltaShift = require("./delta.js").decideDeltaShift;
 
 function ipsaInvokes(actions) {
 	if (!actions) return [];
@@ -50,29 +50,25 @@ function pushDeltaCalls(deltaCalls, invocations, STACK_DEPTH) {
 	var currentDeltaCall = {
 		arg: deltaCalls[0].arg.slice(0),
 		instruction: deltaCalls[0].instruction
-	}
+	};
 	for (var j = 1; j < deltaCalls.length; j++) {
-		if (deltaCalls[j].instruction === currentDeltaCall.instruction
-			&& currentDeltaCall.arg.length + deltaCalls[j].arg.length < STACK_DEPTH - 10) {
+		if (
+			deltaCalls[j].instruction === currentDeltaCall.instruction &&
+			currentDeltaCall.arg.length + deltaCalls[j].arg.length < STACK_DEPTH - 10
+		) {
 			// Same Instruction
 			currentDeltaCall.arg = currentDeltaCall.arg.concat(deltaCalls[j].arg);
 		} else {
 			currentDeltaCall.arg.push(currentDeltaCall.arg.length >> 1);
-			invocations.push([
-				currentDeltaCall.arg,
-				[currentDeltaCall.instruction]
-			]);
+			invocations.push([currentDeltaCall.arg, [currentDeltaCall.instruction]]);
 			currentDeltaCall = {
 				arg: deltaCalls[j].arg.slice(0),
 				instruction: deltaCalls[j].instruction
-			}
+			};
 		}
 	}
 	currentDeltaCall.arg.push(currentDeltaCall.arg.length >> 1);
-	invocations.push([
-		currentDeltaCall.arg,
-		[currentDeltaCall.instruction]
-	]);
+	invocations.push([currentDeltaCall.arg, [currentDeltaCall.instruction]]);
 }
 
 const SDS = 4;
@@ -91,7 +87,6 @@ function instruct(record, strategy, padding) {
 	var cvtTopID = padding + 1;
 	var cvtBottomID = padding + 2;
 
-
 	function encodeDeltaVal(d, ppem) {
 		if (!d) return [];
 		if (d < -8) {
@@ -100,7 +95,7 @@ function instruct(record, strategy, padding) {
 		if (d > 8) {
 			return encodeDeltaVal(8, ppem).concat(encodeDeltaVal(d - 8, ppem));
 		}
-		var selector = (d > 0 ? d + 7 : d + 8);
+		var selector = d > 0 ? d + 7 : d + 8;
 		var deltappem = (ppem - pmin) % 16;
 		return [deltappem * 16 + selector];
 	}
@@ -112,19 +107,19 @@ function instruct(record, strategy, padding) {
 			return {
 				coarse: encodeDeltaVal(dCoarse, ppem),
 				fine: encodeDeltaVal(dFine, ppem)
-			}
+			};
 		} else {
-			var dCoarse = ((-d) / GEAR_COARSE) | 0;
-			var dFine = (-d) % GEAR_COARSE;
+			var dCoarse = (-d / GEAR_COARSE) | 0;
+			var dFine = -d % GEAR_COARSE;
 			return {
 				coarse: encodeDeltaVal(-dCoarse, ppem),
 				fine: encodeDeltaVal(-dFine, ppem)
-			}
+			};
 		}
 	}
 
 	function pushDelta(deltas, id, d) {
-		deltas.push({ id, delta: d })
+		deltas.push({ id, delta: d });
 	}
 
 	var STACK_DEPTH = strategy.STACK_DEPTH || 200;
@@ -135,13 +130,13 @@ function instruct(record, strategy, padding) {
 
 	// Blue zone alignment instructions
 	// Bottom
-	for (var k = 0; k < glyph.bottomBluePoints.length; k++) {
-		invocations.push([[glyph.bottomBluePoints[k], cvtBottomID], ["MIAP[rnd]"]]);
+	for (var k = 0; k < glyph.blue.bottomZs.length; k++) {
+		invocations.push([[glyph.blue.bottomZs[k].id, cvtBottomID], ["MIAP[rnd]"]]);
 	}
 	pushInvokes(tt, invocations, STACK_DEPTH);
 	// Top
-	for (var k = 0; k < glyph.topBluePoints.length; k++) {
-		invocations.push([[glyph.topBluePoints[k], cvtTopID], ["MIAP[rnd]"]]);
+	for (var k = 0; k < glyph.blue.topZs.length; k++) {
+		invocations.push([[glyph.blue.topZs[k].id, cvtTopID], ["MIAP[rnd]"]]);
 	}
 	pushInvokes(tt, invocations, STACK_DEPTH);
 
@@ -154,68 +149,81 @@ function instruct(record, strategy, padding) {
 		}
 	}
 
-
 	invocations.push([[pmin], ["SDB"]]);
 	var deltaCalls = {
 		coarse: [],
 		fine: []
-	}
+	};
 	var mirps = [];
-	if (glyph.stems.length) for (var ppem = 0; ppem < actions.length; ppem++) {
-		var uppx = upm / ppem;
-		if (!actions[ppem]) continue;
-		// The instes' length sould be exactly glyph.stems.length.
-		var instrs = actions[ppem];
-		var deltas = [];
-		for (var k = 0; k < instrs.length; k++) {
-			if (!instrs[k]) continue;
-			var [y, w, isStrict, isStacked] = instrs[k];
-			var stem = glyph.stems[k];
-			var y0 = stem.y0, w0 = stem.w0, orient = stem.posKeyAtTop, slope = stem.slope, keyDX = stem.keyDX;
-			if (orient) {
-				var ypos = y * uppx;
-				var ypos0 = roundings.rtg(y0, upm, ppem);
-			} else {
-				var ypos = (y - w) * uppx - stem.keyDX * stem.slope;
-				var ypos0 = roundings.rtg(y0 - w0 - slope * keyDX, upm, ppem);
+	if (glyph.stems.length)
+		for (var ppem = 0; ppem < actions.length; ppem++) {
+			var uppx = upm / ppem;
+			if (!actions[ppem]) continue;
+			// The instes' length sould be exactly glyph.stems.length.
+			var instrs = actions[ppem];
+			var deltas = [];
+			for (var k = 0; k < instrs.length; k++) {
+				if (!instrs[k]) continue;
+				var [y, w, isStrict, isStacked] = instrs[k];
+				var stem = glyph.stems[k];
+				var y0 = stem.y0,
+					w0 = stem.w0,
+					orient = stem.posKeyAtTop,
+					slope = stem.slope,
+					keyDX = stem.keyDX;
+				if (orient) {
+					var ypos = y * uppx;
+					var ypos0 = roundings.rtg(y0, upm, ppem);
+				} else {
+					var ypos = (y - w) * uppx - stem.keyDX * stem.slope;
+					var ypos0 = roundings.rtg(y0 - w0 - slope * keyDX, upm, ppem);
+				}
+
+				deltas.push({
+					id: stem.posKey,
+					deltas: encodeDelta(decideDelta(GEAR, ypos0, ypos, upm, ppem), ppem)
+				});
+
+				var originalAdvance = w0;
+				var targetAdvance = w * (upm / ppem);
+
+				deltas.push({
+					id: stem.advKey,
+					deltas: encodeDelta(
+						decideDeltaShift(
+							GEAR,
+							orient ? -1 : 1,
+							isStrict,
+							isStacked,
+							ypos0,
+							originalAdvance,
+							ypos,
+							targetAdvance,
+							upm,
+							ppem
+						),
+						ppem
+					)
+				});
 			}
-
-			deltas.push({
-				id: stem.posKey,
-				deltas: encodeDelta(decideDelta(GEAR, ypos0, ypos, upm, ppem), ppem)
-			})
-
-			var originalAdvance = w0;
-			var targetAdvance = w * (upm / ppem);
-
-			deltas.push({
-				id: stem.advKey,
-				deltas: encodeDelta(decideDeltaShift(
-					GEAR, orient ? -1 : 1,
-					isStrict, isStacked,
-					ypos0, originalAdvance,
-					ypos, targetAdvance,
-					upm, ppem), ppem)
-			})
+			if (!deltas.length) continue;
+			for (var j = 0; j < deltas.length; j++) {
+				let { deltas: { coarse, fine }, id } = deltas[j];
+				let instr = "DELTAP" + (1 + Math.floor((ppem - pmin) / 16));
+				for (let d of coarse) {
+					deltaCalls.coarse.push({
+						arg: [d, id],
+						instruction: instr
+					});
+				}
+				for (let d of fine) {
+					deltaCalls.fine.push({
+						arg: [d, id],
+						instruction: instr
+					});
+				}
+			}
 		}
-		if (!deltas.length) continue;
-		for (var j = 0; j < deltas.length; j++) {
-			let { deltas: { coarse, fine }, id } = deltas[j];
-			let instr = "DELTAP" + (1 + Math.floor((ppem - pmin) / 16));
-			for (let d of coarse) {
-				deltaCalls.coarse.push({
-					arg: [d, id],
-					instruction: instr
-				})
-			}
-			for (let d of fine) {
-				deltaCalls.fine.push({
-					arg: [d, id],
-					instruction: instr
-				})
-			}
-		}
-	}
 
 	invocations.push([[SDS - SDS_COARSE], ["SDS"]]);
 	pushDeltaCalls(deltaCalls.coarse, invocations, STACK_DEPTH);
@@ -226,7 +234,8 @@ function instruct(record, strategy, padding) {
 	var largeMdrpInvokes = [];
 	if (glyph.stems.length) {
 		for (var k = 0; k < glyph.stems.length; k++) {
-			largeMdrpInvokes.push([[glyph.stems[k].posKey], ["SRP0"]],
+			largeMdrpInvokes.push(
+				[[glyph.stems[k].posKey], ["SRP0"]],
 				[[glyph.stems[k].advKey], ["MDRP[0]"]]
 			);
 		}
@@ -237,9 +246,19 @@ function instruct(record, strategy, padding) {
 	// In-stem alignments
 	var isalInvocations = [];
 	for (var j = 0; j < glyph.stems.length; j++) {
-		[[glyph.stems[j].posKey, glyph.stems[j].posAlign], [glyph.stems[j].advKey, glyph.stems[j].advAlign]].forEach(function (x) {
+		[
+			[glyph.stems[j].posKey, glyph.stems[j].posAlign],
+			[glyph.stems[j].advKey, glyph.stems[j].advAlign]
+		].forEach(function(x) {
 			if (x[1].length) {
-				isalInvocations.push([x[1].concat([x[0]]), ["SRP0"].concat(x[1].map(function (x) { return "MDRP[0]"; }))]);
+				isalInvocations.push([
+					x[1].concat([x[0]]),
+					["SRP0"].concat(
+						x[1].map(function(x) {
+							return "MDRP[0]";
+						})
+					)
+				]);
 			}
 		});
 	}
@@ -253,10 +272,11 @@ function instruct(record, strategy, padding) {
 	tt = tt.concat(
 		invokesToInstrs(invocations, STACK_DEPTH),
 		mirps,
-		invokesToInstrs([].concat(
-			isalInvocations,
-			ipsaInvokes(isks.concat(glyph.ipsacalls))
-		), STACK_DEPTH));
+		invokesToInstrs(
+			[].concat(isalInvocations, ipsaInvokes(isks.concat(glyph.ipsacalls))),
+			STACK_DEPTH
+		)
+	);
 
 	tt.push("IUP[y]");
 	return tt;
