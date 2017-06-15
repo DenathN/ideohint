@@ -148,12 +148,12 @@ function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalS
 						: -yDifference < strategy.Y_FUZZ)
 				)
 					continue;
-				if (!radical.includesSegmentEdge(z, zkey, 1, strategy.SLOPE_FUZZ_K, 1, 1)) continue;
 				if (
 					sc &&
 					Math.hypot(z.y - sc.y, z.x - sc.x) <= Math.hypot(z.y - zkey.y, z.x - zkey.x)
 				)
 					continue;
+				if (!radical.includesSegmentEdge(z, zkey, 1, strategy.SLOPE_FUZZ_K, 1, 1)) continue;
 				sc = zkey;
 			}
 			if (
