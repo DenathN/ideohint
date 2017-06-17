@@ -96,8 +96,9 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 		const wsrc = s.posKeyAtTop
 			? s.posKey.y - s.advKey.y + (s.advKey.x - s.posKey.x) * s.slope
 			: s.advKey.y - s.posKey.y + (s.posKey.x - s.advKey.x) * s.slope;
+		const psrc = roundings.rtg(pos0, upm, ppem);
+		const wdst = wtouch * (upm / ppem);
 		if (s.posKeyAtTop) {
-			const psrc = roundings.rtg(pos0, upm, ppem);
 			const pdst = ytouch * (upm / ppem);
 			const posdelta = {
 				ppem,
@@ -105,7 +106,6 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 			};
 			totalPosDelta += posdelta.delta * posdelta.delta;
 			deltaPos.push(posdelta);
-			const wdst = wtouch * (upm / ppem);
 			deltaADv.push({
 				ppem,
 				delta: decideDeltaShift(
@@ -123,7 +123,6 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 			});
 			pDsts[ppem] = pdst;
 		} else {
-			const psrc = roundings.rtg(pos0, upm, ppem);
 			const pdst = (ytouch - wtouch) * (upm / ppem) - s.keyDX * s.slope;
 			const posdelta = {
 				ppem,
@@ -131,7 +130,6 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 			};
 			totalPosDelta += posdelta.delta * posdelta.delta;
 			deltaPos.push(posdelta);
-			const wdst = wtouch * (upm / ppem);
 			deltaADv.push({
 				ppem,
 				delta: decideDeltaShift(
