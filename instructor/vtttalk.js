@@ -84,9 +84,7 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 	let totalPosDelta = 0;
 
 	for (let ppem = 0; ppem < sd.length; ppem++) {
-		const pos0 = pos0s
-			? pos0s[ppem]
-			: s.posKeyAtTop ? s.posKey.y : s.posKey.y - s.slope * s.keyDX;
+		const pos0 = pos0s ? pos0s[ppem] : s.posKey.y;
 		if (!sd[ppem] || !sd[ppem][sid]) {
 			pDsts[ppem] = roundings.rtg(pos0, upm, ppem);
 			continue;
@@ -123,7 +121,7 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 			});
 			pDsts[ppem] = pdst;
 		} else {
-			const pdst = (ytouch - wtouch) * (upm / ppem) - s.keyDX * s.slope;
+			const pdst = (ytouch - wtouch) * (upm / ppem) - (s.advKey.x - s.posKey.x) * s.slope;
 			const posdelta = {
 				ppem,
 				delta: decideDelta(ROUNDING_SEGMENTS, psrc, pdst, upm, ppem) / ROUNDING_SEGMENTS
@@ -312,7 +310,7 @@ ${encodeAnchor(z.id, pDstsTopD, pDstsTop, pmin, pmax, strategy)}`,
 			sid: sid,
 			ipz: s.posKey.id,
 			kind: 1,
-			pOrg: s.posKeyAtTop ? s.posKey.y : s.posKey.y - s.slope * s.keyDX,
+			pOrg: s.posKey.y,
 			pDsts: null
 		});
 	}

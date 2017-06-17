@@ -77,7 +77,6 @@ module.exports = function(s) {
 		diagLow: !!s.diagLow,
 		posKeyAtTop: !!s.posKeyAtTop,
 		rid: s.rid || 0,
-		slope: s.slope,
-		keyDX: s.advKey.x - s.posKey.x
+		slope: s.slope
 	};
 };

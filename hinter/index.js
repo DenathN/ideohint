@@ -112,8 +112,7 @@ exports.hintAllSize = function(featData, strategy) {
 				advAlign: s.advAlign,
 				diagHigh: s.diagHigh,
 				diagLow: s.diagLow,
-				slope: s.slope,
-				keyDX: s.advKey.x - s.posKey.x
+				slope: s.slope
 			};
 		})
 	};
