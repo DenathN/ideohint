@@ -49,6 +49,10 @@ function approSlope(z1, z2, strategy) {
 	return slope >= 0 ? slope <= strategy.SLOPE_FUZZ_POS : slope >= -strategy.SLOPE_FUZZ_NEG;
 }
 
+function eqSlope(z1, z2) {
+	return z1.y === z2.y;
+}
+
 function approSlopeT(z1, z2, strategy) {
 	const slope = (z1.y - z2.y) / (z1.x - z2.x);
 	return (
@@ -57,9 +61,12 @@ function approSlopeT(z1, z2, strategy) {
 	);
 }
 
-function tryPushSegment(s, ss, strategy) {
+function tryPushSegment(s, ss, approSlopeT, coupled, strategy) {
 	while (s.length > 1) {
 		if (approSlopeT(s[0], s[s.length - 1], strategy)) {
+			for (let z of s) {
+				coupled[z.id] = true;
+			}
 			ss.push(s);
 			return;
 		} else {
@@ -68,41 +75,53 @@ function tryPushSegment(s, ss, strategy) {
 	}
 }
 
+function findHSegInContour(r, segments, contour, strategy) {
+	function restart(z) {
+		lastPoint = z;
+		segment = [lastPoint];
+		segment.radical = r;
+	}
+	let coupled = {};
+	let z0 = contour.points[0];
+	let lastPoint = z0;
+	let segment = [lastPoint];
+	for (let [as1, as2] of [[eqSlope, eqSlope], [approSlope, approSlopeT]]) {
+		restart(z0);
+		for (var k = 1; k < contour.points.length - 1; k++) {
+			const z = contour.points[k];
+
+			if (z.interpolated || coupled[lastPoint.id]) {
+				restart(z);
+			} else if (!coupled[z.id] && as1(z, lastPoint, strategy)) {
+				segment.push(z);
+				lastPoint = z;
+			} else {
+				tryPushSegment(segment, segments, as2, coupled, strategy);
+				restart(z);
+			}
+		}
+		if (!coupled[z0.id] && as1(z0, lastPoint, strategy)) {
+			if (segments[0] && segments[0][0] === z0) {
+				const firstSeg = segment.concat(segments.shift());
+				firstSeg.radical = r;
+				tryPushSegment(firstSeg, segments, as2, coupled, strategy);
+				segment = [z0];
+				segment.radical = r;
+			} else {
+				segment.push(z0);
+			}
+		}
+		tryPushSegment(segment, segments, as2, coupled, strategy);
+	}
+}
+
 // Stemfinding
 function findHorizontalSegments(radicals, strategy) {
 	var segments = [];
 	for (var r = 0; r < radicals.length; r++) {
-		radicals[r].mergedSegments = [];
 		var radicalParts = [radicals[r].outline].concat(radicals[r].holes);
 		for (var j = 0; j < radicalParts.length; j++) {
-			var contour = radicalParts[j];
-			var lastPoint = contour.points[0];
-			var segment = [lastPoint];
-			segment.radical = r;
-			for (var k = 1; k < contour.points.length - 1; k++)
-				if (!contour.points[k].interpolated) {
-					if (approSlope(contour.points[k], lastPoint, strategy)) {
-						segment.push(contour.points[k]);
-						lastPoint = contour.points[k];
-					} else {
-						tryPushSegment(segment, segments, strategy);
-						lastPoint = contour.points[k];
-						segment = [lastPoint];
-						segment.radical = r;
-					}
-				}
-			if (approSlope(contour.points[0], lastPoint, strategy)) {
-				if (segments[0] && segments[0][0] === contour.points[0]) {
-					const firstSeg = segment.concat(segments.shift());
-					firstSeg.radical = r;
-					tryPushSegment(firstSeg, segments, strategy);
-					segment = [contour.points[0]];
-					segment.radical = r;
-				} else {
-					segment.push(contour.points[0]);
-				}
-			}
-			tryPushSegment(segment, segments, strategy);
+			findHSegInContour(r, segments, radicalParts[j], strategy);
 		}
 	}
 
@@ -110,11 +129,11 @@ function findHorizontalSegments(radicals, strategy) {
 		return p[0].x - q[0].x;
 	});
 	// Join segments
-	for (var j = 0; j < segments.length; j++)
-		if (segments[j]) {
-			var pivotRadical = segments[j].radical;
-			radicals[pivotRadical].segments.push(segments[j]);
-		}
+	for (var j = 0; j < segments.length; j++) {
+		if (!segments[j]) continue;
+		var pivotRadical = segments[j].radical;
+		radicals[pivotRadical].segments.push(segments[j]);
+	}
 }
 
 function uuCouplable(sj, sk, radical, strategy) {
