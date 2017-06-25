@@ -64,6 +64,7 @@ function interpolateByKeys(
 	for (var k = 0; k < pts.length; k++) {
 		var pt = pts[k];
 		if (pt.touched || pt.donttouch) continue;
+
 		var upperK = null, upperdist = 0xffff;
 		var lowerK = null, lowerdist = 0xffff;
 		for (var m = keys.length - 1; m >= 0; m--)
@@ -268,25 +269,24 @@ module.exports = function(glyph, strategy) {
 		}
 
 		if (contourExtrema.length > 1) {
-			var topbot = [pmin, pmax];
 			var extrema = contourExtrema.slice(1, -1).filter(function(z) {
 				return !z.touched && !z.donttouch && (z.yExtrema || (z.xStrongExtrema && z.turn));
 			});
 			var midex = [];
 			for (var m = 0; m < extrema.length; m++) {
-				if (extrema[m].y === topbot[0].y) {
-					if (!adjacent(topbot[0], extrema[m])) {
-						shortAbsorptions.push([topbot[0].id, extrema[m].id, 1]);
+				if (extrema[m].y === pmin.y && extrema[m].id !== pmin.id) {
+					if (!adjacent(pmin, extrema[m])) {
+						shortAbsorptions.push([pmin.id, extrema[m].id, 1]);
 					}
 					extrema[m].touched = true;
 					extrema[m].donttouch = true;
-				} else if (extrema[m].y === topbot[1].y) {
-					if (!adjacent(topbot[1], extrema[m])) {
-						shortAbsorptions.push([topbot[1].id, extrema[m].id, 1]);
+				} else if (extrema[m].y === pmax.y && extrema[m].id !== pmax.id) {
+					if (!adjacent(pmax, extrema[m])) {
+						shortAbsorptions.push([pmax.id, extrema[m].id, 1]);
 					}
 					extrema[m].touched = true;
 					extrema[m].donttouch = true;
-				} else {
+				} else if (extrema[m].id !== pmin.id && extrema[m].id !== pmax.id) {
 					midex.push(extrema[m]);
 				}
 			}
@@ -297,7 +297,7 @@ module.exports = function(glyph, strategy) {
 				return p.xExtrema || p.yExtrema;
 			});
 			records.push({
-				topbot: topbot,
+				topbot: [pmin, pmax],
 				midex: midex,
 				midexl: midexl,
 				blues: blues,

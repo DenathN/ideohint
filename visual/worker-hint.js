@@ -16,6 +16,7 @@ onmessage = function (message) {
 			}
 		}
 	});
+	console.log(glyphs);
 	for (let g of glyphs) {
 		let d = 0xffff;
 		for (let j = 0; j < g.features.stems.length; j++) for (let k = 0; k < j; k++) {
