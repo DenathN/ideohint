@@ -54,7 +54,8 @@ function hint(gd, ppem, strg, tbonly) {
 	const { y, w } = hinter.allocateWidth(sp);
 	return {
 		y: stemPositionToActions.call(hinter, y, w, gd.stems),
-		x: { expand: hinter.xExpand }
+		x: { expand: hinter.xExpand },
+		tbonly
 	};
 }
 exports.hint = hint;

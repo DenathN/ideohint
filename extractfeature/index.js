@@ -32,6 +32,7 @@ exports.extractFeature = function(glyph, strategy) {
 	const flexes = analyzeFlex(glyph, blanks);
 	const dominancePriority = analyzeDominance(glyph.stems);
 	const xIP = analyzeXInterpolate(glyph);
+
 	return {
 		stats: Object.assign(glyph.stats, { nRadicals: glyph.radicals.length }),
 		stems: glyph.stems.map(getStemKeyInfo).sort(byyori),

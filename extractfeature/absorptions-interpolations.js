@@ -366,6 +366,7 @@ module.exports = function(glyph, strategy) {
 	interpolations = interpolations.sort(function(u, v) {
 		return glyph.indexedPoints[u[2]].x - glyph.indexedPoints[v[2]].x;
 	});
+	// cleanup
 	for (var j = 0; j < interpolations.length; j++) {
 		if (!interpolations[j]) continue;
 		for (var k = j + 1; k < interpolations.length; k++) {

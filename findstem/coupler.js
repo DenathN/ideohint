@@ -49,8 +49,8 @@ function approSlope(z1, z2, strategy) {
 	return slope >= 0 ? slope <= strategy.SLOPE_FUZZ_POS : slope >= -strategy.SLOPE_FUZZ_NEG;
 }
 
-function eqSlope(z1, z2) {
-	return z1.y === z2.y;
+function eqSlopeA(z1, z2) {
+	return z1.y === z2.y && ((z1.on && z2.on) || (!z1.on && !z2.on));
 }
 
 function approSlopeT(z1, z2, strategy) {
