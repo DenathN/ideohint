@@ -85,7 +85,7 @@ function findHSegInContour(r, segments, contour, strategy) {
 	let z0 = contour.points[0];
 	let lastPoint = z0;
 	let segment = [lastPoint];
-	for (let [as1, as2] of [[eqSlope, eqSlope], [approSlope, approSlopeT]]) {
+	for (let [as1, as2] of [[eqSlopeA, eqSlopeA], [approSlope, approSlopeT]]) {
 		restart(z0);
 		for (var k = 1; k < contour.points.length - 1; k++) {
 			const z = contour.points[k];
