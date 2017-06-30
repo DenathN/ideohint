@@ -278,25 +278,6 @@ class Hinter {
 	allocateWidth(y) {
 		return allocateWidth(this.createIndividual(y).gene, this);
 	}
-
-	decideHint() {
-		const { avaliables, strategy, ppem, uppx } = this;
-		if (!avaliables.length) return { y: [], x: { expand: this.X_EXPAND } };
-
-		const stemPositionsNoTang = this.decideInitHintNT();
-		const idvNT = this.createIndividual(stemPositionsNoTang);
-
-		const stemPositions = this.uncollide(this.decideInitHint());
-		const idvUncol = this.createIndividual(stemPositions);
-
-		let b = idvUncol;
-		if (idvNT.fitness > b.fitness) {
-			b = idvNT;
-		}
-
-		let { y, w } = allocateWidth(b.gene, this);
-		return { y, w, xExpand: this.X_EXPAND };
-	}
 }
 
 function decideAvail(stems) {

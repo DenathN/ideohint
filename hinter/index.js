@@ -104,6 +104,7 @@ exports.hintAllSize = function(featData, strategy) {
 		diagAligns: featData.diagAligns,
 		xIP: featData.xIP,
 		xExpansion: xExpansion,
+		directOverlaps: featData.directOverlaps,
 		stems: featData.stems.map(function(s) {
 			return {
 				posKeyAtTop: s.posKeyAtTop,
@@ -113,7 +114,10 @@ exports.hintAllSize = function(featData, strategy) {
 				advAlign: s.advAlign,
 				diagHigh: s.diagHigh,
 				diagLow: s.diagLow,
-				slope: s.slope
+				slope: s.slope,
+				rid: s.rid,
+				atLeft: s.atLeft,
+				atRight: s.atRight
 			};
 		})
 	};

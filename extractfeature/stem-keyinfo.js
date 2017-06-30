@@ -75,6 +75,8 @@ module.exports = function(s) {
 		advAlign: s.advAlign.map(z => ({ id: z.id, x: z.x, y: z.y })),
 		diagHigh: !!s.diagHigh,
 		diagLow: !!s.diagLow,
+		atLeft: !!s.atLeft,
+		atRight: !!s.atRight,
 		posKeyAtTop: !!s.posKeyAtTop,
 		rid: s.rid || 0,
 		slope: s.slope
