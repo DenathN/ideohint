@@ -21,7 +21,7 @@ function risefn(x) {
 }
 
 class Hinter {
-	constructor(strategy, glyph, ppem) {
+	constructor(strategy, fdefs, ppem) {
 		//// STRATEGY SPECIFIC
 		this.strategy = strategy;
 		this.ppem = ppem;
@@ -69,26 +69,39 @@ class Hinter {
 		this.CHEBYSHEV_5 = toVQ(strategy.CHEBYSHEV_5, ppem) / 200;
 
 		//// GLYPH SPECIFIC
-		this.A = glyph.collisionMatrices.alignment;
-		this.C = glyph.collisionMatrices.collision;
-		this.S = glyph.collisionMatrices.swap;
-		this.P = glyph.collisionMatrices.promixity;
-		this.dominancePriority = glyph.dominancePriority;
+		this.A = fdefs.collisionMatrices.alignment;
+		this.C = fdefs.collisionMatrices.collision;
+		this.S = fdefs.collisionMatrices.swap;
+		this.P = fdefs.collisionMatrices.promixity;
+		this.dominancePriority = fdefs.dominancePriority;
 
-		this.directOverlaps = glyph.directOverlaps;
-		this.strictOverlaps = glyph.strictOverlaps;
+		this.directOverlaps = fdefs.directOverlaps;
+		this.strictOverlaps = fdefs.strictOverlaps;
 
-		this.triplets = glyph.triplets;
-		this.strictTriplets = glyph.strictTriplets;
+		this.triplets = fdefs.triplets;
+		this.strictTriplets = fdefs.strictTriplets;
 
-		this.stats = glyph.stats;
+		this.stats = fdefs.stats;
 
 		//// CALCULATED
-		this.nStems = glyph.stems.length;
-		this.avaliables = decideAvail.call(this, glyph.stems);
+		this.tightness = this.getTightness(fdefs);
+		this.nStems = fdefs.stems.length;
+		this.avaliables = decideAvail.call(this, fdefs.stems);
 		this.symmetry = decideSymmetry.call(this);
 
 		this.X_EXPAND = 1 + Math.round(toVQ(strategy.X_EXPAND, ppem)) / 100;
+	}
+	getTightness(fdefs) {
+		let d = 0xffff;
+		for (let j = 0; j < fdefs.stems.length; j++)
+			for (let k = 0; k < j; k++) {
+				if (fdefs.directOverlaps[j][k]) {
+					let d1 = fdefs.stems[j].y - fdefs.stems[j].width - fdefs.stems[k].y;
+					if (d1 < d) d = d1;
+				}
+			}
+		if (d < 1) d = 1;
+		return this.upm / d;
 	}
 	round(x) {
 		return roundings.rtg(x, this.upm, this.ppem);
@@ -280,27 +293,51 @@ class Hinter {
 	}
 }
 
-function decideAvail(stems) {
-	const { upm, ppem, uppx, strategy } = this;
-	const Y_UPTHIRD = mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 2 / 3);
-	const Y_DOWNTHIRD = mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 1 / 3);
-	var avaliables = [];
-	var tws = decideWidths.call(this, stems, this.dominancePriority);
-	// Decide avaliability space
-	for (var j = 0; j < stems.length; j++) {
-		const stem = stems[j], y0 = stem.y, w0 = stem.width, w = tws[j] * uppx;
+function decideMaxShift(y0, w0, ppem, tightness, strategy) {
+	const minShiftLL = xclamp(3 / 4, lerp(ppem, 12, 24, 0.1 * tightness + 0.27, 3 / 4), 2);
+	const maxShiftU = xclamp(
+		minShiftLL,
+		ppem / 16,
+		xclamp(
+			1,
+			lerp(y0 - w0 / 2, strategy.BLUEZONE_TOP_CENTER, strategy.BLUEZONE_BOTTOM_CENTER, 1, 3),
+			2
+		)
+	);
+	const maxShiftD = xclamp(
+		minShiftLL,
+		ppem / 16,
+		xclamp(
+			1,
+			lerp(y0 - w0 / 2, strategy.BLUEZONE_TOP_CENTER, strategy.BLUEZONE_BOTTOM_CENTER, 3, 1),
+			2
+		)
+	);
+	return [maxShiftD, maxShiftU];
+}
+
+class Avail {
+	constructor(env, stem, tw) {
+		const { upm, ppem, uppx, strategy, tightness } = env;
+		const Y_UPTHIRD = mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 2 / 3);
+		const Y_DOWNTHIRD = mix(
+			strategy.BLUEZONE_BOTTOM_CENTER,
+			strategy.BLUEZONE_TOP_CENTER,
+			1 / 3
+		);
+		const y0 = stem.y, w0 = stem.width, w = tw * uppx;
 		// The bottom limit of a stem
 		let lowlimit =
-			this.glyphBottom +
+			env.glyphBottom +
 			Math.max(
 				w,
 				stem.diagLow
-					? this.BOTTOM_CUT_DIAGL
+					? env.BOTTOM_CUT_DIAGL
 					: stem.diagHigh
-							? this.BOTTOM_CUT_DIAGL + this.BOTTOM_CUT_DIAG_DIST
-							: this.BOTTOM_CUT,
-				this.atGlyphBottom(stem)
-					? stem.diagHigh ? ppem <= this.PPEM_INCREASE_GLYPH_LIMIT ? w : w + uppx : w
+							? env.BOTTOM_CUT_DIAGL + env.BOTTOM_CUT_DIAG_DIST
+							: env.BOTTOM_CUT,
+				env.atGlyphBottom(stem)
+					? stem.diagHigh ? ppem <= env.PPEM_INCREASE_GLYPH_LIMIT ? w : w + uppx : w
 					: w + uppx
 			);
 		let fold = false;
@@ -308,125 +345,106 @@ function decideAvail(stems) {
 		if (stem.hasGlyphFoldBelow && !stem.hasGlyphStemBelow) {
 			lowlimit = Math.max(
 				lowlimit,
-				this.glyphBottom +
-					Math.max(2, this.WIDTH_GEAR_PROPER + 1) * uppx +
-					this.WIDTH_GEAR_PROPER * uppx
+				env.glyphBottom +
+					Math.max(2, env.WIDTH_GEAR_PROPER + 1) * uppx +
+					env.WIDTH_GEAR_PROPER * uppx
 			);
 			fold = true;
 		} else if (stem.hasGlyphSideFoldBelow && !stem.hasGlyphStemBelow) {
 			lowlimit = Math.max(
 				lowlimit,
-				this.glyphBottom +
-					Math.max(this.WIDTH_GEAR_PROPER + 2, this.WIDTH_GEAR_PROPER * 2) * uppx
+				env.glyphBottom +
+					Math.max(env.WIDTH_GEAR_PROPER + 2, env.WIDTH_GEAR_PROPER * 2) * uppx
 			);
 			fold = true;
 		}
 
 		// The top limit of a stem ('s upper edge)
 		let highlimit =
-			this.glyphTop -
+			env.glyphTop -
 			Math.max(
 				0,
 				// cut part
 				stem.diagHigh
-					? this.TOP_CUT_DIAGH
-					: stem.diagLow ? this.TOP_CUT_DIAGH + this.TOP_CUT_DIAG_DIST : this.TOP_CUT,
+					? env.TOP_CUT_DIAGH
+					: stem.diagLow ? env.TOP_CUT_DIAGH + env.TOP_CUT_DIAG_DIST : env.TOP_CUT,
 				// spatial part
-				this.atGlyphTop(stem) ? 0 : uppx
+				env.atGlyphTop(stem) ? 0 : uppx
 			);
 
 		if (stem.hasEntireContourAbove) {
-			highlimit = Math.min(this.glyphTop - 2 * uppx, highlimit);
+			highlimit = Math.min(env.glyphTop - 2 * uppx, highlimit);
 		}
 
-		const center0 = this.cy(
+		const center0 = env.cy(
 			y0,
 			w0,
 			w,
-			(this.atGlyphTop(stem) && stem.diagHigh) || (this.atGlyphBottom(stem) && stem.diagLow),
+			(env.atGlyphTop(stem) && stem.diagHigh) || (env.atGlyphBottom(stem) && stem.diagLow),
 			stem.posKeyAtTop
 		);
-		const maxShiftU = xclamp(
-			0.75,
-			ppem / 16,
-			xclamp(
-				1,
-				lerp(
-					y0 - w0 / 2,
-					strategy.BLUEZONE_TOP_CENTER,
-					strategy.BLUEZONE_BOTTOM_CENTER,
-					1,
-					3
-				),
-				2
-			)
-		);
-		const maxShiftD = xclamp(
-			0.75,
-			ppem / 16,
-			xclamp(
-				1,
-				lerp(
-					y0 - w0 / 2,
-					strategy.BLUEZONE_TOP_CENTER,
-					strategy.BLUEZONE_BOTTOM_CENTER,
-					3,
-					1
-				),
-				2
-			)
-		);
-		const lowlimitW = Math.max(this.glyphBottom + w, tws[j] > 1 ? lowlimit - uppx : lowlimit);
-		const lowW = xclamp(lowlimitW, this.round(center0 - maxShiftD * uppx), highlimit);
-		const highW = xclamp(lowlimitW, this.round(center0 + maxShiftU * uppx), highlimit);
-		const low = xclamp(lowlimit, this.round(center0 - maxShiftD * uppx), highlimit);
-		const high = xclamp(lowlimit, this.round(center0 + maxShiftU * uppx), highlimit);
+		const [maxShiftD, maxShiftU] = decideMaxShift(y0, w0, ppem, tightness, strategy);
+		const lowlimitW = Math.max(env.glyphBottom + w, tw > 1 ? lowlimit - uppx : lowlimit);
+		const lowW = xclamp(lowlimitW, env.round(center0 - maxShiftD * uppx), highlimit);
+		const highW = xclamp(lowlimitW, env.round(center0 + maxShiftU * uppx), highlimit);
+		const low = xclamp(lowlimit, env.round(center0 - maxShiftD * uppx), highlimit);
+		const high = xclamp(lowlimit, env.round(center0 + maxShiftU * uppx), highlimit);
 		const center = xclamp(low, center0, high);
 
-		const ablationCoeff = this.atGlyphTop(stem) || this.atGlyphBottom(stem)
-			? this.strategy.ABLATION_GLYPH_HARD_EDGE
+		const ablationCoeff = env.atGlyphTop(stem) || env.atGlyphBottom(stem)
+			? env.strategy.ABLATION_GLYPH_HARD_EDGE
 			: !stem.hasGlyphStemAbove || !stem.hasGlyphStemBelow
-					? this.strategy.ABLATION_GLYPH_EDGE
+					? env.strategy.ABLATION_GLYPH_EDGE
 					: !stem.hasSameRadicalStemAbove || !stem.hasSameRadicalStemBelow
-							? this.strategy.ABLATION_RADICAL_EDGE
-							: this.strategy.ABLATION_IN_RADICAL;
+							? env.strategy.ABLATION_RADICAL_EDGE
+							: env.strategy.ABLATION_IN_RADICAL;
 
-		avaliables[j] = {
-			// limit of the stroke's y, when positioning, in pixels
-			low: Math.round(low / uppx),
-			high: Math.round(high / uppx),
-			// limit of the stroke's y, when width allocating, in pixels
-			lowW: Math.round(lowW / uppx),
-			highW: Math.round(highW / uppx),
-			// soft high/low limits, affects ablation potential
-			softLow: Math.round(low / uppx),
-			softHigh: Math.round(high / uppx),
-			// its proper width, in pixels
-			properWidth: tws[j],
-			// its proper position, in pixels
-			center: center / uppx,
-			ablationCoeff: ablationCoeff / uppx * (1 + 0.5 * (stem.xmax - stem.xmin) / upm),
-			// original position and width
-			y0: y0,
-			w0: w0,
-			w0px: w0 / uppx,
-			xmin: stem.xmin,
-			xmax: stem.xmax,
-			length: stem.xmax - stem.xmin,
-			// spatial relationships
-			atGlyphTop: this.atGlyphTop(stem),
-			atGlyphBottom: this.atGlyphBottom(stem),
-			hasGlyphStemAbove: stem.hasGlyphStemAbove,
-			hasGlyphStemBelow: stem.hasGlyphStemBelow,
-			hasSameRadicalStemAbove: stem.hasSameRadicalStemAbove,
-			hasSameRadicalStemBelow: stem.hasSameRadicalStemBelow,
-			hasFoldBelow: fold,
-			posKeyAtTop: stem.posKeyAtTop,
-			diagLow: stem.diagLow,
-			diagHigh: stem.diagHigh,
-			rid: stem.rid,
-			belongRadical: stem.belongRadical
-		};
+		// limit of the stroke's y, when positioning, in pixels
+		this.low = Math.round(low / uppx);
+		this.high = Math.round(high / uppx);
+		// limit of the stroke's y, when width allocating, in pixels
+		this.lowW = Math.round(lowW / uppx);
+		this.highW = Math.round(highW / uppx);
+		// soft high/low limits, affects ablation potential
+		this.softLow = Math.round(low / uppx);
+		this.softHigh = Math.round(high / uppx);
+		// its proper width, in pixels
+		this.properWidth = tw;
+		// its proper position, in pixels
+		this.center = center / uppx;
+		this.ablationCoeff = ablationCoeff / uppx * (1 + 0.5 * (stem.xmax - stem.xmin) / upm);
+		// original position and width
+		this.y0 = y0;
+		this.w0 = w0;
+		this.w0px = w0 / uppx;
+		this.xmin = stem.xmin;
+		this.xmax = stem.xmax;
+		this.length = stem.xmax - stem.xmin;
+		// spatial relationships
+		this.atGlyphTop = env.atGlyphTop(stem);
+		this.atGlyphBottom = env.atGlyphBottom(stem);
+		this.hasGlyphStemAbove = stem.hasGlyphStemAbove;
+		this.hasGlyphStemBelow = stem.hasGlyphStemBelow;
+		this.hasSameRadicalStemAbove = stem.hasSameRadicalStemAbove;
+		this.hasSameRadicalStemBelow = stem.hasSameRadicalStemBelow;
+		this.hasFoldBelow = fold;
+		this.posKeyAtTop = stem.posKeyAtTop;
+		this.diagLow = stem.diagLow;
+		this.diagHigh = stem.diagHigh;
+		this.rid = stem.rid;
+		this.belongRadical = stem.belongRadical;
+	}
+}
+
+function decideAvail(stems) {
+	const { upm, ppem, uppx, strategy, tightness } = this;
+	const Y_UPTHIRD = mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 2 / 3);
+	const Y_DOWNTHIRD = mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 1 / 3);
+	var avaliables = [];
+	var tws = decideWidths.call(this, stems, this.dominancePriority);
+	// Decide avaliability space
+	for (var j = 0; j < stems.length; j++) {
+		avaliables[j] = new Avail(this, stems[j], tws[j]);
 	}
 	flexCenter.call(this, avaliables, stems);
 	for (var j = 0; j < stems.length; j++) {
