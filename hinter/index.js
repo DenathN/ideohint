@@ -79,7 +79,7 @@ exports.hintAllSize = function(featData, strategy) {
 	);
 	for (let ppem = strategy.PPEM_MAX; ppem >= strategy.PPEM_MIN; ppem--) {
 		const uppx = strategy.UPM / ppem;
-		const actions = hint(featData, ppem, strategy, ppem > cutoff);
+		const actions = hint(featData, ppem, strategy, strategy.FULLHINT ? ppem > cutoff : false);
 		stemActions[ppem] = actions.y;
 		if (ppem > cutoff) {
 			for (let j = 1; j < stemActions[ppem].length - 1; j++) {

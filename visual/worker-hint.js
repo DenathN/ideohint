@@ -34,7 +34,12 @@ onmessage = function(message) {
 			strategy.PPEM_MAX
 		);
 		for (let ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
-			g.hints[ppem] = hint(g.features, ppem, strategy, ppem > cutoff);
+			g.hints[ppem] = hint(
+				g.features,
+				ppem,
+				strategy,
+				strategy.FULLHINT ? ppem > cutoff : false
+			);
 		}
 	}
 	postMessage(glyphs);

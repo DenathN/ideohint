@@ -20,8 +20,8 @@ function toVQ(v, ppem) {
 }
 
 function segmentJoinable(pivot, segment, radical) {
-	for (var k = 0; k < pivot.length; k++) {
-		for (var j = 0; j < segment.length; j++) {
+	for (let k = 0; k < pivot.length; k++) {
+		for (let j = 0; j < segment.length; j++) {
 			if (radical.includesSegmentEdge(segment[j], pivot[k], 2, 2, 1, 1)) {
 				return true;
 			}
@@ -34,8 +34,8 @@ function isStrictlyHorizontal(u) {
 	return u[0][0].y === u[u.length - 1][u[u.length - 1].length - 1].y;
 }
 function isVertical(radical, u, v, mh) {
-	var d1 = minmaxOfSeg(u);
-	var d2 = minmaxOfSeg(v);
+	let d1 = minmaxOfSeg(u);
+	let d2 = minmaxOfSeg(v);
 	let p = leftmostZ(u);
 	let q = leftmostZ(v);
 	return (
@@ -87,7 +87,7 @@ function findHSegInContour(r, segments, contour, strategy) {
 	let segment = [lastPoint];
 	for (let [as1, as2] of [[eqSlopeA, eqSlopeA], [approSlope, approSlopeT]]) {
 		restart(z0);
-		for (var k = 1; k < contour.points.length - 1; k++) {
+		for (let k = 1; k < contour.points.length - 1; k++) {
 			const z = contour.points[k];
 
 			if (z.interpolated || coupled[lastPoint.id]) {
@@ -117,10 +117,10 @@ function findHSegInContour(r, segments, contour, strategy) {
 
 // Stemfinding
 function findHorizontalSegments(radicals, strategy) {
-	var segments = [];
-	for (var r = 0; r < radicals.length; r++) {
-		var radicalParts = [radicals[r].outline].concat(radicals[r].holes);
-		for (var j = 0; j < radicalParts.length; j++) {
+	let segments = [];
+	for (let r = 0; r < radicals.length; r++) {
+		let radicalParts = [radicals[r].outline].concat(radicals[r].holes);
+		for (let j = 0; j < radicalParts.length; j++) {
 			findHSegInContour(r, segments, radicalParts[j], strategy);
 		}
 	}
@@ -129,9 +129,9 @@ function findHorizontalSegments(radicals, strategy) {
 		return p[0].x - q[0].x;
 	});
 	// Join segments
-	for (var j = 0; j < segments.length; j++) {
+	for (let j = 0; j < segments.length; j++) {
 		if (!segments[j]) continue;
-		var pivotRadical = segments[j].radical;
+		let pivotRadical = segments[j].radical;
 		radicals[pivotRadical].segments.push(segments[j]);
 	}
 }
@@ -142,40 +142,39 @@ function uuCouplable(sj, sk, radical, strategy) {
 	let focus = leftmostZ([sk]);
 	let desired = ref.y + (focus.x - ref.x) * slope;
 	let delta = Math.abs(focus.x - ref.x) * strategy.SLOPE_FUZZ_P + strategy.Y_FUZZ;
-	//console.log("UU", sj.map(z => z.id), sk.map(z => z.id),
-	//	focus.x, focus.y, desired, segmentJoinable(sj, sk, radical));
 	return Math.abs(focus.y - desired) <= delta && segmentJoinable(sj, sk, radical);
 }
 function udMatchable(sj, sk, radical, strategy) {
-	//console.log("UD", sj.map(z => z.id), sk.map(z => z.id), radical.includesTetragon(sj, sk));
 	return (
 		radical.includesTetragon(sj, sk) &&
-		!(!!slopeOf([sj]) !== !!slopeOf([sk]) &&
-			Math.abs(slopeOf([sj]) - slopeOf([sk])) >= strategy.SLOPE_FUZZ / 2)
+		!(
+			!!slopeOf([sj]) !== !!slopeOf([sk]) &&
+			Math.abs(slopeOf([sj]) - slopeOf([sk])) >= strategy.SLOPE_FUZZ / 2
+		)
 	);
 }
 
 function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
-	var candidate = { high: [], low: [] };
+	let candidate = { high: [], low: [] };
 	const maxh =
 		toVQ(strategy.CANONICAL_STEM_WIDTH, strategy.PPEM_MAX) *
 		strategy.CANONICAL_STEM_WIDTH_LIMIT_X;
-	var strat, end, delta;
+	let strat, end, delta;
 	if (up[j]) {
 		candidate.high.push(j);
 	} else {
 		candidate.low.push(j);
 	}
-	var rejected = [];
+	let rejected = [];
 	used[j] = true;
-	var succeed = false;
-	var foundMatch = false;
-	var rounds = 0;
+	let succeed = false;
+	let foundMatch = false;
+	let rounds = 0;
 	while (!foundMatch && rounds < 3) {
 		rounds += 1;
-		var expandingU = false;
-		var expandingD = true;
-		var pass = 0;
+		let expandingU = false;
+		let expandingD = true;
+		let pass = 0;
 		while (expandingU || expandingD) {
 			pass += 1;
 			if (pass % 2) {
@@ -183,9 +182,9 @@ function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
 			} else {
 				expandingU = false;
 			}
-			for (var k = 0; k < segs.length; k++)
+			for (let k = 0; k < segs.length; k++)
 				if (!used[k] && up[k] !== up[j] === !!(pass % 2)) {
-					var sameSide, otherSide;
+					let sameSide, otherSide;
 					if (up[k]) {
 						sameSide = candidate.high;
 						otherSide = candidate.low;
@@ -193,14 +192,14 @@ function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
 						sameSide = candidate.low;
 						otherSide = candidate.high;
 					}
-					var matchD = true;
-					var matchU = !sameSide.length;
-					for (var s = 0; s < sameSide.length; s++) {
-						var hj = sameSide[s];
+					let matchD = true;
+					let matchU = !sameSide.length;
+					for (let s = 0; s < sameSide.length; s++) {
+						let hj = sameSide[s];
 						if (graph[k][hj] === 1 || graph[hj][k] === 1) matchU = true;
 					}
-					for (var s = 0; s < otherSide.length; s++) {
-						var hj = otherSide[s];
+					for (let s = 0; s < otherSide.length; s++) {
+						let hj = otherSide[s];
 						if (graph[k][hj] !== 2 && graph[hj][k] !== 2) matchD = false;
 					}
 					if (matchU && matchD) {
@@ -216,18 +215,18 @@ function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
 		}
 		if (candidate.high.length && candidate.low.length) {
 			foundMatch = true;
-			var highEdge = [];
-			var lowEdge = [];
-			for (var m = 0; m < candidate.high.length; m++) {
+			let highEdge = [];
+			let lowEdge = [];
+			for (let m = 0; m < candidate.high.length; m++) {
 				highEdge[m] = segs[candidate.high[m]];
 			}
-			for (var m = 0; m < candidate.low.length; m++) {
+			for (let m = 0; m < candidate.low.length; m++) {
 				lowEdge[m] = segs[candidate.low[m]];
 			}
 			highEdge = highEdge.sort(by_xori);
 			lowEdge = lowEdge.sort(by_xori).reverse();
-			var segOverlap = overlapInfo(highEdge, lowEdge, strategy);
-			var hasEnoughOverlap =
+			let segOverlap = overlapInfo(highEdge, lowEdge, strategy);
+			let hasEnoughOverlap =
 				segOverlap.len / segOverlap.la >= strategy.COLLISION_MIN_OVERLAP_RATIO ||
 				segOverlap.len / segOverlap.lb >= strategy.COLLISION_MIN_OVERLAP_RATIO;
 			if (hasEnoughOverlap && !isVertical(radical, highEdge, lowEdge, maxh)) {
@@ -243,12 +242,12 @@ function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
 			// We found a stem match, but it is not good enough.
 			// We will "reject" the corresponded edge for now, and release them in the future
 			if (up[j]) {
-				for (var k = 0; k < candidate.low.length; k++) {
+				for (let k = 0; k < candidate.low.length; k++) {
 					rejected[candidate.low[k]] = true;
 				}
 				candidate.low = [];
 			} else {
-				for (var k = 0; k < candidate.high.length; k++) {
+				for (let k = 0; k < candidate.high.length; k++) {
 					rejected[candidate.high[k]] = true;
 				}
 				candidate.high = [];
@@ -256,7 +255,7 @@ function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
 			foundMatch = false;
 		}
 	}
-	for (var k = 0; k < segs.length; k++) {
+	for (let k = 0; k < segs.length; k++) {
 		if (rejected[k]) {
 			used[k] = false;
 		}
@@ -270,21 +269,22 @@ function by_xori(a, b) {
 	return b[0].y - a[0].y;
 }
 function pairSegmentsForRadical(radical, r, strategy) {
-	var graph = [], up = [];
-	var segs = radical.segments.sort(by_yori);
-	for (var j = 0; j < segs.length; j++) {
+	let graph = [],
+		up = [];
+	let segs = radical.segments.sort(by_yori);
+	for (let j = 0; j < segs.length; j++) {
 		graph[j] = [];
-		for (var k = 0; k < segs.length; k++) {
+		for (let k = 0; k < segs.length; k++) {
 			graph[j][k] = 0;
 		}
 	}
-	for (var j = 0; j < segs.length; j++) {
-		var sj = segs[j];
-		var upperEdgeJ = radical.outline.ccw !== sj[0].x < sj[sj.length - 1].x;
+	for (let j = 0; j < segs.length; j++) {
+		let sj = segs[j];
+		let upperEdgeJ = radical.outline.ccw !== sj[0].x < sj[sj.length - 1].x;
 		up[j] = upperEdgeJ;
-		for (var k = 0; k < j; k++) {
-			var sk = segs[k];
-			var upperEdgeK = radical.outline.ccw !== sk[0].x < sk[sk.length - 1].x;
+		for (let k = 0; k < j; k++) {
+			let sk = segs[k];
+			let upperEdgeK = radical.outline.ccw !== sk[0].x < sk[sk.length - 1].x;
 			if (upperEdgeJ === upperEdgeK) {
 				// Both upper
 				graph[j][k] = uuCouplable(sj, sk, radical, strategy) ? 1 : 0;
@@ -293,9 +293,9 @@ function pairSegmentsForRadical(radical, r, strategy) {
 			}
 		}
 	}
-	var candidates = [];
-	var used = [];
-	for (var j = 0; j < segs.length; j++)
+	let candidates = [];
+	let used = [];
+	for (let j = 0; j < segs.length; j++)
 		if (!used[j]) {
 			identifyStem(radical, used, segs, candidates, graph, up, j, strategy);
 		}
@@ -311,9 +311,9 @@ function pairSegmentsForRadical(radical, r, strategy) {
 }
 
 function pairSegments(radicals, strategy) {
-	var stems = [];
-	for (var r = 0; r < radicals.length; r++) {
-		var radicalStems = pairSegmentsForRadical(radicals[r], r, strategy);
+	let stems = [];
+	for (let r = 0; r < radicals.length; r++) {
+		let radicalStems = pairSegmentsForRadical(radicals[r], r, strategy);
 		stems = stems.concat(radicalStems);
 		radicals[r].stems = radicalStems;
 	}
@@ -324,12 +324,12 @@ function pairSegments(radicals, strategy) {
 
 // Symmetric stem pairing
 function pairSymmetricStems(stems, strategy) {
-	var res = [];
-	for (var j = 0; j < stems.length; j++) {
-		for (var k = j + 1; k < stems.length; k++)
+	let res = [];
+	for (let j = 0; j < stems.length; j++) {
+		for (let k = j + 1; k < stems.length; k++)
 			if (stems[j] && stems[k]) {
-				var delta1 = stems[j].belongRadical === stems[k].belongRadical ? 0.002 : 0.005;
-				var delta2 = stems[j].belongRadical === stems[k].belongRadical ? 0.001 : 0.003;
+				let delta1 = stems[j].belongRadical === stems[k].belongRadical ? 0.002 : 0.005;
+				let delta2 = stems[j].belongRadical === stems[k].belongRadical ? 0.001 : 0.003;
 				if (
 					Math.abs(stems[j].y - stems[j].width / 2 - stems[k].y + stems[k].width / 2) <=
 						strategy.UPM * delta1 &&
@@ -341,7 +341,7 @@ function pairSymmetricStems(stems, strategy) {
 				}
 			}
 	}
-	for (var j = 0; j < stems.length; j++)
+	for (let j = 0; j < stems.length; j++)
 		if (stems[j]) {
 			res.push(stems[j]);
 		}
