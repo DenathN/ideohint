@@ -170,14 +170,13 @@ function instruct(record, strategy, padding) {
 				const w0 = stem.posKeyAtTop
 					? stem.posKey.y - stem.advKey.y + (stem.advKey.x - stem.posKey.x) * stem.slope
 					: stem.advKey.y - stem.posKey.y + (stem.posKey.x - stem.advKey.x) * stem.slope;
-				const slope = stem.slope;
 				const keyDX = stem.advKey.x - stem.posKey.x;
 				if (stem.posKeyAtTop) {
 					var ypos = y * uppx;
 					var ypos0 = roundings.rtg(y0, upm, ppem);
 				} else {
-					var ypos = (y - w) * uppx - stem.keyDX * stem.slope;
-					var ypos0 = roundings.rtg(y0 - w0 - slope * keyDX, upm, ppem);
+					var ypos = (y - w) * uppx - keyDX * stem.slope;
+					var ypos0 = roundings.rtg(y0 - w0 - keyDX * stem.slope, upm, ppem);
 				}
 
 				deltas.push({
