@@ -5,6 +5,7 @@ var fs = require("fs");
 
 var DefaultStrategy = function() {
 	return {
+		FULLHINT: 0,
 		UPM: 1000,
 		BLUEZONE_WIDTH: 15,
 		PPEM_INCREASE_GLYPH_LIMIT: 18,
