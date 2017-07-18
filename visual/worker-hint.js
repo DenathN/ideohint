@@ -38,7 +38,7 @@ onmessage = function(message) {
 				g.features,
 				ppem,
 				strategy,
-				strategy.FULLHINT ? ppem > cutoff : false
+				strategy.FULLHINT ? false : ppem > cutoff
 			);
 		}
 	}
