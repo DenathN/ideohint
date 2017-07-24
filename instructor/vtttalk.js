@@ -29,7 +29,8 @@ function sanityDelta(z, d, tag) {
 	var deltas = d.filter(x => x.delta);
 	if (!deltas.length) return "";
 	let buf = [];
-	let ppemstart = 0, ppemend = 0;
+	let ppemstart = 0,
+		ppemend = 0;
 	let curdelta = 0;
 	for (let x of deltas) {
 		if (x.ppem === ppemend + 1 && x.delta === curdelta) {
@@ -65,7 +66,8 @@ function encodeAnchor(z, ref, chosen, pmin, pmax, strategy) {
 	for (let ppem = pmin; ppem <= pmax; ppem++) {
 		deltas.push({
 			ppem,
-			delta: decideDelta(ROUNDING_SEGMENTS, ref[ppem], chosen[ppem], upm, ppem) /
+			delta:
+				decideDelta(ROUNDING_SEGMENTS, ref[ppem], chosen[ppem], upm, ppem) /
 				ROUNDING_SEGMENTS
 		});
 	}
@@ -106,18 +108,19 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 			deltaPos.push(posdelta);
 			deltaADv.push({
 				ppem,
-				delta: decideDeltaShift(
-					ROUNDING_SEGMENTS,
-					-1,
-					isStrict,
-					isStacked,
-					pdst,
-					wsrc,
-					pdst,
-					wdst,
-					upm,
-					ppem
-				) / ROUNDING_SEGMENTS
+				delta:
+					decideDeltaShift(
+						ROUNDING_SEGMENTS,
+						-1,
+						isStrict,
+						isStacked,
+						pdst,
+						wsrc,
+						pdst,
+						wdst,
+						upm,
+						ppem
+					) / ROUNDING_SEGMENTS
 			});
 			pDsts[ppem] = pdst;
 		} else {
@@ -130,18 +133,19 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 			deltaPos.push(posdelta);
 			deltaADv.push({
 				ppem,
-				delta: decideDeltaShift(
-					ROUNDING_SEGMENTS,
-					1,
-					isStrict,
-					isStacked,
-					pdst,
-					wsrc,
-					pdst,
-					wdst,
-					upm,
-					ppem
-				) / ROUNDING_SEGMENTS
+				delta:
+					decideDeltaShift(
+						ROUNDING_SEGMENTS,
+						1,
+						isStrict,
+						isStacked,
+						pdst,
+						wsrc,
+						pdst,
+						wdst,
+						upm,
+						ppem
+					) / ROUNDING_SEGMENTS
 			});
 			pDsts[ppem] = psrc + posdelta.delta * (upm / ppem);
 		}
@@ -196,6 +200,8 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	const cvtBottomDId = padding + 6;
 	const cvtTopBarId = padding + 3;
 	const cvtBottomBarId = padding + 4;
+	const cvtTopBotDistId = padding + 7;
+	const cvtTopBotDDistId = padding + 8;
 
 	const { yBotBar, yTopBar, yBotD, yTopD } = getVTTAux(
 		strategy.BLUEZONE_BOTTOM_CENTER,
@@ -251,14 +257,31 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	const pDstsBot = table(pmin, pmax, ppem =>
 		roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
 	);
-	const pDstsTop = table(pmin, pmax, ppem =>
+	const pDstsTop0 = table(pmin, pmax, ppem =>
 		roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem)
+	);
+	const pDstsTop = table(
+		pmin,
+		pmax,
+		ppem =>
+			roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem) +
+			roundings.rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
 	);
 	const pDstsBotB = table(pmin, pmax, ppem => roundings.rtg(yBotBar, upm, ppem));
 	const pDstsTopB = table(pmin, pmax, ppem => roundings.rtg(yTopBar, upm, ppem));
 	const pDstsBotD = table(pmin, pmax, ppem => roundings.rtg(yBotD, upm, ppem));
 	const pDstsTopD = table(pmin, pmax, ppem => roundings.rtg(yTopD, upm, ppem));
+	const pDstsTopDLinked = table(
+		pmin,
+		pmax,
+		ppem =>
+			roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem) +
+			roundings.rtg(yTopD - yBotD, upm, ppem)
+	);
 	let candidates = [];
+
+	let hasBottommost = false;
+	let bottomMostZ = -1;
 
 	// Initialize candidates
 	for (let z of si.blue.bottomZs) {
@@ -268,27 +291,45 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 				pOrg: z.y,
 				kind: 3,
 				talk: `
+/* !!IDH!! Bottom Anchor Kind 2 */
 YAnchor(${z.id},${cvtBottomDId})
 ${encodeAnchor(z.id, pDstsBotD, pDstsBot, pmin, pmax, strategy)}`,
 				pDsts: pDstsBot
 			});
+			hasBottommost = true;
+			bottomMostZ = z.id;
 		} else {
 			candidates.push({
 				ipz: z.id,
 				pOrg: z.y,
 				kind: 3,
-				talk: `YAnchor(${z.id},${cvtBottomId})`,
+				talk: `
+/* !!IDH!! Bottom Anchor Kind 1 */
+YAnchor(${z.id},${cvtBottomId})`,
 				pDsts: pDstsBot
 			});
+			hasBottommost = true;
+			bottomMostZ = z.id;
 		}
 	}
 	for (let z of si.blue.topZs) {
-		if (Math.abs(z.y - yTopD) < Math.abs(z.y - strategy.BLUEZONE_TOP_CENTER)) {
+		if (hasBottommost) {
 			candidates.push({
 				ipz: z.id,
 				pOrg: z.y,
 				kind: 2,
 				talk: `
+/* !!IDH!! Top Anchor Kind 3 */
+YLink(${bottomMostZ},${z.id},${cvtTopBotDistId})`,
+				pDsts: pDstsTop
+			});
+		} else if (Math.abs(z.y - yTopD) < Math.abs(z.y - strategy.BLUEZONE_TOP_CENTER)) {
+			candidates.push({
+				ipz: z.id,
+				pOrg: z.y,
+				kind: 2,
+				talk: `
+/* !!IDH!! Top Anchor Kind 2 */
 YAnchor(${z.id},${cvtTopDId})
 ${encodeAnchor(z.id, pDstsTopD, pDstsTop, pmin, pmax, strategy)}`,
 				pDsts: pDstsTop
@@ -298,7 +339,10 @@ ${encodeAnchor(z.id, pDstsTopD, pDstsTop, pmin, pmax, strategy)}`,
 				ipz: z.id,
 				pOrg: z.y,
 				kind: 2,
-				talk: `YAnchor(${z.id},${cvtTopId})`,
+				talk: `
+/* !!IDH!! Top Anchor Kind 1 */
+YAnchor(${z.id},${cvtTopId})
+${encodeAnchor(z.id, pDstsTop0, pDstsTop, pmin, pmax, strategy)}`,
 				pDsts: pDstsTop
 			});
 		}
@@ -455,7 +499,9 @@ function generateCVT(cvt, cvtPadding, strategy) {
 		.replace(new RegExp(`${cvtPadding + 3}` + "\\s*:\\s*-?\\d+"), "")
 		.replace(new RegExp(`${cvtPadding + 4}` + "\\s*:\\s*-?\\d+"), "")
 		.replace(new RegExp(`${cvtPadding + 5}` + "\\s*:\\s*-?\\d+"), "")
-		.replace(new RegExp(`${cvtPadding + 6}` + "\\s*:\\s*-?\\d+"), "");
+		.replace(new RegExp(`${cvtPadding + 6}` + "\\s*:\\s*-?\\d+"), "")
+		.replace(new RegExp(`${cvtPadding + 7}` + "\\s*:\\s*-?\\d+"), "")
+		.replace(new RegExp(`${cvtPadding + 8}` + "\\s*:\\s*-?\\d+"), "");
 	return (
 		cvt +
 		`
@@ -467,6 +513,8 @@ ${cvtPadding + 3} : ${yTopBar}
 ${cvtPadding + 4} : ${yBotBar}
 ${cvtPadding + 5} : ${yTopD}
 ${cvtPadding + 6} : ${yBotD}
+${cvtPadding + 7} : ${strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER}
+${cvtPadding + 8} : ${yTopD - yBotD}
 `
 	);
 }

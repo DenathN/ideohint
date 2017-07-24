@@ -29,7 +29,9 @@ class Hinter {
 		this.upm = upm;
 		this.uppx = upm / this.ppem;
 
-		this.glyphTop = this.round(strategy.BLUEZONE_TOP_CENTER);
+		this.glyphTop =
+			this.round(strategy.BLUEZONE_BOTTOM_CENTER) +
+			this.round(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER);
 		this.glyphBottom = this.round(strategy.BLUEZONE_BOTTOM_CENTER);
 
 		// SWP
@@ -110,14 +112,22 @@ class Hinter {
 		return (
 			!stem.hasSameRadicalStemAbove &&
 			!(stem.hasRadicalPointAbove && stem.radicalCenterRise > this.STEM_CENTER_MIN_RISE) &&
-			!(stem.hasRadicalLeftAdjacentPointAbove &&
-				stem.radicalLeftAdjacentRise > this.STEM_SIDE_MIN_RISE) &&
-			!(stem.hasRadicalRightAdjacentPointAbove &&
-				stem.radicalRightAdjacentRise > this.STEM_SIDE_MIN_RISE) &&
-			!(stem.hasRadicalLeftDistancedPointAbove &&
-				stem.radicalLeftDistancedRise > this.STEM_SIDE_MIN_DIST_RISE) &&
-			!(stem.hasRadicalRightDistancedPointAbove &&
-				stem.radicalRightDistancedRise > this.STEM_SIDE_MIN_DIST_RISE)
+			!(
+				stem.hasRadicalLeftAdjacentPointAbove &&
+				stem.radicalLeftAdjacentRise > this.STEM_SIDE_MIN_RISE
+			) &&
+			!(
+				stem.hasRadicalRightAdjacentPointAbove &&
+				stem.radicalRightAdjacentRise > this.STEM_SIDE_MIN_RISE
+			) &&
+			!(
+				stem.hasRadicalLeftDistancedPointAbove &&
+				stem.radicalLeftDistancedRise > this.STEM_SIDE_MIN_DIST_RISE
+			) &&
+			!(
+				stem.hasRadicalRightDistancedPointAbove &&
+				stem.radicalRightDistancedRise > this.STEM_SIDE_MIN_DIST_RISE
+			)
 		);
 	}
 	atGlyphTop(stem) {
@@ -125,26 +135,40 @@ class Hinter {
 			this.atRadicalTop(stem) &&
 			!stem.hasGlyphStemAbove &&
 			!(stem.hasGlyphPointAbove && stem.glyphCenterRise > this.STEM_CENTER_MIN_RISE) &&
-			!(stem.hasGlyphLeftAdjacentPointAbove &&
-				stem.glyphLeftAdjacentRise > this.STEM_SIDE_MIN_RISE) &&
-			!(stem.hasGlyphRightAdjacentPointAbove &&
-				stem.glyphRightAdjacentRise > this.STEM_SIDE_MIN_RISE)
+			!(
+				stem.hasGlyphLeftAdjacentPointAbove &&
+				stem.glyphLeftAdjacentRise > this.STEM_SIDE_MIN_RISE
+			) &&
+			!(
+				stem.hasGlyphRightAdjacentPointAbove &&
+				stem.glyphRightAdjacentRise > this.STEM_SIDE_MIN_RISE
+			)
 		);
 	}
 
 	atRadicalBottom(stem) {
 		return (
 			!stem.hasSameRadicalStemBelow &&
-			!(stem.hasRadicalPointBelow &&
-				stem.radicalCenterDescent > this.STEM_CENTER_MIN_DESCENT) &&
-			!(stem.hasRadicalLeftAdjacentPointBelow &&
-				stem.radicalLeftAdjacentDescent > this.STEM_SIDE_MIN_DESCENT) &&
-			!(stem.hasRadicalRightAdjacentPointBelow &&
-				stem.radicalRightAdjacentDescent > this.STEM_SIDE_MIN_DESCENT) &&
-			!(stem.hasRadicalLeftDistancedPointBelow &&
-				stem.radicalLeftDistancedDescent > this.STEM_SIDE_MIN_DIST_DESCENT) &&
-			!(stem.hasRadicalRightDistancedPointBelow &&
-				stem.radicalRightDistancedDescent > this.STEM_SIDE_MIN_DIST_DESCENT)
+			!(
+				stem.hasRadicalPointBelow &&
+				stem.radicalCenterDescent > this.STEM_CENTER_MIN_DESCENT
+			) &&
+			!(
+				stem.hasRadicalLeftAdjacentPointBelow &&
+				stem.radicalLeftAdjacentDescent > this.STEM_SIDE_MIN_DESCENT
+			) &&
+			!(
+				stem.hasRadicalRightAdjacentPointBelow &&
+				stem.radicalRightAdjacentDescent > this.STEM_SIDE_MIN_DESCENT
+			) &&
+			!(
+				stem.hasRadicalLeftDistancedPointBelow &&
+				stem.radicalLeftDistancedDescent > this.STEM_SIDE_MIN_DIST_DESCENT
+			) &&
+			!(
+				stem.hasRadicalRightDistancedPointBelow &&
+				stem.radicalRightDistancedDescent > this.STEM_SIDE_MIN_DIST_DESCENT
+			)
 		);
 	}
 
@@ -153,10 +177,14 @@ class Hinter {
 			this.atRadicalBottom(stem) &&
 			!stem.hasGlyphStemBelow &&
 			!(stem.hasGlyphPointBelow && stem.glyphCenterDescent > this.STEM_CENTER_MIN_DESCENT) &&
-			!(stem.hasGlyphLeftAdjacentPointBelow &&
-				stem.glyphLeftAdjacentDescent > this.STEM_SIDE_MIN_DESCENT) &&
-			!(stem.hasGlyphRightAdjacentPointBelow &&
-				stem.glyphRightAdjacentDescent > this.STEM_SIDE_MIN_DESCENT)
+			!(
+				stem.hasGlyphLeftAdjacentPointBelow &&
+				stem.glyphLeftAdjacentDescent > this.STEM_SIDE_MIN_DESCENT
+			) &&
+			!(
+				stem.hasGlyphRightAdjacentPointBelow &&
+				stem.glyphRightAdjacentDescent > this.STEM_SIDE_MIN_DESCENT
+			)
 		);
 	}
 
@@ -173,7 +201,8 @@ class Hinter {
 			if (this.WIDTH_GEAR_MIN < 3) {
 				pixels = this.WIDTH_GEAR_MIN;
 			} else if (
-				pixels < this.WIDTH_GEAR_MIN - 0.8 && this.WIDTH_GEAR_MIN === this.WIDTH_GEAR_PROPER
+				pixels < this.WIDTH_GEAR_MIN - 0.8 &&
+				this.WIDTH_GEAR_MIN === this.WIDTH_GEAR_PROPER
 			) {
 				pixels = this.WIDTH_GEAR_MIN - 1;
 			} else {
@@ -325,7 +354,9 @@ class Avail {
 			strategy.BLUEZONE_TOP_CENTER,
 			1 / 3
 		);
-		const y0 = stem.y, w0 = stem.width, w = tw * uppx;
+		const y0 = stem.y,
+			w0 = stem.width,
+			w = tw * uppx;
 		// The bottom limit of a stem
 		let lowlimit =
 			env.glyphBottom +
@@ -334,10 +365,10 @@ class Avail {
 				stem.diagLow
 					? env.BOTTOM_CUT_DIAGL
 					: stem.diagHigh
-							? env.BOTTOM_CUT_DIAGL + env.BOTTOM_CUT_DIAG_DIST
-							: env.BOTTOM_CUT,
+						? env.BOTTOM_CUT_DIAGL + env.BOTTOM_CUT_DIAG_DIST
+						: env.BOTTOM_CUT,
 				env.atGlyphBottom(stem)
-					? stem.diagHigh ? ppem <= env.PPEM_INCREASE_GLYPH_LIMIT ? w : w + uppx : w
+					? stem.diagHigh ? (ppem <= env.PPEM_INCREASE_GLYPH_LIMIT ? w : w + uppx) : w
 					: w + uppx
 			);
 		let fold = false;
@@ -391,13 +422,14 @@ class Avail {
 		const high = xclamp(lowlimit, env.round(center0 + maxShiftU * uppx), highlimit);
 		const center = xclamp(low, center0, high);
 
-		const ablationCoeff = env.atGlyphTop(stem) || env.atGlyphBottom(stem)
-			? env.strategy.ABLATION_GLYPH_HARD_EDGE
-			: !stem.hasGlyphStemAbove || !stem.hasGlyphStemBelow
+		const ablationCoeff =
+			env.atGlyphTop(stem) || env.atGlyphBottom(stem)
+				? env.strategy.ABLATION_GLYPH_HARD_EDGE
+				: !stem.hasGlyphStemAbove || !stem.hasGlyphStemBelow
 					? env.strategy.ABLATION_GLYPH_EDGE
 					: !stem.hasSameRadicalStemAbove || !stem.hasSameRadicalStemBelow
-							? env.strategy.ABLATION_RADICAL_EDGE
-							: env.strategy.ABLATION_IN_RADICAL;
+						? env.strategy.ABLATION_RADICAL_EDGE
+						: env.strategy.ABLATION_IN_RADICAL;
 
 		// limit of the stroke's y, when positioning, in pixels
 		this.low = Math.round(low / uppx);
@@ -525,7 +557,8 @@ function flexCenter(avaliables, stems) {
 	const { upm, ppem, uppx } = this;
 	// fix top and bottom stems
 	for (var j = 0; j < stems.length; j++) {
-		const avail = avaliables[j], stem = stems[j];
+		const avail = avaliables[j],
+			stem = stems[j];
 		if (!stem.hasGlyphStemBelow) {
 			avail.high = Math.round(
 				Math.max(
@@ -543,10 +576,14 @@ function flexCenter(avaliables, stems) {
 			!avail.diagLow &&
 			avail.high - avail.low <= 1 &&
 			avail.low <= this.glyphBottom / uppx + avail.properWidth + 0.1 &&
-			!(stem.hasRadicalLeftAdjacentPointBelow &&
-				stem.radicalLeftAdjacentDescent > this.strategy.STEM_SIDE_MIN_DESCENT / 3) &&
-			!(stem.hasRadicalRightAdjacentPointBelow &&
-				stem.radicalRightAdjacentDescent > this.strategy.STEM_SIDE_MIN_DESCENT / 3)
+			!(
+				stem.hasRadicalLeftAdjacentPointBelow &&
+				stem.radicalLeftAdjacentDescent > this.strategy.STEM_SIDE_MIN_DESCENT / 3
+			) &&
+			!(
+				stem.hasRadicalRightAdjacentPointBelow &&
+				stem.radicalRightAdjacentDescent > this.strategy.STEM_SIDE_MIN_DESCENT / 3
+			)
 		) {
 			// Lock the bottommost stroke
 			avail.high -= 1;

@@ -18,8 +18,7 @@ function IUPy(contours) {
 	for (var j = 0; j < contours.length; j++) {
 		var contour = contours[j];
 		var k = 0;
-		while (k < contour.points.length && !contour.points[k].touched)
-			k++;
+		while (k < contour.points.length && !contour.points[k].touched) k++;
 		if (contour.points[k]) {
 			// Found a touched point in contour
 			// Copy coordinates for first/last point
@@ -27,12 +26,14 @@ function IUPy(contours) {
 				contour.points[contour.points.length - 1].touched = true;
 				contour.points[contour.points.length - 1].ytouch = contour.points[0].ytouch;
 			} else if (
-				!contour.points[0].touched && contour.points[contour.points.length - 1].touched
+				!contour.points[0].touched &&
+				contour.points[contour.points.length - 1].touched
 			) {
 				contour.points[0].touched = true;
 				contour.points[0].ytouch = contour.points[contour.points.length - 1].ytouch;
 			}
-			var kleft = k, k0 = k;
+			var kleft = k,
+				k0 = k;
 			var untoucheds = [];
 			for (var k = 0; k <= contour.points.length; k++) {
 				var ki = (k + k0) % contour.points.length;
@@ -74,7 +75,8 @@ function interpretTT(glyphs, strategy, ppem) {
 	const uppx = strategy.UPM / ppem;
 
 	for (var j = 0; j < glyphs.length; j++) {
-		var glyph = glyphs[j].glyph, features = glyphs[j].features;
+		var glyph = glyphs[j].glyph,
+			features = glyphs[j].features;
 		untouchAll(glyph.contours);
 		var actions = glyphs[j].hints[ppem];
 
@@ -86,8 +88,11 @@ function interpretTT(glyphs, strategy, ppem) {
 		// Top blues
 		features.blueZoned.topZs.forEach(function(z) {
 			glyph.indexedPoints[z.id].touched = true;
-			glyph.indexedPoints[z.id].ytouch = rtg(strategy.BLUEZONE_TOP_CENTER);
-			//glyph.indexedPoints[pid].ytouch = Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER) + rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER));
+			//glyph.indexedPoints[z.id].ytouch = rtg(strategy.BLUEZONE_TOP_CENTER);
+			glyph.indexedPoints[z.id].ytouch = Math.round(
+				rtg(strategy.BLUEZONE_BOTTOM_CENTER) +
+					rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER)
+			);
 		});
 		// Stems
 		actions.y.forEach(function(action, j) {
