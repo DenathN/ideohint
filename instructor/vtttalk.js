@@ -281,7 +281,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	let candidates = [];
 
 	let hasBottommost = false;
-	let bottomMostZ = -1;
+	let bottomMostZ = null;
 
 	// Initialize candidates
 	for (let z of si.blue.bottomZs) {
@@ -296,8 +296,14 @@ YAnchor(${z.id},${cvtBottomDId})
 ${encodeAnchor(z.id, pDstsBotD, pDstsBot, pmin, pmax, strategy)}`,
 				pDsts: pDstsBot
 			});
-			hasBottommost = true;
-			bottomMostZ = z.id;
+			if (
+				!hasBottommost ||
+				z.y < bottomMostZ.y ||
+				(z.y === bottomMostZ.y && z.x < bottomMostZ.x)
+			) {
+				hasBottommost = true;
+				bottomMostZ = z;
+			}
 		} else {
 			candidates.push({
 				ipz: z.id,
@@ -308,22 +314,29 @@ ${encodeAnchor(z.id, pDstsBotD, pDstsBot, pmin, pmax, strategy)}`,
 YAnchor(${z.id},${cvtBottomId})`,
 				pDsts: pDstsBot
 			});
-			hasBottommost = true;
-			bottomMostZ = z.id;
+			if (
+				!hasBottommost ||
+				z.y < bottomMostZ.y ||
+				(z.y === bottomMostZ.y && z.x < bottomMostZ.x)
+			) {
+				hasBottommost = true;
+				bottomMostZ = z;
+			}
 		}
 	}
 	for (let z of si.blue.topZs) {
-		if (hasBottommost) {
-			candidates.push({
-				ipz: z.id,
-				pOrg: z.y,
-				kind: 2,
-				talk: `
-/* !!IDH!! Top Anchor Kind 3 */
-YLink(${bottomMostZ},${z.id},${cvtTopBotDistId})`,
-				pDsts: pDstsTop
-			});
-		} else if (Math.abs(z.y - yTopD) < Math.abs(z.y - strategy.BLUEZONE_TOP_CENTER)) {
+		// 		if (hasBottommost) {
+		// 			candidates.push({
+		// 				ipz: z.id,
+		// 				pOrg: z.y,
+		// 				kind: 2,
+		// 				talk: `
+		// /* !!IDH!! Top Anchor Kind 3 */
+		// YLink(${bottomMostZ.id},${z.id},${cvtTopBotDistId})`,
+		// 				pDsts: pDstsTop
+		// 			});
+		// 		} else
+		if (Math.abs(z.y - yTopD) < Math.abs(z.y - strategy.BLUEZONE_TOP_CENTER)) {
 			candidates.push({
 				ipz: z.id,
 				pOrg: z.y,
