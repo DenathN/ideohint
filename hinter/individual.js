@@ -3,9 +3,14 @@
 const DIAG_BIAS_PIXELS = 1 / 6;
 
 function collidePotential(y, env) {
-	var A = env.A, C = env.C, S = env.S, P = env.P;
-	var avaliables = env.avaliables, sym = env.symmetry;
-	var p = 0, n = y.length;
+	var A = env.A,
+		C = env.C,
+		S = env.S,
+		P = env.P;
+	var avaliables = env.avaliables,
+		sym = env.symmetry;
+	var p = 0,
+		n = y.length;
 	for (var j = 0; j < n; j++) {
 		for (var k = 0; k < j; k++) {
 			if (y[j] === y[k]) {
@@ -17,7 +22,8 @@ function collidePotential(y, env) {
 			if (
 				avaliables[j].rid &&
 				avaliables[j].rid === avaliables[k].rid &&
-				y[j] - y[k] > Math.round((avaliables[j].y0 - avaliables[k].y0) / env.uppx + DIAG_BIAS_PIXELS)
+				y[j] - y[k] >
+					Math.round((avaliables[j].y0 - avaliables[k].y0) / env.uppx + DIAG_BIAS_PIXELS)
 			) {
 				p += S[j][k]; // diagonal break
 			}
@@ -49,24 +55,36 @@ function collidePotential(y, env) {
 	return p;
 }
 function ablationPotential(y, env) {
-	var avaliables = env.avaliables, triplets = env.triplets, dovs = env.directOverlaps;
+	var avaliables = env.avaliables,
+		triplets = env.triplets,
+		dovs = env.directOverlaps;
 	var blueFuzz = env.strategy.BLUEZONE_WIDTH;
 	var p = 0;
 	var n = y.length;
 	for (var j = 0; j < y.length; j++) {
 		p += avaliables[j].ablationCoeff * env.uppx * Math.abs(y[j] - avaliables[j].center);
 		if (y[j] > avaliables[j].softHigh) {
-			p += env.strategy.COEFF_PORPORTION_DISTORTION * env.uppx * Math.min(1, y[j] - avaliables[j].softHigh);
+			p +=
+				env.strategy.COEFF_PORPORTION_DISTORTION *
+				env.uppx *
+				Math.min(1, y[j] - avaliables[j].softHigh);
 		}
 		if (y[j] < avaliables[j].softLow) {
-			p += env.strategy.COEFF_PORPORTION_DISTORTION * env.uppx * Math.min(1, avaliables[j].softHigh - y[j]);
+			p +=
+				env.strategy.COEFF_PORPORTION_DISTORTION *
+				env.uppx *
+				Math.min(1, avaliables[j].softHigh - y[j]);
 		}
 	}
 
+	const finelimit = env.uppx / 4;
 	const dlimit = env.uppx / 3;
 	const dlimitx = 2 * env.uppx / 3;
 	for (var t = 0; t < triplets.length; t++) {
-		var j = triplets[t][0], k = triplets[t][1], w = triplets[t][2], d = triplets[t][3];
+		var j = triplets[t][0],
+			k = triplets[t][1],
+			w = triplets[t][2],
+			d = triplets[t][3];
 		if (!(y[j] > y[k] && y[k] > y[w])) continue;
 		var spacejk = y[j] - y[k] - avaliables[j].properWidth;
 		var spacekw = y[k] - y[w] - avaliables[k].properWidth;
@@ -75,6 +93,7 @@ function ablationPotential(y, env) {
 			(d >= dlimit && spacejk < spacekw) ||
 			(d <= -dlimitx && spacejk >= spacekw) ||
 			(d <= -dlimit && spacejk > spacekw) ||
+			(d < finelimit && d > -finelimit && spacejk !== spacekw) ||
 			(d < dlimit && d > -dlimit && (spacejk - spacekw > 1 || spacejk - spacekw < -1))
 		) {
 			p += (env.C[j][k] + env.C[k][w]) * env.strategy.COEFF_DISTORT;

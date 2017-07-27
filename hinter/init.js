@@ -357,6 +357,8 @@ class Avail {
 		const y0 = stem.y,
 			w0 = stem.width,
 			w = tw * uppx;
+		this.atGlyphTop = env.atGlyphTop(stem);
+		this.atGlyphBottom = env.atGlyphBottom(stem);
 		// The bottom limit of a stem
 		let lowlimit =
 			env.glyphBottom +
@@ -367,7 +369,7 @@ class Avail {
 					: stem.diagHigh
 						? env.BOTTOM_CUT_DIAGL + env.BOTTOM_CUT_DIAG_DIST
 						: env.BOTTOM_CUT,
-				env.atGlyphBottom(stem)
+				this.atGlyphBottom
 					? stem.diagHigh ? (ppem <= env.PPEM_INCREASE_GLYPH_LIMIT ? w : w + uppx) : w
 					: w + uppx
 			);
@@ -400,7 +402,7 @@ class Avail {
 					? env.TOP_CUT_DIAGH
 					: stem.diagLow ? env.TOP_CUT_DIAGH + env.TOP_CUT_DIAG_DIST : env.TOP_CUT,
 				// spatial part
-				env.atGlyphTop(stem) ? 0 : uppx
+				this.atGlyphTop ? 0 : uppx
 			);
 
 		if (stem.hasEntireContourAbove) {
@@ -411,7 +413,7 @@ class Avail {
 			y0,
 			w0,
 			w,
-			(env.atGlyphTop(stem) && stem.diagHigh) || (env.atGlyphBottom(stem) && stem.diagLow),
+			(this.atGlyphTop && stem.diagHigh) || (this.atGlyphBottom && stem.diagLow),
 			stem.posKeyAtTop
 		);
 		const [maxShiftD, maxShiftU] = decideMaxShift(y0, w0, ppem, tightness, strategy);
