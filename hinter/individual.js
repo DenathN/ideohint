@@ -57,46 +57,50 @@ function collidePotential(y, env) {
 function ablationPotential(y, env) {
 	var avaliables = env.avaliables,
 		triplets = env.triplets,
-		dovs = env.directOverlaps;
+		dovs = env.directOverlaps,
+		uppx = env.uppx;
 	var blueFuzz = env.strategy.BLUEZONE_WIDTH;
 	var p = 0;
 	var n = y.length;
 	for (var j = 0; j < y.length; j++) {
-		p += avaliables[j].ablationCoeff * env.uppx * Math.abs(y[j] - avaliables[j].center);
+		p += avaliables[j].ablationCoeff * uppx * Math.abs(y[j] - avaliables[j].center);
 		if (y[j] > avaliables[j].softHigh) {
 			p +=
 				env.strategy.COEFF_PORPORTION_DISTORTION *
-				env.uppx *
+				uppx *
 				Math.min(1, y[j] - avaliables[j].softHigh);
 		}
 		if (y[j] < avaliables[j].softLow) {
 			p +=
 				env.strategy.COEFF_PORPORTION_DISTORTION *
-				env.uppx *
+				uppx *
 				Math.min(1, avaliables[j].softHigh - y[j]);
 		}
 	}
 
-	const finelimit = env.uppx / 4;
-	const dlimit = env.uppx / 3;
-	const dlimitx = 2 * env.uppx / 3;
-	for (var t = 0; t < triplets.length; t++) {
-		var j = triplets[t][0],
-			k = triplets[t][1],
-			w = triplets[t][2],
-			d = triplets[t][3];
+	const finelimit = uppx / 5;
+	const dlimit = uppx / 3;
+	const dlimitx = 2 * uppx / 3;
+	for (let [j, k, w, d1, d2] of triplets) {
+		const d = d1 - d2;
 		if (!(y[j] > y[k] && y[k] > y[w])) continue;
-		var spacejk = y[j] - y[k] - avaliables[j].properWidth;
-		var spacekw = y[k] - y[w] - avaliables[k].properWidth;
+		const spacejk = y[j] - y[k] - avaliables[j].properWidth;
+		const spacekw = y[k] - y[w] - avaliables[k].properWidth;
+		const expanded = spacejk * uppx > d1 + dlimitx && spacekw * uppx > d2 + dlimitx;
+		const compressed = spacejk * uppx < d1 - dlimitx && spacekw * uppx < d2 - dlimitx;
 		if (
 			(d >= dlimitx && spacejk <= spacekw) ||
 			(d >= dlimit && spacejk < spacekw) ||
 			(d <= -dlimitx && spacejk >= spacekw) ||
 			(d <= -dlimit && spacejk > spacekw) ||
+			(d < dlimit && d > -dlimit && (compressed || expanded))
+		) {
+			p += (env.C[j][k] + env.C[k][w]) * env.strategy.COEFF_DISTORT;
+		} else if (
 			(d < finelimit && d > -finelimit && spacejk !== spacekw) ||
 			(d < dlimit && d > -dlimit && (spacejk - spacekw > 1 || spacejk - spacekw < -1))
 		) {
-			p += (env.C[j][k] + env.C[k][w]) * env.strategy.COEFF_DISTORT;
+			p += (env.C[j][k] + env.C[k][w]) * env.strategy.COEFF_DISTORT / 2;
 		}
 	}
 	return p;
