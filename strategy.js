@@ -82,6 +82,7 @@ var DefaultStrategy = function() {
 		DONT_ADJUST_STEM_WIDTH: false,
 		WIDTH_ALLOCATION_PASSES: 5,
 		STACK_DEPTH: 200,
+		PRIORITIZE_POSKEY_AT_BOTTOM: 0,
 
 		RISE: 0,
 		SINK: 0,

@@ -7,6 +7,7 @@ const monoip = require("../support/monotonic-interpolate");
 const Individual = require("./individual");
 const uncollide = require("./uncollide");
 const allocateWidth = require("./allocate-width");
+const stemSpat = require("../support/stem-spatial");
 
 function toVQ(v, ppem) {
 	if (v && v instanceof Array) {
@@ -109,83 +110,16 @@ class Hinter {
 		return roundings.rtg(x, this.upm, this.ppem);
 	}
 	atRadicalTop(stem) {
-		return (
-			!stem.hasSameRadicalStemAbove &&
-			!(stem.hasRadicalPointAbove && stem.radicalCenterRise > this.STEM_CENTER_MIN_RISE) &&
-			!(
-				stem.hasRadicalLeftAdjacentPointAbove &&
-				stem.radicalLeftAdjacentRise > this.STEM_SIDE_MIN_RISE
-			) &&
-			!(
-				stem.hasRadicalRightAdjacentPointAbove &&
-				stem.radicalRightAdjacentRise > this.STEM_SIDE_MIN_RISE
-			) &&
-			!(
-				stem.hasRadicalLeftDistancedPointAbove &&
-				stem.radicalLeftDistancedRise > this.STEM_SIDE_MIN_DIST_RISE
-			) &&
-			!(
-				stem.hasRadicalRightDistancedPointAbove &&
-				stem.radicalRightDistancedRise > this.STEM_SIDE_MIN_DIST_RISE
-			)
-		);
+		return stemSpat.atRadicalTop(stem, this);
 	}
 	atGlyphTop(stem) {
-		return (
-			this.atRadicalTop(stem) &&
-			!stem.hasGlyphStemAbove &&
-			!(stem.hasGlyphPointAbove && stem.glyphCenterRise > this.STEM_CENTER_MIN_RISE) &&
-			!(
-				stem.hasGlyphLeftAdjacentPointAbove &&
-				stem.glyphLeftAdjacentRise > this.STEM_SIDE_MIN_RISE
-			) &&
-			!(
-				stem.hasGlyphRightAdjacentPointAbove &&
-				stem.glyphRightAdjacentRise > this.STEM_SIDE_MIN_RISE
-			)
-		);
+		return stemSpat.atGlyphTop(stem, this);
 	}
-
 	atRadicalBottom(stem) {
-		return (
-			!stem.hasSameRadicalStemBelow &&
-			!(
-				stem.hasRadicalPointBelow &&
-				stem.radicalCenterDescent > this.STEM_CENTER_MIN_DESCENT
-			) &&
-			!(
-				stem.hasRadicalLeftAdjacentPointBelow &&
-				stem.radicalLeftAdjacentDescent > this.STEM_SIDE_MIN_DESCENT
-			) &&
-			!(
-				stem.hasRadicalRightAdjacentPointBelow &&
-				stem.radicalRightAdjacentDescent > this.STEM_SIDE_MIN_DESCENT
-			) &&
-			!(
-				stem.hasRadicalLeftDistancedPointBelow &&
-				stem.radicalLeftDistancedDescent > this.STEM_SIDE_MIN_DIST_DESCENT
-			) &&
-			!(
-				stem.hasRadicalRightDistancedPointBelow &&
-				stem.radicalRightDistancedDescent > this.STEM_SIDE_MIN_DIST_DESCENT
-			)
-		);
+		return stemSpat.atRadicalBottom(stem, this);
 	}
-
 	atGlyphBottom(stem) {
-		return (
-			this.atRadicalBottom(stem) &&
-			!stem.hasGlyphStemBelow &&
-			!(stem.hasGlyphPointBelow && stem.glyphCenterDescent > this.STEM_CENTER_MIN_DESCENT) &&
-			!(
-				stem.hasGlyphLeftAdjacentPointBelow &&
-				stem.glyphLeftAdjacentDescent > this.STEM_SIDE_MIN_DESCENT
-			) &&
-			!(
-				stem.hasGlyphRightAdjacentPointBelow &&
-				stem.glyphRightAdjacentDescent > this.STEM_SIDE_MIN_DESCENT
-			)
-		);
+		return stemSpat.atGlyphBottom(stem, this);
 	}
 
 	calculateWidthOfStem(w, coordinate) {

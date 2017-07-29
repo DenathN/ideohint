@@ -3,6 +3,7 @@
 const slopeOf = require("../types").slopeOf;
 const hlkey = require("../findstem/hlkey");
 const { mix } = require("../support/common");
+const { atGlyphBottom } = require("../support/stem-spatial");
 
 function keyptPriority(incoming, current, atr) {
 	if (atr) {
@@ -10,37 +11,6 @@ function keyptPriority(incoming, current, atr) {
 	} else {
 		return current.x > incoming.x;
 	}
-}
-
-function atRadicalBottom(s, strategy) {
-	return (
-		!s.hasSameRadicalStemBelow &&
-		!(s.hasRadicalPointBelow && s.radicalCenterDescent > strategy.STEM_CENTER_MIN_DESCENT) &&
-		!(
-			s.hasRadicalLeftAdjacentPointBelow &&
-			s.radicalLeftAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT
-		) &&
-		!(
-			s.hasRadicalRightAdjacentPointBelow &&
-			s.radicalRightAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT
-		)
-	);
-}
-
-function atGlyphBottom(stem, strategy) {
-	return (
-		atRadicalBottom(stem, strategy) &&
-		!stem.hasGlyphStemBelow &&
-		!(stem.hasGlyphPointBelow && stem.glyphCenterDescent > strategy.STEM_CENTER_MIN_DESCENT) &&
-		!(
-			stem.hasGlyphLeftAdjacentPointBelow &&
-			stem.glyphLeftAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT
-		) &&
-		!(
-			stem.hasGlyphRightAdjacentPointBelow &&
-			stem.glyphRightAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT
-		)
-	);
 }
 
 function hasGreaterUpperPromixity(stems, js, dov, P) {
@@ -60,11 +30,13 @@ module.exports = function(glyph, strategy, dov, P) {
 		// posKeyShouldAtBottom : a bottom stem?
 		const { highkey, lowkey, slope } = hlkey.correctYWForStem(s, strategy);
 		highkey.touched = lowkey.touched = true;
-
-		const posKeyShouldAtBottom =
-			atGlyphBottom(s, strategy) &&
-			(s.hasGlyphStemAbove ||
-				s.y <= mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 0.1));
+		// when PRIORITIZE_POSKEY_AT_BOTTOM is set, posKeyShouldAtBottom is decided ONLY by whether a stem
+		// has another stem above it.
+		const posKeyShouldAtBottom = strategy.PRIORITIZE_POSKEY_AT_BOTTOM
+			? s.hasGlyphStemAbove
+			: atGlyphBottom(s, strategy) &&
+				(s.hasGlyphStemAbove ||
+					s.y <= mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 0.1));
 
 		// get non-key points
 		let highnonkey = [],

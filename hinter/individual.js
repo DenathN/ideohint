@@ -78,29 +78,30 @@ function ablationPotential(y, env) {
 		}
 	}
 
-	const finelimit = uppx / 5;
+	const finelimit = uppx / 8;
 	const dlimit = uppx / 3;
 	const dlimitx = 2 * uppx / 3;
+	const compressLimit = 3 * uppx / 4;
 	for (let [j, k, w, d1, d2] of triplets) {
 		const d = d1 - d2;
 		if (!(y[j] > y[k] && y[k] > y[w])) continue;
 		const spacejk = y[j] - y[k] - avaliables[j].properWidth;
 		const spacekw = y[k] - y[w] - avaliables[k].properWidth;
-		const expanded = spacejk * uppx > d1 + dlimitx && spacekw * uppx > d2 + dlimitx;
-		const compressed = spacejk * uppx < d1 - dlimitx && spacekw * uppx < d2 - dlimitx;
+		const expanded = spacejk * uppx > d1 + compressLimit && spacekw * uppx > d2 + compressLimit;
+		const compressed =
+			spacejk * uppx < d1 - compressLimit && spacekw * uppx < d2 - compressLimit;
 		if (
 			(d >= dlimitx && spacejk <= spacekw) ||
 			(d >= dlimit && spacejk < spacekw) ||
 			(d <= -dlimitx && spacejk >= spacekw) ||
 			(d <= -dlimit && spacejk > spacekw) ||
+			(d < dlimit && d > -dlimit && (spacejk - spacekw > 1 || spacejk - spacekw < -1)) ||
 			(d < dlimit && d > -dlimit && (compressed || expanded))
 		) {
 			p += (env.C[j][k] + env.C[k][w]) * env.strategy.COEFF_DISTORT;
-		} else if (
-			(d < finelimit && d > -finelimit && spacejk !== spacekw) ||
-			(d < dlimit && d > -dlimit && (spacejk - spacekw > 1 || spacejk - spacekw < -1))
-		) {
-			p += (env.C[j][k] + env.C[k][w]) * env.strategy.COEFF_DISTORT / 2;
+		}
+		if (d < finelimit && d > -finelimit && spacejk !== spacekw) {
+			p += (env.C[j][k] + env.C[k][w]) * env.strategy.COEFF_DISTORT / 3;
 		}
 	}
 	return p;
