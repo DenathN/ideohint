@@ -25,39 +25,38 @@ function formatdelta(delta) {
 		return "" + u;
 	}
 }
+
+function encodeDelta(quantity, _ppems) {
+	const ppems = [..._ppems.sort((a, b) => a - b), 0];
+	let ppemstart = 0,
+		ppemend = 0;
+	let buf = [];
+	for (let ppem of ppems) {
+		if (ppem === ppemend + 1) {
+			ppemend += 1;
+		} else {
+			if (ppemstart > 0) {
+				buf.push(ppemend > ppemstart ? ppemstart + ".." + ppemend : "" + ppemstart);
+			}
+			ppemstart = ppemend = ppem;
+		}
+	}
+	return quantity + "@" + buf.join(";");
+}
 function sanityDelta(z, d, tag) {
 	var deltas = d.filter(x => x.delta);
 	if (!deltas.length) return "";
-	let buf = [];
-	let ppemstart = 0,
-		ppemend = 0;
-	let curdelta = 0;
-	for (let x of deltas) {
-		if (x.ppem === ppemend + 1 && x.delta === curdelta) {
-			ppemend += 1;
-		} else {
-			if (curdelta)
-				buf.push(
-					formatdelta(curdelta) +
-						"@" +
-						(ppemend > ppemstart ? ppemstart + ".." + ppemend : ppemstart)
-				);
-			ppemstart = ppemend = x.ppem;
-			curdelta = x.delta;
-		}
+
+	let deltaData = {};
+	for (let { delta, ppem } of deltas) {
+		let quantity = formatdelta(delta);
+		if (!deltaData[quantity]) deltaData[quantity] = [];
+		deltaData[quantity].push(ppem);
 	}
-	if (curdelta) {
-		buf.push(
-			formatdelta(curdelta) +
-				"@" +
-				(ppemend > ppemstart ? ppemstart + ".." + ppemend : ppemstart)
-		);
-	}
-	if (buf.length) {
-		return `${tag || "YDelta"}(${z},${buf.join(",")})`;
-	} else {
-		return "";
-	}
+	const keys = Object.keys(deltaData);
+	if (!keys.length) return "";
+	const deltaInstBody = keys.map(k => encodeDelta(k, deltaData[k])).join(",");
+	return `${tag || "YDelta"}(${z},${deltaInstBody})`;
 }
 
 function encodeAnchor(z, ref, chosen, pmin, pmax, strategy) {
