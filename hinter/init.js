@@ -4,6 +4,9 @@ const roundings = require("../roundings");
 const { mix, lerp, xlerp, xclamp } = require("../support/common");
 const monoip = require("../support/monotonic-interpolate");
 
+const decideAvails = require("./avail");
+const decideWidths = require("./decide-widths");
+
 const Individual = require("./individual");
 const uncollide = require("./uncollide");
 const allocateWidth = require("./allocate-width");
@@ -48,10 +51,10 @@ class Hinter {
 
 		// FeatDP
 		this.STEM_SIDE_MIN_RISE = Math.min(strategy.STEM_SIDE_MIN_RISE, this.uppx);
-		this.STEM_SIDE_MIN_DIST_RISE = Math.min(strategy.STEM_SIDE_MIN_DIST_RISE, this.uppx);
+		this.STEM_SIDE_MIN_DIST_RISE = Math.min(strategy.STEM_SIDE_MIN_DIST_RISE);
 		this.STEM_CENTER_MIN_RISE = Math.min(strategy.STEM_CENTER_MIN_RISE, this.uppx);
 		this.STEM_SIDE_MIN_DESCENT = Math.min(strategy.STEM_SIDE_MIN_DESCENT, this.uppx);
-		this.STEM_SIDE_MIN_DIST_DESCENT = Math.min(strategy.STEM_SIDE_MIN_DIST_DESCENT, this.uppx);
+		this.STEM_SIDE_MIN_DIST_DESCENT = Math.min(strategy.STEM_SIDE_MIN_DIST_DESCENT);
 		this.STEM_CENTER_MIN_DESCENT = Math.min(strategy.STEM_CENTER_MIN_DESCENT, this.uppx);
 
 		this.TOP_CUT = Math.round(toVQ(strategy.TOP_CUT, ppem)) * this.uppx;
@@ -76,7 +79,6 @@ class Hinter {
 		this.C = fdefs.collisionMatrices.collision;
 		this.S = fdefs.collisionMatrices.swap;
 		this.P = fdefs.collisionMatrices.promixity;
-		this.dominancePriority = fdefs.dominancePriority;
 
 		this.directOverlaps = fdefs.directOverlaps;
 		this.strictOverlaps = fdefs.strictOverlaps;
@@ -89,7 +91,8 @@ class Hinter {
 		//// CALCULATED
 		this.tightness = this.getTightness(fdefs);
 		this.nStems = fdefs.stems.length;
-		this.avaliables = decideAvail.call(this, fdefs.stems);
+		const tws = this.decideWidths(fdefs.stems, fdefs.dominancePriority);
+		this.avaliables = decideAvails.call(this, fdefs.stems, tws);
 		this.symmetry = decideSymmetry.call(this);
 
 		this.X_EXPAND = 1 + Math.round(toVQ(strategy.X_EXPAND, ppem)) / 100;
@@ -121,33 +124,13 @@ class Hinter {
 	atGlyphBottom(stem) {
 		return stemSpat.atGlyphBottom(stem, this);
 	}
+	atGlyphBottomMost(stem) {
+		return stemSpat.atGlyphBottomMost(stem, this);
+	}
 
-	calculateWidthOfStem(w, coordinate) {
-		var pixels0 = w / this.uppx;
-		if (coordinate) {
-			var pixels = w / this.CANONICAL_STEM_WIDTH * this.WIDTH_GEAR_PROPER;
-		} else {
-			var pixels = w / this.uppx;
-		}
-
-		if (pixels > this.WIDTH_GEAR_PROPER) pixels = this.WIDTH_GEAR_PROPER;
-		if (pixels < this.WIDTH_GEAR_MIN) {
-			if (this.WIDTH_GEAR_MIN < 3) {
-				pixels = this.WIDTH_GEAR_MIN;
-			} else if (
-				pixels < this.WIDTH_GEAR_MIN - 0.8 &&
-				this.WIDTH_GEAR_MIN === this.WIDTH_GEAR_PROPER
-			) {
-				pixels = this.WIDTH_GEAR_MIN - 1;
-			} else {
-				pixels = this.WIDTH_GEAR_MIN;
-			}
-		}
-		let rpx = Math.round(pixels);
-		if (rpx > this.WIDTH_GEAR_MIN && rpx - pixels0 > this.SHRINK_THERSHOLD) {
-			rpx -= 1;
-		}
-		return rpx;
+	// Decide proper widths of stems globally
+	decideWidths(stems, dominancePriority) {
+		return decideWidths.call(this, stems, dominancePriority);
 	}
 
 	cheby(_x, extreme) {
@@ -256,294 +239,12 @@ class Hinter {
 	}
 }
 
-function decideMaxShift(y0, w0, ppem, tightness, strategy) {
-	const minShiftLL = xclamp(3 / 4, lerp(ppem, 12, 24, 0.1 * tightness + 0.27, 3 / 4), 2);
-	const maxShiftU = xclamp(
-		minShiftLL,
-		ppem / 16,
-		xclamp(
-			1,
-			lerp(y0 - w0 / 2, strategy.BLUEZONE_TOP_CENTER, strategy.BLUEZONE_BOTTOM_CENTER, 1, 3),
-			2
-		)
-	);
-	const maxShiftD = xclamp(
-		minShiftLL,
-		ppem / 16,
-		xclamp(
-			1,
-			lerp(y0 - w0 / 2, strategy.BLUEZONE_TOP_CENTER, strategy.BLUEZONE_BOTTOM_CENTER, 3, 1),
-			2
-		)
-	);
-	return [maxShiftD, maxShiftU];
-}
-
-class Avail {
-	constructor(env, stem, tw) {
-		const { upm, ppem, uppx, strategy, tightness } = env;
-		const Y_UPTHIRD = mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 2 / 3);
-		const Y_DOWNTHIRD = mix(
-			strategy.BLUEZONE_BOTTOM_CENTER,
-			strategy.BLUEZONE_TOP_CENTER,
-			1 / 3
-		);
-		const y0 = stem.y,
-			w0 = stem.width,
-			w = tw * uppx;
-		this.atGlyphTop = env.atGlyphTop(stem);
-		this.atGlyphBottom = env.atGlyphBottom(stem);
-		// The bottom limit of a stem
-		let lowlimit =
-			env.glyphBottom +
-			Math.max(
-				w,
-				stem.diagLow
-					? env.BOTTOM_CUT_DIAGL
-					: stem.diagHigh
-						? env.BOTTOM_CUT_DIAGL + env.BOTTOM_CUT_DIAG_DIST
-						: env.BOTTOM_CUT,
-				this.atGlyphBottom
-					? stem.diagHigh ? (ppem <= env.PPEM_INCREASE_GLYPH_LIMIT ? w : w + uppx) : w
-					: w + uppx
-			);
-		let fold = false;
-		// Add additional space below strokes with a fold under it.
-		if (stem.hasGlyphFoldBelow && !stem.hasGlyphStemBelow) {
-			lowlimit = Math.max(
-				lowlimit,
-				env.glyphBottom +
-					Math.max(2, env.WIDTH_GEAR_PROPER + 1) * uppx +
-					env.WIDTH_GEAR_PROPER * uppx
-			);
-			fold = true;
-		} else if (stem.hasGlyphSideFoldBelow && !stem.hasGlyphStemBelow) {
-			lowlimit = Math.max(
-				lowlimit,
-				env.glyphBottom +
-					Math.max(env.WIDTH_GEAR_PROPER + 2, env.WIDTH_GEAR_PROPER * 2) * uppx
-			);
-			fold = true;
-		}
-
-		// The top limit of a stem ('s upper edge)
-		let highlimit =
-			env.glyphTop -
-			Math.max(
-				0,
-				// cut part
-				stem.diagHigh
-					? env.TOP_CUT_DIAGH
-					: stem.diagLow ? env.TOP_CUT_DIAGH + env.TOP_CUT_DIAG_DIST : env.TOP_CUT,
-				// spatial part
-				this.atGlyphTop ? 0 : uppx
-			);
-
-		if (stem.hasEntireContourAbove) {
-			highlimit = Math.min(env.glyphTop - 2 * uppx, highlimit);
-		}
-
-		const center0 = env.cy(
-			y0,
-			w0,
-			w,
-			(this.atGlyphTop && stem.diagHigh) || (this.atGlyphBottom && stem.diagLow),
-			stem.posKeyAtTop
-		);
-		const [maxShiftD, maxShiftU] = decideMaxShift(y0, w0, ppem, tightness, strategy);
-		const lowlimitW = Math.max(env.glyphBottom + w, tw > 1 ? lowlimit - uppx : lowlimit);
-		const lowW = xclamp(lowlimitW, env.round(center0 - maxShiftD * uppx), highlimit);
-		const highW = xclamp(lowlimitW, env.round(center0 + maxShiftU * uppx), highlimit);
-		const low = xclamp(lowlimit, env.round(center0 - maxShiftD * uppx), highlimit);
-		const high = xclamp(lowlimit, env.round(center0 + maxShiftU * uppx), highlimit);
-		const center = xclamp(low, center0, high);
-
-		const ablationCoeff =
-			env.atGlyphTop(stem) || env.atGlyphBottom(stem)
-				? env.strategy.ABLATION_GLYPH_HARD_EDGE
-				: !stem.hasGlyphStemAbove || !stem.hasGlyphStemBelow
-					? env.strategy.ABLATION_GLYPH_EDGE
-					: !stem.hasSameRadicalStemAbove || !stem.hasSameRadicalStemBelow
-						? env.strategy.ABLATION_RADICAL_EDGE
-						: env.strategy.ABLATION_IN_RADICAL;
-
-		// limit of the stroke's y, when positioning, in pixels
-		this.low = Math.round(low / uppx);
-		this.high = Math.round(high / uppx);
-		// limit of the stroke's y, when width allocating, in pixels
-		this.lowW = Math.round(lowW / uppx);
-		this.highW = Math.round(highW / uppx);
-		// soft high/low limits, affects ablation potential
-		this.softLow = Math.round(low / uppx);
-		this.softHigh = Math.round(high / uppx);
-		// its proper width, in pixels
-		this.properWidth = tw;
-		// its proper position, in pixels
-		this.center = center / uppx;
-		this.ablationCoeff = ablationCoeff / uppx * (1 + 0.5 * (stem.xmax - stem.xmin) / upm);
-		// original position and width
-		this.y0 = y0;
-		this.w0 = w0;
-		this.w0px = w0 / uppx;
-		this.xmin = stem.xmin;
-		this.xmax = stem.xmax;
-		this.length = stem.xmax - stem.xmin;
-		// spatial relationships
-		this.atGlyphTop = env.atGlyphTop(stem);
-		this.atGlyphBottom = env.atGlyphBottom(stem);
-		this.hasGlyphStemAbove = stem.hasGlyphStemAbove;
-		this.hasGlyphStemBelow = stem.hasGlyphStemBelow;
-		this.hasSameRadicalStemAbove = stem.hasSameRadicalStemAbove;
-		this.hasSameRadicalStemBelow = stem.hasSameRadicalStemBelow;
-		this.hasFoldBelow = fold;
-		this.posKeyAtTop = stem.posKeyAtTop;
-		this.diagLow = stem.diagLow;
-		this.diagHigh = stem.diagHigh;
-		this.rid = stem.rid;
-		this.belongRadical = stem.belongRadical;
-	}
-}
-
-function decideAvail(stems) {
-	const { upm, ppem, uppx, strategy, tightness } = this;
-	const Y_UPTHIRD = mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 2 / 3);
-	const Y_DOWNTHIRD = mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 1 / 3);
-	var avaliables = [];
-	var tws = decideWidths.call(this, stems, this.dominancePriority);
-	// Decide avaliability space
-	for (var j = 0; j < stems.length; j++) {
-		avaliables[j] = new Avail(this, stems[j], tws[j]);
-	}
-	flexCenter.call(this, avaliables, stems);
-	for (var j = 0; j < stems.length; j++) {
-		if (avaliables[j].diagLow) {
-			avaliables[j].softHigh = avaliables[j].center;
-		}
-		if (avaliables[j].diagHigh) {
-			avaliables[j].softLow = avaliables[j].center;
-		}
-	}
-	for (var j = 0; j < stems.length; j++) {
-		avaliables[j].proportion =
-			(avaliables[j].center - avaliables[0].center) /
-				(avaliables[avaliables.length - 1].center - avaliables[0].center) || 0;
-	}
-	return avaliables;
-}
-
-function decideWidths(stems, priority, tws) {
-	const { ppem, uppx, strategy } = this;
-	var tws = [];
-	var areaLost = 0;
-	var totalWidth = 0;
-	for (var j = 0; j < stems.length; j++) {
-		tws[j] = this.calculateWidthOfStem(stems[j].width, true);
-		totalWidth += stems[j].width;
-		areaLost += (stems[j].width / uppx - tws[j]) * (stems[j].xmax - stems[j].xmin);
-	}
-	// Coordinate widths
-	var averageWidth = totalWidth / stems.length;
-	var coordinateWidth = this.calculateWidthOfStem(averageWidth, true);
-	if (areaLost > 0) {
-		var areaLostDecreased = true;
-		var passes = 0;
-		while (areaLostDecreased && areaLost > 0 && passes < 100) {
-			// We will try to increase stroke width if we detected that some pixels are lost.
-			areaLostDecreased = false;
-			passes += 1;
-			for (var m = 0; m < priority.length; m++) {
-				var j = priority[m];
-				var len = stems[j].xmax - stems[j].xmin;
-				if (tws[j] < this.WIDTH_GEAR_PROPER && areaLost > len / 2) {
-					tws[j] += 1;
-					areaLost -= len;
-					areaLostDecreased = true;
-					break;
-				}
-			}
-		}
-	} else {
-		var areaLostDecreased = true;
-		var passes = 0;
-		while (areaLostDecreased && areaLost < 0 && passes < 100) {
-			// We will try to increase stroke width if we detected that some pixels are lost.
-			areaLostDecreased = false;
-			passes += 1;
-			for (var m = priority.length - 1; m >= 0; m--) {
-				var j = priority[m];
-				var len = stems[j].xmax - stems[j].xmin;
-				if (tws[j] > coordinateWidth && areaLost < -len / 2) {
-					areaLost += len;
-					tws[j] -= 1;
-					areaLostDecreased = true;
-					break;
-				}
-			}
-		}
-	}
-	for (var j = 0; j < stems.length; j++) {
-		if (tws[j] < 1) {
-			tws[j] = 1;
-		}
-	}
-	return tws;
-}
-
-function flexCenter(avaliables, stems) {
-	const { upm, ppem, uppx } = this;
-	// fix top and bottom stems
-	for (var j = 0; j < stems.length; j++) {
-		const avail = avaliables[j],
-			stem = stems[j];
-		if (!stem.hasGlyphStemBelow) {
-			avail.high = Math.round(
-				Math.max(
-					avail.center,
-					this.glyphBottom / uppx + avail.properWidth + (this.atGlyphBottom(stem) ? 0 : 1)
-				)
-			);
-		}
-		if (!stem.hasGlyphStemAbove && !stem.diagLow) {
-			// lock top
-			avail.low = Math.round(avail.center);
-		}
-		if (
-			this.atGlyphBottom(stem) &&
-			!avail.diagLow &&
-			avail.high - avail.low <= 1 &&
-			avail.low <= this.glyphBottom / uppx + avail.properWidth + 0.1 &&
-			!(
-				stem.hasRadicalLeftAdjacentPointBelow &&
-				stem.radicalLeftAdjacentDescent > this.strategy.STEM_SIDE_MIN_DESCENT / 3
-			) &&
-			!(
-				stem.hasRadicalRightAdjacentPointBelow &&
-				stem.radicalRightAdjacentDescent > this.strategy.STEM_SIDE_MIN_DESCENT / 3
-			)
-		) {
-			// Lock the bottommost stroke
-			avail.high -= 1;
-			if (avail.high < avail.low) avail.high = avail.low;
-		}
-	}
-	for (let s of avaliables) {
-		if (s.diagLow && s.center >= this.glyphTop / uppx - 0.5) {
-			s.center = xclamp(s.low, this.glyphTop / uppx - 1, s.center);
-			s.softHigh = s.center;
-		}
-		if (s.diagHigh && s.center <= this.glyphBottom / uppx + 0.5) {
-			s.center = xclamp(s.center, this.glyphBottom / uppx + 1, s.high);
-			s.softLow = s.center;
-		}
-	}
-}
-
 function decideSymmetry() {
 	const { avaliables, directOverlaps } = this;
-	var sym = [];
-	for (var j = 0; j < avaliables.length; j++) {
+	let sym = [];
+	for (let j = 0; j < avaliables.length; j++) {
 		sym[j] = [];
-		for (var k = 0; k < j; k++) {
+		for (let k = 0; k < j; k++) {
 			sym[j][k] =
 				!directOverlaps[j][k] &&
 				!avaliables[j].diagHigh &&
