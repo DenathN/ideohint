@@ -1,7 +1,7 @@
 "use strict";
 
 const DIAG_BIAS_PIXELS = 1 / 6;
-
+const DIAG_BIAS_PIXELS_NEG = 1 / 3;
 class Individual {
 	constructor(y, env, unbalanced) {
 		this.gene = y;
@@ -34,10 +34,12 @@ class Individual {
 				if (
 					avaliables[j].rid &&
 					avaliables[j].rid === avaliables[k].rid &&
-					y[j] - y[k] >
-						Math.round(
-							(avaliables[j].y0 - avaliables[k].y0) / env.uppx + DIAG_BIAS_PIXELS
-						)
+					(y[j] - y[k] >
+						Math.ceil(avaliables[j].y0px - avaliables[k].y0px + DIAG_BIAS_PIXELS) ||
+						y[j] - y[k] <
+							Math.ceil(
+								avaliables[j].y0px - avaliables[k].y0px - DIAG_BIAS_PIXELS_NEG
+							))
 				) {
 					p += S[j][k]; // diagonal break
 				}

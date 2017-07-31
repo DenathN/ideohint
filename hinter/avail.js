@@ -43,16 +43,17 @@ class Avail {
 		// The bottom limit of a stem
 		let lowlimit =
 			env.glyphBottom +
+			w +
 			Math.max(
-				w,
+				0,
 				stem.diagLow
 					? env.BOTTOM_CUT_DIAGL
 					: stem.diagHigh
 						? env.BOTTOM_CUT_DIAGL + env.BOTTOM_CUT_DIAG_DIST
 						: env.BOTTOM_CUT,
 				this.atGlyphBottom
-					? stem.diagHigh ? (ppem <= env.PPEM_INCREASE_GLYPH_LIMIT ? w : w + uppx) : w
-					: w + uppx
+					? stem.diagHigh ? (ppem <= env.PPEM_INCREASE_GLYPH_LIMIT ? 0 : uppx) : 0
+					: uppx
 			);
 		let fold = false;
 		// Add additional space below strokes with a fold under it.
@@ -131,6 +132,7 @@ class Avail {
 		// original position and width
 		this.y0 = y0;
 		this.w0 = w0;
+		this.y0px = y0 / uppx;
 		this.w0px = w0 / uppx;
 		this.xmin = stem.xmin;
 		this.xmax = stem.xmax;
@@ -177,8 +179,6 @@ function adjustAvails(avaliables, stems) {
 
 		if (
 			this.atGlyphBottom(stem) &&
-			!avail.diagLow &&
-			!avail.diagHigh &&
 			(ppem <= this.PPEM_INCREASE_GLYPH_LIMIT || this.atGlyphBottomMost(stem)) &&
 			avail.low <= this.glyphBottom / uppx + avail.properWidth + 1.5
 		) {
