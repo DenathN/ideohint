@@ -53,7 +53,7 @@ function eqSlopeA(z1, z2) {
 	return z1.y === z2.y && ((z1.on && z2.on) || (!z1.on && !z2.on));
 }
 
-function approSlopeT(z1, z2, strategy) {
+function approSlopeA(z1, z2, strategy) {
 	const slope = (z1.y - z2.y) / (z1.x - z2.x);
 	return (
 		Math.abs(z2.x - z1.x) >= strategy.Y_FUZZ * 2 &&
@@ -61,9 +61,14 @@ function approSlopeT(z1, z2, strategy) {
 	);
 }
 
-function tryPushSegment(s, ss, approSlopeT, coupled, strategy) {
+function approSlopeT(z1, z2, strategy) {
+	const slope = (z1.y - z2.y) / (z1.x - z2.x);
+	return slope >= 0 ? slope <= strategy.SLOPE_FUZZ_POST : slope >= -strategy.SLOPE_FUZZ_NEG;
+}
+
+function tryPushSegment(s, ss, approSlopeA, coupled, strategy) {
 	while (s.length > 1) {
-		if (approSlopeT(s[0], s[s.length - 1], strategy)) {
+		if (approSlopeA(s[0], s[s.length - 1], strategy)) {
 			for (let z of s) {
 				coupled[z.id] = true;
 			}
@@ -85,19 +90,30 @@ function findHSegInContour(r, segments, contour, strategy) {
 	let z0 = contour.points[0];
 	let lastPoint = z0;
 	let segment = [lastPoint];
-	for (let [as1, as2] of [[eqSlopeA, eqSlopeA], [approSlope, approSlopeT]]) {
+	for (let [as1, as1t, as2] of [
+		[eqSlopeA, eqSlopeA, eqSlopeA],
+		[approSlope, approSlopeT, approSlopeA]
+	]) {
 		restart(z0);
+		let tores = false;
 		for (let k = 1; k < contour.points.length - 1; k++) {
 			const z = contour.points[k];
-
-			if (z.interpolated || coupled[lastPoint.id]) {
+			if (tores || z.interpolated || coupled[lastPoint.id]) {
 				restart(z);
-			} else if (!coupled[z.id] && as1(z, lastPoint, strategy)) {
+				tores = false;
+			} else if (!coupled[z.id] && as1t(z, lastPoint, strategy)) {
 				segment.push(z);
-				lastPoint = z;
+				if (segment.length > 2 && !as1(z, lastPoint, strategy)) {
+					tryPushSegment(segment, segments, as2, coupled, strategy);
+					tores = true;
+				} else {
+					lastPoint = z;
+					tores = false;
+				}
 			} else {
 				tryPushSegment(segment, segments, as2, coupled, strategy);
 				restart(z);
+				tores = false;
 			}
 		}
 		if (!coupled[z0.id] && as1(z0, lastPoint, strategy)) {

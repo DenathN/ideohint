@@ -51,9 +51,7 @@ class Avail {
 					: stem.diagHigh
 						? env.BOTTOM_CUT_DIAGL + env.BOTTOM_CUT_DIAG_DIST
 						: env.BOTTOM_CUT,
-				this.atGlyphBottom
-					? stem.diagHigh ? (ppem <= env.PPEM_INCREASE_GLYPH_LIMIT ? 0 : uppx) : 0
-					: uppx
+				this.atGlyphBottom && !stem.diagHigh ? 0 : uppx
 			);
 		let fold = false;
 		// Add additional space below strokes with a fold under it.
@@ -160,6 +158,8 @@ class Avail {
  */
 function adjustAvails(avaliables, stems) {
 	const { upm, ppem, uppx } = this;
+	const topPx = this.glyphTop / uppx;
+	const bottomPx = this.glyphBottom / uppx;
 	// fix top and bottom stems
 	for (let j = 0; j < stems.length; j++) {
 		const avail = avaliables[j],
@@ -168,7 +168,7 @@ function adjustAvails(avaliables, stems) {
 			avail.high = Math.round(
 				Math.max(
 					avail.center,
-					this.glyphBottom / uppx + avail.properWidth + (this.atGlyphBottom(stem) ? 0 : 1)
+					bottomPx + avail.properWidth + (this.atGlyphBottom(stem) ? 0 : 1)
 				)
 			);
 		}
@@ -177,25 +177,28 @@ function adjustAvails(avaliables, stems) {
 			avail.low = Math.round(avail.center);
 		}
 
-		if (
-			this.atGlyphBottom(stem) &&
-			(ppem <= this.PPEM_INCREASE_GLYPH_LIMIT || this.atGlyphBottomMost(stem)) &&
-			avail.low <= this.glyphBottom / uppx + avail.properWidth + 1.5
-		) {
-			// Lock the bottommost stroke
+		if (this.atGlyphBottomMost(stem)) {
+			// Push bottommost stroke down to unify bottom features.
 			// This unifies bottom features to make the text more "aligned".
-			avail.high -= 1;
+			const bot = avail.high - avail.properWidth;
+			const force =
+				stem.diagHigh || stem.diagLow
+					? this.BOTTOM_UNIFY_FORCE_DIAG
+					: this.BOTTOM_UNIFY_FORCE;
+			const bot1 =
+				topPx - (topPx - bot) * (topPx - bottomPx - force) / (topPx - bottomPx - force * 2);
+			avail.high = bot1 + avail.properWidth;
 			if (avail.high < avail.low) avail.high = avail.low;
 		}
 	}
 
 	for (let s of avaliables) {
-		if (s.diagLow && s.center >= this.glyphTop / uppx - 0.5) {
-			s.center = xclamp(s.low, this.glyphTop / uppx - 1, s.center);
+		if (s.diagLow && s.center >= topPx - 0.5) {
+			s.center = xclamp(s.low, topPx - 1, s.center);
 			s.softHigh = s.center;
 		}
-		if (s.diagHigh && s.center <= this.glyphBottom / uppx + 0.5) {
-			s.center = xclamp(s.center, this.glyphBottom / uppx + 1, s.high);
+		if (s.diagHigh && s.center <= bottomPx + 0.5) {
+			s.center = xclamp(s.center, bottomPx + 1, s.high);
 			s.softLow = s.center;
 		}
 	}

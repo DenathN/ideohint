@@ -37,6 +37,8 @@ class Hinter {
 			this.round(strategy.BLUEZONE_BOTTOM_CENTER) +
 			this.round(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER);
 		this.glyphBottom = this.round(strategy.BLUEZONE_BOTTOM_CENTER);
+		this.BOTTOM_UNIFY_FORCE = toVQ(strategy.BOTTOM_UNIFY_FORCE, ppem) / 100;
+		this.BOTTOM_UNIFY_FORCE_DIAG = toVQ(strategy.BOTTOM_UNIFY_FORCE_DIAG, ppem) / 100;
 
 		// SWP
 		this.CANONICAL_STEM_WIDTH = toVQ(strategy.CANONICAL_STEM_WIDTH, ppem);

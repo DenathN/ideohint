@@ -26,11 +26,10 @@ class Individual {
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
 				if (y[j] === y[k]) {
-					p += A[j][k];
+					p += A[j][k]; // Alignment
 				} else if (y[j] <= y[k] + env.avaliables[j].properWidth) {
-					// Alignment
-					p += C[j][k];
-				} // Collide
+					p += C[j][k]; // Collide
+				}
 				if (
 					avaliables[j].rid &&
 					avaliables[j].rid === avaliables[k].rid &&
@@ -45,11 +44,11 @@ class Individual {
 				}
 				if (j !== k && sym[j][k]) {
 					if (y[j] !== y[k]) {
-						p += S[j][k];
-					} // Symmetry break
+						p += S[j][k]; // Symmetry break
+					}
 				} else {
 					if (y[j] < y[k]) {
-						p += S[j][k];
+						p += S[j][k]; // Swap
 					} else if (
 						avaliables[j].y0 - avaliables[j].w0 < avaliables[k].y0 &&
 						!(avaliables[j].rid && avaliables[j].rid === avaliables[k].rid) &&
