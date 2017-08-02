@@ -1,6 +1,6 @@
 "use strict";
 
-const roundings = require("../roundings");
+const roundings = require("../support/roundings");
 const toF26D6P = roundings.toF26D6P;
 const { decideDelta, decideDeltaShift } = require("./delta.js");
 const { getVTTAux } = require("./cvt");

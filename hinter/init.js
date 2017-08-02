@@ -1,6 +1,6 @@
 "use strict";
 
-const roundings = require("../roundings");
+const roundings = require("../support/roundings");
 const { mix, lerp, xlerp, xclamp } = require("../support/common");
 const monoip = require("../support/monotonic-interpolate");
 

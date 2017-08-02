@@ -1,8 +1,8 @@
-"use strict"
+"use strict";
 
 var fs = require("fs");
-var roundings = require("../roundings");
-const { mix } = require('../support/common');
+var roundings = require("../support/roundings");
+const { mix } = require("../support/common");
 function pushWhenAbsent(a, x) {
 	a.push(x);
 }
@@ -20,7 +20,10 @@ function createCvt(src, strategy, padding) {
 	pushWhenAbsent(cvt, 0);
 	for (var ppem = 1; ppem <= strategy.PPEM_MAX; ppem++) {
 		var rtg = roundings.Rtg(strategy.UPM, ppem);
-		var vtop = Math.round(rtg(strategy.BLUEZONE_BOTTOM_CENTER) + rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER));
+		var vtop = Math.round(
+			rtg(strategy.BLUEZONE_BOTTOM_CENTER) +
+				rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER)
+		);
 		pushWhenAbsent(cvt, vtop);
 	}
 	for (var w = 1; w <= MAX_SW; w++) {
@@ -36,23 +39,23 @@ function createCvt(src, strategy, padding) {
 	return cvt;
 }
 
-exports.getPadding = function (argv, parameterFile) {
+exports.getPadding = function(argv, parameterFile) {
 	if (parameterFile && parameterFile.cvt) {
-		return (parameterFile.cvt.padding - 0) || 0;
+		return parameterFile.cvt.padding - 0 || 0;
 	} else if (argv.CVT_PADDING) {
-		return (argv.CVT_PADDING - 0) || 0;
+		return argv.CVT_PADDING - 0 || 0;
 	} else {
 		return 0;
 	}
 };
 exports.createCvt = createCvt;
-exports.getVTTAux = function (bot, top) {
+exports.getVTTAux = function(bot, top) {
 	const p = 1 / 20;
 	const pd = 1 / 40;
 	return {
 		yBotBar: Math.round(mix(bot, top, p)),
 		yBotD: Math.round(mix(bot, top, pd)),
 		yTopBar: Math.round(mix(top, bot, p)),
-		yTopD: Math.round(mix(top, bot, pd)),
-	}
-}
+		yTopD: Math.round(mix(top, bot, pd))
+	};
+};

@@ -1,6 +1,6 @@
 "use strict";
 
-const roundings = require("../roundings");
+const roundings = require("../support/roundings");
 
 const ROUNDING_CUTOFF = 1 / 2 - 4 / 64;
 const STRICT_CUTOFF = 1 / 4;

@@ -1,29 +1,34 @@
-"use strict"
+"use strict";
 
-var Contour = require('./types').Contour;
-var Point = require('./types').Point;
-var Glyph = require('./types').Glyph;
-var util = require('util');
+var Contour = require("../types").Contour;
+var Point = require("../types").Point;
+var Glyph = require("../types").Glyph;
+var util = require("util");
 
-var crypto = require('crypto');
+var crypto = require("crypto");
 function getSHA1(text) {
-	return crypto.createHash('sha1').update(text).digest('hex');
+	return crypto.createHash("sha1").update(text).digest("hex");
 }
 function hashContours(input) {
-	var buf = '';
+	var buf = "";
 	for (var j = 0; j < input.length; j++) {
-		buf += 'a';
+		buf += "a";
 		var c = input[j];
 		for (var k = 0; k < c.length; k++) {
-			if (c[k].on) { buf += 'l' } else { buf += 'c' };
-			buf += c[k].x + ' ' + c[k].y;
+			if (c[k].on) {
+				buf += "l";
+			} else {
+				buf += "c";
+			}
+			buf += c[k].x + " " + c[k].y;
 		}
 	}
 	return getSHA1(buf);
 }
 
 function parseOTD(input) {
-	var contours = [], indexedPoints = [];
+	var contours = [],
+		indexedPoints = [];
 	var ptindex = 0;
 	for (var j = 0; j < input.length; j++) {
 		var c = input[j];

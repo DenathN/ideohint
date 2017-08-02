@@ -1,9 +1,6 @@
 "use strict";
 
-var toml = require("toml");
-var fs = require("fs");
-
-var DefaultStrategy = function() {
+const DefaultStrategy = function() {
 	return {
 		FULLHINT: 0,
 		UPM: 1000,
@@ -103,6 +100,7 @@ var DefaultStrategy = function() {
 		X_EXPAND: 0
 	};
 };
+
 exports.defaultStrategy = DefaultStrategy();
 exports.from = function(argv, parameterFile) {
 	var strategy = DefaultStrategy();

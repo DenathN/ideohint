@@ -1,4 +1,4 @@
-const parseOTD = require("../otdParser").parseOTD;
+const parseOTD = require("../support/otdParser").parseOTD;
 const findStems = require("../findstem").findStems;
 const extractFeature = require("../extractfeature").extractFeature;
 const hint = require("../hinter").hint;

@@ -12,7 +12,7 @@ var stringifyToStream = require("../support/stringify-to-stream");
 var cvtlib = require("../instructor/cvt");
 var { talk, generateCVT } = require("../instructor/vtttalk");
 
-var hashContours = require("../otdParser").hashContours;
+var hashContours = require("../support/otdParser").hashContours;
 
 var crypto = require("crypto");
 function md5(text) {
@@ -34,8 +34,8 @@ exports.builder = function(yargs) {
 exports.handler = function(argv) {
 	var hgiStream = argv._[2] ? fs.createReadStream(argv._[1], "utf-8") : process.stdin;
 	var rl = readline.createInterface(hgiStream, devnull());
-	var parameterFile = require("../paramfile").from(argv);
-	var strategy = require("../strategy").from(argv, parameterFile);
+	var parameterFile = require("../support/paramfile").from(argv);
+	var strategy = require("../support/strategy").from(argv, parameterFile);
 
 	var cvtPadding = cvtlib.getPadding(argv, parameterFile);
 	var linkCvt = cvtlib.createCvt([], strategy, cvtPadding);

@@ -106,6 +106,8 @@ The hinting parameters are stored in `hinting` section. They include:
   * **BOTTOM_CUT_DIAGL**: Required space for bottommost, semi-diagonal stems to the glyph bottom. In pixels.
   * **TOP_CUT_DIAGH_DIST**: Additional space for the lower half of the topmost, semi-diagonal stems to the glyph top. In pixels.
   * **BOTTOM_CUT_DIAGL_DIST**: Additional space for the higher half of bottommost, semi-diagonal stems to the glyph bottom. In pixels.
+  * **BOTTOM_UNIFY_FORCE**: Force to additionally unify bottommost features of a character. 100 by default.
+  * **BOTTOM_UNIFY_FORCE_DIAG**: Force to additionally unify bottommost features of a character, applied to diagonal strokes.
 * **Stem Positioning Parameters**
     * **RISE** : Tend to rise topmost stems. 0 for “natural”.
     * **SINK**: Tend to sink bottommost stems. 0 for “natural”.
@@ -175,14 +177,6 @@ It will provide an interactive parameter adjustment utility accessable from `loc
 
 ### Visual TrueType interface
 
-The subcommand `ideohint vtt` will produce a VTT-compatible XML with VTTTalks instead of raw instructions. The usage is:
+`ideohint apply` would detect whether the input font has Visual TrueType private tables. Once it is present `ideohint apply` would also produce VTT Talks into it. You may need to compile the entire font after building using VTT.
 
-```bash
-otfccdump in.ttf -o in.otd
-...
-ideohint vtt hints.hgi in.otd -o out.xml
-```
-
-Depending on the CVT padding, ideohint vtt will show the required CVT entries in VTT, and produce a XML representing the hinted instructions. You can import them to your font (`in.ttf`) using VTT's built-in "import" feature.
-
-As an advice, you can use the TTF with VTT's editable instructions as the input of ideohint, so that you can apply the hints generated immediately after ideohint finishes hinting.
+The obsolete `ideohint vtt` command has been removed.

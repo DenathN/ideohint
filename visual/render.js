@@ -1,4 +1,4 @@
-const roundings = require("../roundings");
+const roundings = require("../support/roundings");
 const BG_COLOR = "white";
 
 function interpolate(a, b, c) {

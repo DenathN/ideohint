@@ -1,6 +1,6 @@
 "use strict";
 
-const roundings = require("../roundings");
+const roundings = require("../support/roundings");
 const { mix, lerp, xlerp, xclamp } = require("../support/common");
 
 function decideMaxShift(y0, w0, ppem, tightness, strategy) {
