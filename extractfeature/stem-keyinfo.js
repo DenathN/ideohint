@@ -1,84 +1,84 @@
 "use strict";
 
+class HintStem {
+	constructor(s) {
+		this.xmin = s.xmin;
+		this.xmax = s.xmax;
+		this.y = s.y;
+		this.width = s.width;
+		this.belongRadical = s.belongRadical;
+
+		this.posKey = { id: s.posKey.id, y: s.posKey.y, x: s.posKey.x };
+		this.advKey = { id: s.advKey.id, y: s.advKey.y, x: s.advKey.x };
+		this.posAlign = s.posAlign.map(z => ({ id: z.id, x: z.x, y: z.y }));
+		this.advAlign = s.advAlign.map(z => ({ id: z.id, x: z.x, y: z.y }));
+		this.diagHigh = !!s.diagHigh;
+		this.diagLow = !!s.diagLow;
+		this.atLeft = !!s.atLeft;
+		this.atRight = !!s.atRight;
+		this.posKeyAtTop = !!s.posKeyAtTop;
+		this.rid = s.rid || 0;
+		this.slope = s.slope;
+
+		this.hasGlyphStemAbove = !!s.hasGlyphStemAbove;
+		this.hasSameRadicalStemAbove = !!s.hasSameRadicalStemAbove;
+		this.hasRadicalPointAbove = !!s.hasRadicalPointAbove;
+		this.radicalCenterRise = s.radicalCenterRise;
+		this.hasGlyphPointAbove = !!s.hasGlyphPointAbove;
+		this.glyphCenterRise = s.glyphCenterRise;
+		this.hasRadicalLeftAdjacentPointAbove = !!s.hasRadicalLeftAdjacentPointAbove;
+		this.hasRadicalRightAdjacentPointAbove = !!s.hasRadicalRightAdjacentPointAbove;
+		this.radicalRightAdjacentRise = s.radicalRightAdjacentRise;
+		this.radicalLeftAdjacentRise = s.radicalLeftAdjacentRise;
+		this.hasGlyphLeftAdjacentPointAbove = !!s.hasGlyphLeftAdjacentPointAbove;
+		this.hasGlyphRightAdjacentPointAbove = !!s.hasGlyphRightAdjacentPointAbove;
+		this.glyphRightAdjacentRise = s.glyphRightAdjacentRise;
+		this.glyphLeftAdjacentRise = s.glyphLeftAdjacentRise;
+		this.hasRadicalLeftDistancedPointAbove = !!s.hasRadicalLeftDistancedPointAbove;
+		this.hasRadicalRightDistancedPointAbove = !!s.hasRadicalRightDistancedPointAbove;
+		this.radicalRightDistancedRise = s.radicalRightDistancedRise;
+		this.radicalLeftDistancedRise = s.radicalLeftDistancedRise;
+		this.hasGlyphLeftDistancedPointAbove = !!s.hasGlyphLeftDistancedPointAbove;
+		this.hasGlyphRightDistancedPointAbove = !!s.hasGlyphRightDistancedPointAbove;
+		this.glyphRightDistancedRise = s.glyphRightDistancedRise;
+		this.glyphLeftDistancedRise = s.glyphLeftDistancedRise;
+		this.hasGlyphStemBelow = !!s.hasGlyphStemBelow;
+		this.hasSameRadicalStemBelow = !!s.hasSameRadicalStemBelow;
+		this.hasRadicalPointBelow = !!s.hasRadicalPointBelow;
+		this.radicalCenterDescent = s.radicalCenterDescent;
+		this.hasGlyphPointBelow = !!s.hasGlyphPointBelow;
+		this.glyphCenterDescent = s.glyphCenterDescent;
+		this.hasRadicalLeftAdjacentPointBelow = !!s.hasRadicalLeftAdjacentPointBelow;
+		this.hasRadicalRightAdjacentPointBelow = !!s.hasRadicalRightAdjacentPointBelow;
+		this.radicalLeftAdjacentDescent = s.radicalLeftAdjacentDescent;
+		this.radicalRightAdjacentDescent = s.radicalRightAdjacentDescent;
+		this.hasGlyphLeftAdjacentPointBelow = !!s.hasGlyphLeftAdjacentPointBelow;
+		this.hasGlyphRightAdjacentPointBelow = !!s.hasGlyphRightAdjacentPointBelow;
+		this.glyphLeftAdjacentDescent = s.glyphLeftAdjacentDescent;
+		this.glyphRightAdjacentDescent = s.glyphRightAdjacentDescent;
+		this.hasRadicalLeftDistancedPointBelow = !!s.hasRadicalLeftDistancedPointBelow;
+		this.hasRadicalRightDistancedPointBelow = !!s.hasRadicalRightDistancedPointBelow;
+		this.radicalLeftDistancedDescent = s.radicalLeftDistancedDescent;
+		this.radicalRightDistancedDescent = s.radicalRightDistancedDescent;
+		this.hasGlyphLeftDistancedPointBelow = !!s.hasGlyphLeftDistancedPointBelow;
+		this.hasGlyphRightDistancedPointBelow = !!s.hasGlyphRightDistancedPointBelow;
+		this.glyphLeftDistancedDescent = s.glyphLeftDistancedDescent;
+		this.glyphRightDistancedDescent = s.glyphRightDistancedDescent;
+		this.hasGlyphFoldAbove = !!s.hasGlyphFoldAbove;
+		this.hasRadicalFoldAbove = !!s.hasRadicalFoldAbove;
+		this.hasGlyphSideFoldAbove = !!s.hasGlyphSideFoldAbove;
+		this.hasRadicalSideFoldAbove = !!s.hasRadicalSideFoldAbove;
+		this.hasGlyphFoldBelow = !!s.hasGlyphFoldBelow;
+		this.hasRadicalFoldBelow = !!s.hasRadicalFoldBelow;
+		this.hasGlyphSideFoldBelow = !!s.hasGlyphSideFoldBelow;
+		this.hasRadicalSideFoldBelow = !!s.hasRadicalSideFoldBelow;
+		this.hasGlyphVFoldBelow = !!s.hasGlyphVFoldBelow;
+		this.hasRadicalVFoldBelow = !!s.hasRadicalVFoldBelow;
+		this.hasEntireContourAbove = !!s.hasEntireContourAbove;
+		this.hasEntireContourBelow = !!s.hasEntireContourBelow;
+	}
+}
+
 module.exports = function(s) {
-	return {
-		xmin: s.xmin,
-		xmax: s.xmax,
-		y: s.y,
-		width: s.width,
-		belongRadical: s.belongRadical,
-
-		hasGlyphStemAbove: !!s.hasGlyphStemAbove,
-		hasSameRadicalStemAbove: !!s.hasSameRadicalStemAbove,
-		hasRadicalPointAbove: !!s.hasRadicalPointAbove,
-		radicalCenterRise: s.radicalCenterRise,
-		hasGlyphPointAbove: !!s.hasGlyphPointAbove,
-		glyphCenterRise: s.glyphCenterRise,
-		hasRadicalLeftAdjacentPointAbove: !!s.hasRadicalLeftAdjacentPointAbove,
-		hasRadicalRightAdjacentPointAbove: !!s.hasRadicalRightAdjacentPointAbove,
-		radicalRightAdjacentRise: s.radicalRightAdjacentRise,
-		radicalLeftAdjacentRise: s.radicalLeftAdjacentRise,
-		hasGlyphLeftAdjacentPointAbove: !!s.hasGlyphLeftAdjacentPointAbove,
-		hasGlyphRightAdjacentPointAbove: !!s.hasGlyphRightAdjacentPointAbove,
-		glyphRightAdjacentRise: s.glyphRightAdjacentRise,
-		glyphLeftAdjacentRise: s.glyphLeftAdjacentRise,
-		hasRadicalLeftDistancedPointAbove: !!s.hasRadicalLeftDistancedPointAbove,
-		hasRadicalRightDistancedPointAbove: !!s.hasRadicalRightDistancedPointAbove,
-		radicalRightDistancedRise: s.radicalRightDistancedRise,
-		radicalLeftDistancedRise: s.radicalLeftDistancedRise,
-		hasGlyphLeftDistancedPointAbove: !!s.hasGlyphLeftDistancedPointAbove,
-		hasGlyphRightDistancedPointAbove: !!s.hasGlyphRightDistancedPointAbove,
-		glyphRightDistancedRise: s.glyphRightDistancedRise,
-		glyphLeftDistancedRise: s.glyphLeftDistancedRise,
-
-		hasGlyphStemBelow: !!s.hasGlyphStemBelow,
-		hasSameRadicalStemBelow: !!s.hasSameRadicalStemBelow,
-		hasRadicalPointBelow: !!s.hasRadicalPointBelow,
-		radicalCenterDescent: s.radicalCenterDescent,
-		hasGlyphPointBelow: !!s.hasGlyphPointBelow,
-		glyphCenterDescent: s.glyphCenterDescent,
-		hasRadicalLeftAdjacentPointBelow: !!s.hasRadicalLeftAdjacentPointBelow,
-		hasRadicalRightAdjacentPointBelow: !!s.hasRadicalRightAdjacentPointBelow,
-		radicalLeftAdjacentDescent: s.radicalLeftAdjacentDescent,
-		radicalRightAdjacentDescent: s.radicalRightAdjacentDescent,
-		hasGlyphLeftAdjacentPointBelow: !!s.hasGlyphLeftAdjacentPointBelow,
-		hasGlyphRightAdjacentPointBelow: !!s.hasGlyphRightAdjacentPointBelow,
-		glyphLeftAdjacentDescent: s.glyphLeftAdjacentDescent,
-		glyphRightAdjacentDescent: s.glyphRightAdjacentDescent,
-		hasRadicalLeftDistancedPointBelow: !!s.hasRadicalLeftDistancedPointBelow,
-		hasRadicalRightDistancedPointBelow: !!s.hasRadicalRightDistancedPointBelow,
-		radicalLeftDistancedDescent: s.radicalLeftDistancedDescent,
-		radicalRightDistancedDescent: s.radicalRightDistancedDescent,
-		hasGlyphLeftDistancedPointBelow: !!s.hasGlyphLeftDistancedPointBelow,
-		hasGlyphRightDistancedPointBelow: !!s.hasGlyphRightDistancedPointBelow,
-		glyphLeftDistancedDescent: s.glyphLeftDistancedDescent,
-		glyphRightDistancedDescent: s.glyphRightDistancedDescent,
-
-		hasGlyphFoldAbove: !!s.hasGlyphFoldAbove,
-		hasRadicalFoldAbove: !!s.hasRadicalFoldAbove,
-		hasGlyphSideFoldAbove: !!s.hasGlyphSideFoldAbove,
-		hasRadicalSideFoldAbove: !!s.hasRadicalSideFoldAbove,
-
-		hasGlyphFoldBelow: !!s.hasGlyphFoldBelow,
-		hasRadicalFoldBelow: !!s.hasRadicalFoldBelow,
-		hasGlyphSideFoldBelow: !!s.hasGlyphSideFoldBelow,
-		hasRadicalSideFoldBelow: !!s.hasRadicalSideFoldBelow,
-		hasGlyphVFoldBelow: !!s.hasGlyphVFoldBelow,
-		hasRadicalVFoldBelow: !!s.hasRadicalVFoldBelow,
-
-		hasEntireContourAbove: !!s.hasEntireContourAbove,
-		hasEntireContourBelow: !!s.hasEntireContourBelow,
-
-		posKey: { id: s.posKey.id, y: s.posKey.y, x: s.posKey.x },
-		advKey: { id: s.advKey.id, y: s.advKey.y, x: s.advKey.x },
-		posAlign: s.posAlign.map(z => ({ id: z.id, x: z.x, y: z.y })),
-		advAlign: s.advAlign.map(z => ({ id: z.id, x: z.x, y: z.y })),
-		diagHigh: !!s.diagHigh,
-		diagLow: !!s.diagLow,
-		atLeft: !!s.atLeft,
-		atRight: !!s.atRight,
-		posKeyAtTop: !!s.posKeyAtTop,
-		rid: s.rid || 0,
-		slope: s.slope
-	};
+	return new HintStem(s);
 };
