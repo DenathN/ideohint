@@ -33,14 +33,15 @@ function segmentJoinable(pivot, segment, radical) {
 function isStrictlyHorizontal(u) {
 	return u[0][0].y === u[u.length - 1][u[u.length - 1].length - 1].y;
 }
-function isVertical(radical, u, v, mh) {
+function isVertical(radical, u, v, mh, ov) {
 	let d1 = minmaxOfSeg(u);
 	let d2 = minmaxOfSeg(v);
 	let p = leftmostZ(u);
 	let q = leftmostZ(v);
+
 	return (
 		Math.abs(p.y - q.y) > mh ||
-		Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min) < Math.abs(p.y - q.y) * 0.9
+		(Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min)) * ov < Math.abs(p.y - q.y) * 0.9
 	);
 }
 
@@ -245,7 +246,16 @@ function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
 			let hasEnoughOverlap =
 				segOverlap.len / segOverlap.la >= strategy.COLLISION_MIN_OVERLAP_RATIO ||
 				segOverlap.len / segOverlap.lb >= strategy.COLLISION_MIN_OVERLAP_RATIO;
-			if (hasEnoughOverlap && !isVertical(radical, highEdge, lowEdge, maxh)) {
+			if (
+				hasEnoughOverlap &&
+				!isVertical(
+					radical,
+					highEdge,
+					lowEdge,
+					maxh,
+					Math.max(segOverlap.len / segOverlap.la, segOverlap.len / segOverlap.lb)
+				)
+			) {
 				succeed = true;
 				candidates.push({
 					high: highEdge,

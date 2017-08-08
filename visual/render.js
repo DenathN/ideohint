@@ -203,6 +203,51 @@ const SUPERSAMPLING = 8;
 const SAMPLING_Y = 4;
 const DPI = 2;
 const GAMMA = 2;
+
+function renderTTFCurve(h, zs, m, txp, typ) {
+	if (zs.length < 3) return;
+	if (!zs[0].on) {
+		// the contour starts at an off point
+		if (zs[1].on) {
+			zs = [...zs.slice(1), zs[0]];
+		} else {
+			zs = [
+				{
+					xtouch: (zs[0].xtouch + zs[1].xtouch) / 2,
+					ytouch: (zs[0].ytouch + zs[1].ytouch) / 2,
+					on: true
+				},
+				...zs.slice(1),
+				zs[0]
+			];
+		}
+	}
+	zs.push(zs[0]);
+	h.moveTo(txp(zs[0].xtouch, m), typ(zs[0].ytouch));
+	for (var k = 1; k < zs.length; k++) {
+		if (zs[k].on || !zs[k + 1]) {
+			h.lineTo(txp(zs[k].xtouch, m), typ(zs[k].ytouch));
+		} else {
+			if (zs[k + 1].on) {
+				h.quadraticCurveTo(
+					txp(zs[k].xtouch, m),
+					typ(zs[k].ytouch),
+					txp(zs[k + 1].xtouch, m),
+					typ(zs[k + 1].ytouch)
+				);
+				k += 1;
+			} else {
+				h.quadraticCurveTo(
+					txp(zs[k].xtouch, m),
+					typ(zs[k].ytouch),
+					txp((zs[k].xtouch + zs[k + 1].xtouch) / 2, m),
+					typ((zs[k].ytouch + zs[k + 1].ytouch) / 2)
+				);
+			}
+		}
+	}
+}
+
 function RenderPreviewForPPEM(glyphs, strategy, hdc, basex, basey, ppem) {
 	const uppx = strategy.UPM / ppem;
 
@@ -218,8 +263,8 @@ function RenderPreviewForPPEM(glyphs, strategy, hdc, basex, basey, ppem) {
 	hTemp.fillStyle = "white";
 	hTemp.fillRect(0, 0, eTemp.width, eTemp.height);
 
-	function txp(x) {
-		return x / uppx * 3 * SUPERSAMPLING;
+	function txp(x, m) {
+		return (x + m * strategy.UPM) / uppx * 3 * SUPERSAMPLING;
 	}
 	function typ(y) {
 		return (-y / uppx + Math.round(strategy.BLUEZONE_TOP_CENTER / uppx) + 1) * SAMPLING_Y;
@@ -229,27 +274,7 @@ function RenderPreviewForPPEM(glyphs, strategy, hdc, basex, basey, ppem) {
 	for (var m = 0; m < glyphs.length; m++) {
 		hTemp.beginPath();
 		for (var j = 0; j < glyphs[m].glyph.contours.length; j++) {
-			var contour = glyphs[m].glyph.contours[j];
-			hTemp.moveTo(
-				txp(contour.points[0].xtouch + m * strategy.UPM),
-				typ(contour.points[0].ytouch)
-			);
-			for (var k = 1; k < contour.points.length; k++) {
-				if (contour.points[k].on || !contour.points[k + 1]) {
-					hTemp.lineTo(
-						txp(contour.points[k].xtouch + m * strategy.UPM),
-						typ(contour.points[k].ytouch)
-					);
-				} else {
-					hTemp.quadraticCurveTo(
-						txp(contour.points[k].xtouch + m * strategy.UPM),
-						typ(contour.points[k].ytouch),
-						txp(contour.points[k + 1].xtouch + m * strategy.UPM),
-						typ(contour.points[k + 1].ytouch)
-					);
-					k += 1;
-				}
-			}
+			renderTTFCurve(hTemp, glyphs[m].glyph.contours[j].points.slice(0), m, txp, typ);
 			hTemp.closePath();
 		}
 		hTemp.fill("nonzero");
