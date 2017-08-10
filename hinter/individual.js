@@ -20,24 +20,24 @@ class Individual {
 			S = env.S,
 			P = env.P,
 			n = y.length,
-			avaliables = env.avaliables,
+			avails = env.avails,
 			sym = env.symmetry;
 		let p = 0;
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
 				if (y[j] === y[k]) {
 					p += A[j][k]; // Alignment
-				} else if (y[j] <= y[k] + env.avaliables[j].properWidth) {
+				} else if (y[j] <= y[k] + env.avails[j].properWidth) {
 					p += C[j][k]; // Collide
 				}
 				if (
-					avaliables[j].rid &&
-					avaliables[j].rid === avaliables[k].rid &&
+					avails[j].rid &&
+					avails[j].rid === avails[k].rid &&
 					(y[j] - y[k] >
-						Math.ceil(avaliables[j].y0px - avaliables[k].y0px + DIAG_BIAS_PIXELS) ||
+						Math.ceil(avails[j].y0px - avails[k].y0px + DIAG_BIAS_PIXELS) ||
 						y[j] - y[k] <
 							Math.ceil(
-								avaliables[j].y0px - avaliables[k].y0px - DIAG_BIAS_PIXELS_NEG
+								avails[j].y0px - avails[k].y0px - DIAG_BIAS_PIXELS_NEG
 							))
 				) {
 					p += S[j][k]; // diagonal break
@@ -50,11 +50,11 @@ class Individual {
 					if (y[j] < y[k]) {
 						p += S[j][k]; // Swap
 					} else if (
-						avaliables[j].y0 - avaliables[j].w0 < avaliables[k].y0 &&
-						!(avaliables[j].rid && avaliables[j].rid === avaliables[k].rid) &&
-						(avaliables[j].properWidth > 1
-							? y[j] - avaliables[j].properWidth >= y[k]
-							: y[j] - avaliables[j].properWidth > y[k])
+						avails[j].y0 - avails[j].w0 < avails[k].y0 &&
+						!(avails[j].rid && avails[j].rid === avails[k].rid) &&
+						(avails[j].properWidth > 1
+							? y[j] - avails[j].properWidth >= y[k]
+							: y[j] - avails[j].properWidth > y[k])
 					) {
 						// Swap
 						// higher stroke being too high for original outline designed like this ↓
@@ -72,24 +72,24 @@ class Individual {
 	getAblationPotential(env) {
 		if (env.noAblation) return 0;
 		const y = this.gene;
-		const avaliables = env.avaliables,
+		const avails = env.avails,
 			triplets = env.triplets,
 			uppx = env.uppx,
 			n = y.length;
 		let p = 0;
 		for (let j = 0; j < y.length; j++) {
-			p += avaliables[j].ablationCoeff * uppx * Math.abs(y[j] - avaliables[j].center);
-			if (y[j] > avaliables[j].softHigh) {
+			p += avails[j].ablationCoeff * uppx * Math.abs(y[j] - avails[j].center);
+			if (y[j] > avails[j].softHigh) {
 				p +=
 					env.strategy.COEFF_PORPORTION_DISTORTION *
 					uppx *
-					Math.min(1, y[j] - avaliables[j].softHigh);
+					Math.min(1, y[j] - avails[j].softHigh);
 			}
-			if (y[j] < avaliables[j].softLow) {
+			if (y[j] < avails[j].softLow) {
 				p +=
 					env.strategy.COEFF_PORPORTION_DISTORTION *
 					uppx *
-					Math.min(1, avaliables[j].softHigh - y[j]);
+					Math.min(1, avails[j].softHigh - y[j]);
 			}
 		}
 
@@ -100,8 +100,8 @@ class Individual {
 		for (let [j, k, w, d1, d2] of triplets) {
 			const d = d1 - d2;
 			if (!(y[j] > y[k] && y[k] > y[w])) continue;
-			const spacejk = y[j] - y[k] - avaliables[j].properWidth;
-			const spacekw = y[k] - y[w] - avaliables[k].properWidth;
+			const spacejk = y[j] - y[k] - avails[j].properWidth;
+			const spacekw = y[k] - y[w] - avails[k].properWidth;
 			const expanded =
 				spacejk * uppx > d1 + compressLimit && spacekw * uppx > d2 + compressLimit;
 			const compressed =

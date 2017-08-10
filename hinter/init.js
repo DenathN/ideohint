@@ -94,7 +94,7 @@ class Hinter {
 		this.tightness = this.getTightness(fdefs);
 		this.nStems = fdefs.stems.length;
 		const tws = this.decideWidths(fdefs.stems, fdefs.dominancePriority);
-		this.avaliables = decideAvails.call(this, fdefs.stems, tws);
+		this.avails = decideAvails.call(this, fdefs.stems, tws);
 		this.symmetry = decideSymmetry.call(this);
 
 		this.X_EXPAND = 1 + Math.round(toVQ(strategy.X_EXPAND, ppem)) / 100;
@@ -166,9 +166,9 @@ class Hinter {
 			for (let k = 0; k < j; k++) {
 				if (this.directOverlaps[j][k]) {
 					let d1 =
-						this.avaliables[j].y0 -
-						this.avaliables[j].properWidth * this.uppx -
-						this.avaliables[k].y0;
+						this.avails[j].y0 -
+						this.avails[j].properWidth * this.uppx -
+						this.avails[k].y0;
 					if (d1 < d) d = d1;
 				}
 			}
@@ -177,13 +177,13 @@ class Hinter {
 	}
 
 	decideInitHint() {
-		const { avaliables, strategy, ppem, uppx } = this;
-		return avaliables.map(s => s.center);
+		const { avails, strategy, ppem, uppx } = this;
+		return avails.map(s => s.center);
 	}
 
 	decideInitHintNT() {
-		const { avaliables, strategy, ppem, uppx } = this;
-		return avaliables.map(a =>
+		const { avails, strategy, ppem, uppx } = this;
+		return avails.map(a =>
 			xclamp(
 				a.low,
 				Math.round(
@@ -196,7 +196,7 @@ class Hinter {
 	}
 
 	uncollide(y) {
-		const { avaliables, strategy, ppem, uppx } = this;
+		const { avails, strategy, ppem, uppx } = this;
 		const y1 = uncollide(
 			y,
 			this,
@@ -242,27 +242,25 @@ class Hinter {
 }
 
 function decideSymmetry() {
-	const { avaliables, directOverlaps } = this;
+	const { avails, directOverlaps } = this;
 	let sym = [];
-	for (let j = 0; j < avaliables.length; j++) {
+	for (let j = 0; j < avails.length; j++) {
 		sym[j] = [];
 		for (let k = 0; k < j; k++) {
 			sym[j][k] =
 				!directOverlaps[j][k] &&
-				!avaliables[j].diagHigh &&
-				!avaliables[k].diagHigh &&
-				Math.abs(avaliables[j].y0 - avaliables[k].y0) < this.uppx / 3 &&
-				Math.abs(
-					avaliables[j].y0 - avaliables[j].w0 - avaliables[k].y0 + avaliables[k].w0
-				) <
+				!avails[j].diagHigh &&
+				!avails[k].diagHigh &&
+				Math.abs(avails[j].y0 - avails[k].y0) < this.uppx / 3 &&
+				Math.abs(avails[j].y0 - avails[j].w0 - avails[k].y0 + avails[k].w0) <
 					this.uppx / 3 &&
-				Math.abs(avaliables[j].length - avaliables[k].length) < this.uppx / 3 &&
-				avaliables[j].hasGlyphStemAbove === avaliables[k].hasGlyphStemAbove &&
-				avaliables[j].hasGlyphStemBelow === avaliables[k].hasGlyphStemBelow &&
-				avaliables[j].hasSameRadicalStemAbove === avaliables[k].hasSameRadicalStemAbove &&
-				avaliables[j].hasSameRadicalStemBelow === avaliables[k].hasSameRadicalStemBelow &&
-				avaliables[j].atGlyphTop === avaliables[k].atGlyphTop &&
-				avaliables[j].atGlyphBottom === avaliables[k].atGlyphBottom;
+				Math.abs(avails[j].length - avails[k].length) < this.uppx / 3 &&
+				avails[j].hasGlyphStemAbove === avails[k].hasGlyphStemAbove &&
+				avails[j].hasGlyphStemBelow === avails[k].hasGlyphStemBelow &&
+				avails[j].hasSameRadicalStemAbove === avails[k].hasSameRadicalStemAbove &&
+				avails[j].hasSameRadicalStemBelow === avails[k].hasSameRadicalStemBelow &&
+				avails[j].atGlyphTop === avails[k].atGlyphTop &&
+				avails[j].atGlyphBottom === avails[k].atGlyphBottom;
 		}
 	}
 	return sym;

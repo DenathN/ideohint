@@ -34,7 +34,7 @@ function slicelast(x) {
 
 function hint(gd, ppem, strg, tbonly) {
 	const hinter = new Hinter(strg, gd, ppem);
-	if (!hinter.avaliables.length) return { y: [], x: { expand: hinter.X_EXPAND } };
+	if (!hinter.avails.length) return { y: [], x: { expand: hinter.X_EXPAND } };
 
 	let sp = null;
 

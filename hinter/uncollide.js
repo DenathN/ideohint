@@ -10,10 +10,10 @@ function byFitness(a, b) { return b.fitness - a.fitness };
 function uncollide(yInit, env, terminalStrictness, scale, allowUnbalanced) {
 	if (!yInit.length) return yInit;
 	var n = yInit.length;
-	var avaliables = env.avaliables;
+	var avails = env.avails;
 	var y0 = [];
 	for (var j = 0; j < n; j++) {
-		y0[j] = xclamp(avaliables[j].low, Math.round(yInit[j]), avaliables[j].high);
+		y0[j] = xclamp(avails[j].low, Math.round(yInit[j]), avails[j].high);
 	}
 	var initIdv = new Individual(balance(y0, env), env);
 	var unbalIdv = new Individual(y0, env, true);
@@ -33,7 +33,7 @@ function uncollide(yInit, env, terminalStrictness, scale, allowUnbalanced) {
 	// Generate initial population
 	// Extereme
 	for (var j = 0; j < n; j++) {
-		for (var k = avaliables[j].low; k <= avaliables[j].high; k++) if (k !== y0[j]) {
+		for (var k = avails[j].low; k <= avails[j].high; k++) if (k !== y0[j]) {
 			const y1 = y0.slice(0);
 			y1[j] = k;
 			const idvBal = new Individual(balance(y1, env), env);
@@ -46,17 +46,17 @@ function uncollide(yInit, env, terminalStrictness, scale, allowUnbalanced) {
 	}
 	// Y-mutant
 	population.push(new Individual(balance(y0.map(function (y, j) {
-		return xclamp(avaliables[j].low, y - 1, avaliables[j].high);
+		return xclamp(avails[j].low, y - 1, avails[j].high);
 	}), env), env));
 	population.push(new Individual(balance(y0.map(function (y, j) {
-		return xclamp(avaliables[j].low, y + 1, avaliables[j].high);
+		return xclamp(avails[j].low, y + 1, avails[j].high);
 	}), env), env));
 	// Random
 	for (let c = population.length; c < scale; c++) {
 		// fill population with random individuals
 		const ry = new Array(n);
 		for (let j = 0; j < n; j++) {
-			ry[j] = xclamp(avaliables[j].low, Math.floor(avaliables[j].low + Math.random() * (avaliables[j].high - avaliables[j].low + 1)), avaliables[j].high);
+			ry[j] = xclamp(avails[j].low, Math.floor(avails[j].low + Math.random() * (avails[j].high - avails[j].low + 1)), avails[j].high);
 		}
 		const idvBal = new Individual(balance(ry, env), env);
 		const idvUnbal = new Individual(ry, env, true);

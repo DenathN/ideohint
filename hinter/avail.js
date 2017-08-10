@@ -98,8 +98,18 @@ class Avail {
 		);
 		const [maxShiftD, maxShiftU] = decideMaxShift(y0, w0, ppem, tightness, strategy);
 		const lowlimitW = Math.max(env.glyphBottom + w, tw > 1 ? lowlimit - uppx : lowlimit);
-		const lowW = xclamp(lowlimitW, env.round(center0 - maxShiftD * uppx), highlimit);
-		const highW = xclamp(lowlimitW, env.round(center0 + maxShiftU * uppx), highlimit);
+		const lowW = xclamp(
+			lowlimitW,
+			env.round(center0 - Math.max(1, maxShiftD) * uppx),
+			highlimit
+		);
+		const highW = xclamp(
+			lowlimitW,
+			env.round(center0 + Math.max(1, maxShiftU) * uppx),
+			highlimit
+		);
+		const lowP = xclamp(lowlimit, env.round(center0 - maxShiftD / 2 * uppx), highlimit);
+		const highP = xclamp(lowlimit, env.round(center0 + maxShiftU / 2 * uppx), highlimit);
 		const low = xclamp(lowlimit, env.round(center0 - maxShiftD * uppx), highlimit);
 		const high = xclamp(lowlimit, env.round(center0 + maxShiftU * uppx), highlimit);
 		const center = xclamp(low, center0, high);
@@ -119,6 +129,9 @@ class Avail {
 		// limit of the stroke's y, when width allocating, in pixels
 		this.lowW = Math.round(lowW / uppx);
 		this.highW = Math.round(highW / uppx);
+		// limit of the stroke's y, when width allocating's pushing pass, in pixels
+		this.lowP = Math.round(lowP / uppx);
+		this.highP = Math.round(highP / uppx);
 		// soft high/low limits, affects ablation potential
 		this.softLow = Math.round(low / uppx);
 		this.softHigh = Math.round(high / uppx);
@@ -153,16 +166,16 @@ class Avail {
 
 /**
  * Adjust avail list to unify top/bottom features
- * @param {*} avaliables 
+ * @param {*} avails 
  * @param {*} stems 
  */
-function adjustAvails(avaliables, stems) {
+function adjustAvails(avails, stems) {
 	const { upm, ppem, uppx } = this;
 	const topPx = this.glyphTop / uppx;
 	const bottomPx = this.glyphBottom / uppx;
 	// fix top and bottom stems
 	for (let j = 0; j < stems.length; j++) {
-		const avail = avaliables[j],
+		const avail = avails[j],
 			stem = stems[j];
 		if (!stem.hasGlyphStemBelow) {
 			avail.high = Math.round(
@@ -192,7 +205,7 @@ function adjustAvails(avaliables, stems) {
 		}
 	}
 
-	for (let s of avaliables) {
+	for (let s of avails) {
 		if (s.diagLow && s.center >= topPx - 0.5) {
 			s.center = xclamp(s.low, topPx - 1, s.center);
 			s.softHigh = s.center;
@@ -206,29 +219,29 @@ function adjustAvails(avaliables, stems) {
 
 function decideAvails(stems, tws) {
 	const { upm, ppem, uppx, strategy, tightness } = this;
-	let avaliables = [];
+	let avails = [];
 	// decide avails
 	for (let j = 0; j < stems.length; j++) {
-		avaliables[j] = new Avail(this, stems[j], tws[j]);
+		avails[j] = new Avail(this, stems[j], tws[j]);
 	}
 	// unify top/bottom features
-	adjustAvails.call(this, avaliables, stems);
+	adjustAvails.call(this, avails, stems);
 	// get soft high/low limit for diggonals
 	for (let j = 0; j < stems.length; j++) {
-		if (avaliables[j].diagLow) {
-			avaliables[j].softHigh = avaliables[j].center;
+		if (avails[j].diagLow) {
+			avails[j].softHigh = avails[j].center;
 		}
-		if (avaliables[j].diagHigh) {
-			avaliables[j].softLow = avaliables[j].center;
+		if (avails[j].diagHigh) {
+			avails[j].softLow = avails[j].center;
 		}
 	}
 	// calculate proportion for ablation calculation
 	for (let j = 0; j < stems.length; j++) {
-		avaliables[j].proportion =
-			(avaliables[j].center - avaliables[0].center) /
-				(avaliables[avaliables.length - 1].center - avaliables[0].center) || 0;
+		avails[j].proportion =
+			(avails[j].center - avails[0].center) /
+				(avails[avails.length - 1].center - avails[0].center) || 0;
 	}
-	return avaliables;
+	return avails;
 }
 
 module.exports = decideAvails;

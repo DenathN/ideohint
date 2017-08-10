@@ -9,6 +9,7 @@ const slopeOf = require("../types").slopeOf;
 const splitDiagonalStems = require("./splitting").splitDiagonalStems;
 const hlkey = require("./hlkey");
 const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ } = require("../support/common");
+const { xclamp } = require("../support/common");
 
 const monoip = require("../support/monotonic-interpolate");
 function toVQ(v, ppem) {
@@ -56,9 +57,12 @@ function eqSlopeA(z1, z2) {
 
 function approSlopeA(z1, z2, strategy) {
 	const slope = (z1.y - z2.y) / (z1.x - z2.x);
+	const sprop = xclamp(0, Math.abs(z1.x - z2.x) / strategy.UPM * 2, 1);
 	return (
 		Math.abs(z2.x - z1.x) >= strategy.Y_FUZZ * 2 &&
-		(slope >= 0 ? slope <= strategy.SLOPE_FUZZ : slope >= -strategy.SLOPE_FUZZ_NEG)
+		(slope >= 0
+			? slope <= strategy.SLOPE_FUZZ * sprop
+			: slope >= -strategy.SLOPE_FUZZ_NEG * sprop)
 	);
 }
 

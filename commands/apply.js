@@ -83,30 +83,31 @@ exports.handler = function(argv) {
 				}
 				return glyph;
 			})
-			.on("node", "TSI_01.glyphs.*", function() {
-				return "";
-			})
 			.on("done", function(otd) {
 				if (!foundCVT) {
 					otd.cvt_ = cvtlib.createCvt([], strategy, cvtPadding);
 				}
-				if (otd.TSI_23 && otd.TSI_23.glyphs) {
+				if (otd.TSI_23) {
 					if (!otd.TSI_23.glyphs) otd.TSI_23.glyphs = {};
-					for (let k in otd.TSI_23.glyphs) {
-						if (!otd.glyf[k] || !otd.glyf[k].contours || !glyfcor[k]) continue;
+					for (let k in otd.glyf) {
+						if (!otd.glyf[k].contours || !glyfcor[k]) continue;
 						let data = activeInstructions[glyfcor[k]];
-						otd.TSI_23.glyphs[k] = (activeInstructions[glyfcor[k]].VTTTalk || "")
-							.replace(/\n/g, "\r"); // VTT uses single CR, very strange.
+						otd.TSI_23.glyphs[k] = (data.VTTTalk || "").replace(/\n/g, "\r"); // vtt uses CR
+					}
+				}
+				if (otd.TSI_01 && otd.TSI_01.glyphs) {
+					for (let k in otd.TSI_01.glyphs) {
+						if (otd.TSI_23.glyphs[k]) {
+							otd.TSI_01.glyphs[k] = "";
+						}
 					}
 				}
 				if (otd.TSI_01 && otd.TSI_01.extra && otd.TSI_01.extra.cvt) {
 					otd.TSI_01.extra.cvt = generateCVT(otd.TSI_01.extra.cvt, cvtPadding, strategy);
 				}
-				if (argv.padvtt) {
-					if (!otd.TSI_01) {
-						otd.TSI_01 = { glyphs: {}, extra: {} };
-						otd.TSI_23 = { glyphs: {}, extra: {} };
-					}
+				if (argv.padvtt && !otd.TSI_01) {
+					otd.TSI_01 = { glyphs: {}, extra: {} };
+					otd.TSI_23 = { glyphs: {}, extra: {} };
 				}
 				var outStream = argv.o
 					? fs.createWriteStream(argv.o, { encoding: "utf-8" })

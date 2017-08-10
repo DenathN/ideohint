@@ -5,18 +5,18 @@ var balance = require("./balance");
 function xclamp(low, x, high) { return x < low ? low : x > high ? high : x }
 
 function crossover(p, q, r, env, background, c, allowUnbalanced) {
-	var avaliables = env.avaliables;
+	var avails = env.avails;
 	var n = p.gene.length;
 	var newgene = new Array(n);
 	for (var j = 0; j < p.gene.length; j++) {
 		var rn = Math.random();
 		if (rn < env.strategy.MUTANT_PROBABLITY) {
 			newgene[j] = xclamp(
-				avaliables[j].low,
-				Math.round(avaliables[j].low - 0.5 + Math.random() * (avaliables[j].high - avaliables[j].low + 1)),
-				avaliables[j].high);
+				avails[j].low,
+				Math.round(avails[j].low - 0.5 + Math.random() * (avails[j].high - avails[j].low + 1)),
+				avails[j].high);
 		} else if (rn * 2 < 1 || rn * n < 1) {
-			newgene[j] = xclamp(avaliables[j].low, p.gene[j] + (q.gene[j] - r.gene[j]), avaliables[j].high)
+			newgene[j] = xclamp(avails[j].low, p.gene[j] + (q.gene[j] - r.gene[j]), avails[j].high)
 		} else {
 			newgene[j] = p.gene[j];
 		}
