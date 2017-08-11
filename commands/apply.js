@@ -97,7 +97,7 @@ exports.handler = function(argv) {
 				}
 				if (otd.TSI_01 && otd.TSI_01.glyphs) {
 					for (let k in otd.TSI_01.glyphs) {
-						if (otd.TSI_23.glyphs[k]) {
+						if (otd.TSI_23 && otd.TSI_23.glyphs && otd.TSI_23.glyphs[k]) {
 							otd.TSI_01.glyphs[k] = "";
 						}
 					}
