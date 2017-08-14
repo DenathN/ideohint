@@ -275,7 +275,9 @@ function instruct(record, strategy, padding) {
 	var isks = [];
 	for (let da of si.diagAligns) {
 		if (!da.zs || !da.zs.length) continue;
-		isks.push([da.l, da.r].concat(da.zs));
+		for (let z of da.zs) {
+			isks.push([da.l, da.r, z]);
+		}
 	}
 
 	// Interpolations

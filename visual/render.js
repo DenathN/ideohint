@@ -153,7 +153,11 @@ function interpretTT(glyphs, strategy, ppem) {
 		// diagaligns
 		for (let da of features.diagAligns) {
 			for (let z of da.zs) {
-				interpolateIP(da.l, da.r, z);
+				interpolateIP(
+					glyph.indexedPoints[da.l],
+					glyph.indexedPoints[da.r],
+					glyph.indexedPoints[z]
+				);
 			}
 		}
 		// IPs
