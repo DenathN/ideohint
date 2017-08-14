@@ -1,11 +1,10 @@
 "use strict";
 
-var Contour = require("../types").Contour;
-var Point = require("../types").Point;
-var Glyph = require("../types").Glyph;
-var util = require("util");
+const Contour = require("./types").Contour;
+const Point = require("./types").Point;
+const Glyph = require("./types").Glyph;
 
-var crypto = require("crypto");
+const crypto = require("crypto");
 function getSHA1(text) {
 	return crypto.createHash("sha1").update(text).digest("hex");
 }

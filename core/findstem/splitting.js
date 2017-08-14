@@ -1,7 +1,7 @@
 "use strict";
 
-const Point = require("../types").Point;
-const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ } = require("../support/common");
+const Point = require("../types/").Point;
+const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ } = require("../../support/common");
 
 function dup(x) {
 	return JSON.stringify(x);

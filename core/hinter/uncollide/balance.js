@@ -1,8 +1,6 @@
 "use strict";
 
-function xclamp(low, x, high) {
-	return x < low ? low : x > high ? high : x;
-}
+const { xclamp } = require("../../../support/common");
 
 function canBeAdjustedUp(y, k, env, distance) {
 	for (var j = k + 1; j < y.length; j++) {

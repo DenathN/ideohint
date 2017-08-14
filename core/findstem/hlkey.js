@@ -1,6 +1,6 @@
 "use strict";
 
-const slopeOf = require("../types").slopeOf;
+const slopeOf = require("../types/").slopeOf;
 
 function keyptPriority(incoming, current, atl, atr, strategy) {
 	if (atr) {
@@ -17,11 +17,21 @@ function keyptPriority(incoming, current, atl, atr, strategy) {
 }
 
 function findHighLowKeys(s, strategy) {
-	var highkey = null, lowkey = null, highnonkey = [], lownonkey = [];
-	var jHigh = 0, jLow = 0, kHigh = 0, kLow = 0;
+	var highkey = null,
+		lowkey = null,
+		highnonkey = [],
+		lownonkey = [];
+	var jHigh = 0,
+		jLow = 0,
+		kHigh = 0,
+		kLow = 0;
 	for (var j = 0; j < s.high.length; j++) {
 		for (var k = 0; k < s.high[j].length; k++) {
-			if (!highkey || s.high[j][k].id >= 0 && keyptPriority(s.high[j][k], highkey, s.atLeft, s.atRight, strategy)) {
+			if (
+				!highkey ||
+				(s.high[j][k].id >= 0 &&
+					keyptPriority(s.high[j][k], highkey, s.atLeft, s.atRight, strategy))
+			) {
 				highkey = s.high[j][k];
 				jHigh = j;
 				kHigh = k;
@@ -30,20 +40,24 @@ function findHighLowKeys(s, strategy) {
 	}
 	for (var j = 0; j < s.low.length; j++) {
 		for (var k = 0; k < s.low[j].length; k++) {
-			if (!lowkey || s.low[j][k].id >= 0 && keyptPriority(s.low[j][k], lowkey, s.atLeft, s.atRight, strategy)) {
+			if (
+				!lowkey ||
+				(s.low[j][k].id >= 0 &&
+					keyptPriority(s.low[j][k], lowkey, s.atLeft, s.atRight, strategy))
+			) {
 				lowkey = s.low[j][k];
 				jLow = j;
 				kLow = k;
 			}
 		}
 	}
-	return { highkey, lowkey }
+	return { highkey, lowkey };
 }
 
 function correctYWForStem(s, strategy) {
 	const slope = (slopeOf(s.high) + slopeOf(s.low)) / 2;
 	let { highkey, lowkey } = findHighLowKeys(s, strategy);
-	s.highkey = highkey, s.lowkey = lowkey;
+	(s.highkey = highkey), (s.lowkey = lowkey);
 	s.slope = slope;
 	s.y = highkey.y;
 	s.width = highkey.y - lowkey.y + (lowkey.x - highkey.x) * slope;

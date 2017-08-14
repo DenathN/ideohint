@@ -1,9 +1,9 @@
 "use strict";
 
-const slopeOf = require("../types").slopeOf;
+const slopeOf = require("../types/").slopeOf;
 const hlkey = require("../findstem/hlkey");
-const { mix } = require("../support/common");
-const { atGlyphBottom } = require("../support/stem-spatial");
+const { mix } = require("../../support/common");
+const { atGlyphBottom } = require("../../support/stem-spatial");
 
 function keyptPriority(incoming, current, atr) {
 	if (atr) {

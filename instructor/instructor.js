@@ -16,6 +16,7 @@ function ipsaInvokes(actions) {
 	var cur_rp1 = -1;
 	var cur_rp2 = -1;
 	for (var k = 0; k < actions.length; k++) {
+		if (!actions[k]) continue;
 		if (actions[k].length > 2 && actions[k][0] === actions[k][1]) {
 			actions[k] = [actions[k][0], actions[k][2]];
 		}
@@ -77,8 +78,8 @@ const SDS_COARSE = 2;
 const GEAR_COARSE = 4;
 
 function instruct(record, strategy, padding) {
-	const glyph = record.si;
-	const actions = record.sd;
+	const si = record.si;
+	const sd = record.sd;
 	const pmin = record.pmin;
 	const pmax = record.pmax;
 
@@ -125,13 +126,13 @@ function instruct(record, strategy, padding) {
 	var STACK_DEPTH = strategy.STACK_DEPTH || 200;
 	var invocations = [];
 
-	// if(!glyph.stems.length) return;
+	// if(!si.stems.length) return;
 	var tt = ["SVTCA[y-axis]", "RTG"];
 
 	// Blue zone alignment instructions
 	// Bottom
-	for (var k = 0; k < glyph.blue.bottomZs.length; k++) {
-		invocations.push([[glyph.blue.bottomZs[k].id, cvtBottomID], ["MIAP[rnd]"]]);
+	for (var k = 0; k < si.blue.bottomZs.length; k++) {
+		invocations.push([[si.blue.bottomZs[k].id, cvtBottomID], ["MIAP[rnd]"]]);
 	}
 	pushInvokes(tt, invocations, STACK_DEPTH);
 	// Top
@@ -141,25 +142,25 @@ function instruct(record, strategy, padding) {
 	tt.push("MPPEM");
 	pushargs(tt, padding + 3);
 	tt.push("ADD");
-	for (var k = 0; k < glyph.blue.topZs.length; k++) {
+	for (var k = 0; k < si.blue.topZs.length; k++) {
 		tt.push("DUP");
-		pushargs(tt, glyph.blue.topZs[k].id);
+		pushargs(tt, si.blue.topZs[k].id);
 		tt.push("SWAP", "MIAP[0]"); // Don't round top absorptions
 	}
 	tt.push("CLEAR");
 	tt.push("ELSE");
-	for (var k = 0; k < glyph.blue.topZs.length; k++) {
-		invocations.push([[glyph.blue.topZs[k].id, cvtTopID], ["MIAP[rnd]"]]);
+	for (var k = 0; k < si.blue.topZs.length; k++) {
+		invocations.push([[si.blue.topZs[k].id, cvtTopID], ["MIAP[rnd]"]]);
 	}
 	pushInvokes(tt, invocations, STACK_DEPTH);
 	tt.push("EIF");
 
 	// Microsoft eats my deltas, I have to add additional MDAPs
 	// cf. http://www.microsoft.com/typography/cleartype/truetypecleartype.aspx#Toc227035721
-	if (glyph.stems.length) {
-		for (var k = 0; k < glyph.stems.length; k++) {
-			invocations.push([[glyph.stems[k].posKey.id], ["MDAP[rnd]"]]);
-			invocations.push([[glyph.stems[k].advKey.id], ["MDRP[0]"]]);
+	if (si.stems.length) {
+		for (var k = 0; k < si.stems.length; k++) {
+			invocations.push([[si.stems[k].posKey.id], ["MDAP[rnd]"]]);
+			invocations.push([[si.stems[k].advKey.id], ["MDRP[0]"]]);
 		}
 	}
 
@@ -169,17 +170,17 @@ function instruct(record, strategy, padding) {
 		fine: []
 	};
 	var mirps = [];
-	if (glyph.stems.length)
-		for (var ppem = 0; ppem < actions.length; ppem++) {
-			var uppx = upm / ppem;
-			if (!actions[ppem]) continue;
-			// The instes' length sould be exactly glyph.stems.length.
-			var instrs = actions[ppem];
-			var deltas = [];
+	if (si.stems.length)
+		for (var ppem = 0; ppem < sd.length; ppem++) {
+			const uppx = upm / ppem;
+			if (!sd[ppem]) continue;
+			// The instes' length sould be exactly si.stems.length.
+			const instrs = sd[ppem].y;
+			let deltas = [];
 			for (var k = 0; k < instrs.length; k++) {
 				if (!instrs[k]) continue;
-				var [y, w, isStrict, isStacked] = instrs[k];
-				var stem = glyph.stems[k];
+				const [y, w, isStrict, isStacked] = instrs[k];
+				const stem = si.stems[k];
 				const y0 = stem.posKeyAtTop ? stem.posKey.y : stem.advKey.y;
 				const w0 = stem.posKeyAtTop
 					? stem.posKey.y - stem.advKey.y + (stem.advKey.x - stem.posKey.x) * stem.slope
@@ -246,11 +247,11 @@ function instruct(record, strategy, padding) {
 
 	mirps.push("PUSHB_1", pmax, "MPPEM", "LT", "IF");
 	var largeMdrpInvokes = [];
-	if (glyph.stems.length) {
-		for (var k = 0; k < glyph.stems.length; k++) {
+	if (si.stems.length) {
+		for (var k = 0; k < si.stems.length; k++) {
 			largeMdrpInvokes.push(
-				[[glyph.stems[k].posKey.id], ["SRP0"]],
-				[[glyph.stems[k].advKey.id], ["MDRP[0]"]]
+				[[si.stems[k].posKey.id], ["SRP0"]],
+				[[si.stems[k].advKey.id], ["MDRP[0]"]]
 			);
 		}
 	}
@@ -259,10 +260,10 @@ function instruct(record, strategy, padding) {
 
 	// In-stem alignments
 	var isalInvocations = [];
-	for (var j = 0; j < glyph.stems.length; j++) {
+	for (var j = 0; j < si.stems.length; j++) {
 		[
-			[glyph.stems[j].posKey.id, glyph.stems[j].posAlign],
-			[glyph.stems[j].advKey.id, glyph.stems[j].advAlign]
+			[si.stems[j].posKey.id, si.stems[j].posAlign],
+			[si.stems[j].advKey.id, si.stems[j].advAlign]
 		].forEach(function(x) {
 			if (!x[1].length) return;
 			isalInvocations.push([
@@ -272,7 +273,7 @@ function instruct(record, strategy, padding) {
 		});
 	}
 	var isks = [];
-	for (let da of glyph.diagAligns) {
+	for (let da of si.diagAligns) {
 		if (!da.zs || !da.zs.length) continue;
 		isks.push([da.l, da.r].concat(da.zs));
 	}
@@ -282,7 +283,7 @@ function instruct(record, strategy, padding) {
 		invokesToInstrs(invocations, STACK_DEPTH),
 		mirps,
 		invokesToInstrs(
-			[].concat(isalInvocations, ipsaInvokes(isks.concat(glyph.ipsacalls))),
+			[].concat(isalInvocations, ipsaInvokes(isks.concat(si.ipsacalls))),
 			STACK_DEPTH
 		)
 	);

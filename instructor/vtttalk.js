@@ -86,11 +86,11 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 
 	for (let ppem = 0; ppem < sd.length; ppem++) {
 		const pos0 = pos0s ? pos0s[ppem] : s.posKey.y;
-		if (!sd[ppem] || !sd[ppem][sid]) {
+		if (!sd[ppem] || !sd[ppem].y || !sd[ppem].y[sid]) {
 			pDsts[ppem] = roundings.rtg(pos0, upm, ppem);
 			continue;
 		}
-		const [ytouch, wtouch, isStrict, isStacked] = sd[ppem][sid];
+		const [ytouch, wtouch, isStrict, isStacked] = sd[ppem].y[sid];
 		const uppx = upm / ppem;
 		const wsrc = s.posKeyAtTop
 			? s.posKey.y - s.advKey.y + (s.advKey.x - s.posKey.x) * s.slope
@@ -220,16 +220,17 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 		let deltaL = [];
 		let deltaR = [];
 		for (let ppem = 0; ppem < sd.length; ppem++) {
-			if (!si.xExpansion[ppem]) continue;
+			if (!sd[ppem] || !sd[ppem].x) continue;
+			const xExp = sd[ppem].x.expansion;
 			const xL0 = zmin.x;
-			const xL1 = strategy.UPM / 2 + (xL0 - strategy.UPM / 2) * si.xExpansion[ppem];
+			const xL1 = strategy.UPM / 2 + (xL0 - strategy.UPM / 2) * xExp;
 			deltaL.push({
 				ppem,
 				delta: decideDelta(ROUNDING_SEGMENTS, xL0, xL1, upm, ppem) / ROUNDING_SEGMENTS
 			});
 
 			const xR0 = zmax.x;
-			const xR1 = strategy.UPM / 2 + (xR0 - strategy.UPM / 2) * si.xExpansion[ppem];
+			const xR1 = strategy.UPM / 2 + (xR0 - strategy.UPM / 2) * xExp;
 			deltaR.push({
 				ppem,
 				delta: decideDelta(ROUNDING_SEGMENTS, xR0, xR1, upm, ppem) / ROUNDING_SEGMENTS

@@ -1,6 +1,6 @@
 "use strict";
 
-const mixz = require("../support/common").mixz;
+const mixz = require("../../support/common").mixz;
 
 function Radical(outline) {
 	this.outline = outline;

@@ -5,13 +5,13 @@ const by_start = function(p, q) {
 	return p[0].x - q[0].x;
 };
 const minmaxOfSeg = require("./seg").minmaxOfSeg;
-const slopeOf = require("../types").slopeOf;
+const slopeOf = require("../types/").slopeOf;
 const splitDiagonalStems = require("./splitting").splitDiagonalStems;
 const hlkey = require("./hlkey");
-const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ } = require("../support/common");
-const { xclamp } = require("../support/common");
+const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ } = require("../../support/common");
+const { xclamp } = require("../../support/common");
 
-const monoip = require("../support/monotonic-interpolate");
+const monoip = require("../../support/monotonic-interpolate");
 function toVQ(v, ppem) {
 	if (v && v instanceof Array) {
 		return monoip(v)(ppem);

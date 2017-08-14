@@ -1,5 +1,8 @@
 "use strict";
-const { mix, lerp, xlerp, xclamp } = require("../support/common");
+
+// Width allocator
+
+const { mix, lerp, xlerp, xclamp } = require("../../support/common");
 function spare(y, w, p, q) {
 	return y[p] - y[q] > w[p];
 }

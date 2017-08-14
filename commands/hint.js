@@ -1,17 +1,14 @@
 "use strict";
 
-var fs = require("fs");
-var readline = require("readline");
-var stream = require("stream");
-var util = require("util");
-var devnull = require("dev-null");
-var paramfileLib = require("../support/paramfile");
-var strategyLib = require("../support/strategy");
+const fs = require("fs");
+const readline = require("readline");
+const stream = require("stream");
+const util = require("util");
+const devnull = require("dev-null");
+const paramfileLib = require("../support/paramfile");
+const strategyLib = require("../support/strategy");
 
-var parseOTD = require("../support/otdParser").parseOTD;
-var findStems = require("../findstem").findStems;
-var extractFeature = require("../extractfeature").extractFeature;
-const { hintAllSize } = require("../hinter");
+const core = require("../core/index");
 const { progress } = require("./support/progress");
 
 exports.command = "hint";
@@ -68,8 +65,7 @@ function finish(name, strategy, pendings, outStream) {
 	progress(name, pendings, data => {
 		const contours = data.contours;
 		if (!contours) return;
-		const feat = extractFeature(findStems(parseOTD(contours), strategy), strategy);
-		data.ideohint_decision = hintAllSize(feat, strategy);
+		data.ideohint_decision = core.hintSingleGlyph(contours, strategy);
 		outStream.write(JSON.stringify(data) + "\n");
 	});
 	if (process.stdout !== outStream) outStream.end();

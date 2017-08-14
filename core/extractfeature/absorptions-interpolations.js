@@ -18,8 +18,7 @@ function shortAbsorptionPointByKeys(shortAbsorptions, strategy, pt, keys, inSame
 				pt.xStrongExtrema) &&
 			key.id !== pt.id
 		) {
-			while (key.linkedKey)
-				key = key.linkedKey;
+			while (key.linkedKey) key = key.linkedKey;
 			shortAbsorptions.push([key.id, pt.id, priority + (pt.yExtrema ? 1 : 0)]);
 			pt.touched = true;
 			return;
@@ -40,8 +39,7 @@ function shortAbsorptionByKeys(shortAbsorptions, strategy, pts, keys, inSameRadi
 }
 
 function compareZ(key, pt, f) {
-	while (key.linkedKey)
-		key = key.linkedKey;
+	while (key.linkedKey) key = key.linkedKey;
 	return f(key, pt);
 }
 function cLT(key, pt) {
@@ -65,8 +63,10 @@ function interpolateByKeys(
 		var pt = pts[k];
 		if (pt.touched || pt.donttouch) continue;
 
-		var upperK = null, upperdist = 0xffff;
-		var lowerK = null, lowerdist = 0xffff;
+		var upperK = null,
+			upperdist = 0xffff;
+		var lowerK = null,
+			lowerdist = 0xffff;
 		for (var m = keys.length - 1; m >= 0; m--)
 			if (compareZ(keys[m], pt, cLT)) {
 				if (
@@ -89,10 +89,8 @@ function interpolateByKeys(
 			}
 		if (!lowerK || !upperK) continue;
 
-		while (upperK.linkedKey)
-			upperK = upperK.linkedKey;
-		while (lowerK.linkedKey)
-			lowerK = lowerK.linkedKey;
+		while (upperK.linkedKey) upperK = upperK.linkedKey;
+		while (lowerK.linkedKey) lowerK = lowerK.linkedKey;
 		if (!upperK.phantom && !lowerK.phantom) {
 			if (upperK.y > lowerK.y + strategy.Y_FUZZ) {
 				interpolations.push([upperK.id, lowerK.id, pt.id, priority]);
@@ -170,8 +168,7 @@ function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalS
 		// And it should have at least one segment in the glyph's outline.'
 		if (candidate) {
 			let key = candidate;
-			while (key.linkedKey)
-				key = key.linkedKey;
+			while (key.linkedKey) key = key.linkedKey;
 			shortAbsorptions.push([key.id, z.id, priority + (z.yExtrema ? 1 : 0)]);
 			z.touched = true;
 		}
@@ -262,7 +259,8 @@ module.exports = function(glyph, strategy) {
 			})
 			.sort(BY_YORI);
 
-		var pmin = null, pmax = null;
+		var pmin = null,
+			pmax = null;
 		for (let z of contourpoints) {
 			if (!pmin || z.y < pmin.y) pmin = z;
 			if (!pmax || z.y > pmax.y) pmax = z;

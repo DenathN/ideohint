@@ -1,16 +1,16 @@
 "use strict";
 
-const roundings = require("../support/roundings");
-const { mix, lerp, xlerp, xclamp } = require("../support/common");
-const monoip = require("../support/monotonic-interpolate");
+const roundings = require("../../support/roundings");
+const { mix, lerp, xlerp, xclamp } = require("../../support/common");
+const monoip = require("../../support/monotonic-interpolate");
+const stemSpat = require("../../support/stem-spatial");
 
-const decideAvails = require("./avail");
-const decideWidths = require("./decide-widths");
+const decideAvails = require("./init/avail");
+const decideWidths = require("./init/decide-widths");
 
-const Individual = require("./individual");
+const Individual = require("./uncollide/individual");
 const uncollide = require("./uncollide");
 const allocateWidth = require("./allocate-width");
-const stemSpat = require("../support/stem-spatial");
 
 function toVQ(v, ppem) {
 	if (v && v instanceof Array) {
@@ -28,10 +28,36 @@ class Hinter {
 	constructor(strategy, fdefs, ppem) {
 		//// STRATEGY SPECIFIC
 		this.strategy = strategy;
+		this.upm = strategy.UPM || 1000;
 		this.ppem = ppem;
-		const upm = strategy.UPM || 1000;
-		this.upm = upm;
-		this.uppx = upm / this.ppem;
+		this.prepareParameters();
+
+		//// GLYPH SPECIFIC
+		this.A = fdefs.collisionMatrices.alignment;
+		this.C = fdefs.collisionMatrices.collision;
+		this.S = fdefs.collisionMatrices.swap;
+		this.P = fdefs.collisionMatrices.promixity;
+
+		this.directOverlaps = fdefs.directOverlaps;
+		this.strictOverlaps = fdefs.strictOverlaps;
+
+		this.triplets = fdefs.triplets;
+		this.strictTriplets = fdefs.strictTriplets;
+
+		this.stats = fdefs.stats;
+
+		//// CALCULATED
+		this.tightness = this.getTightness(fdefs);
+		this.nStems = fdefs.stems.length;
+		const tws = this.decideWidths(fdefs.stems, fdefs.dominancePriority);
+		this.avails = decideAvails.call(this, fdefs.stems, tws);
+		this.symmetry = decideSymmetry.call(this);
+
+		this.xExpansion = 1 + Math.round(toVQ(strategy.X_EXPAND, ppem)) / 100;
+	}
+	prepareParameters() {
+		const { strategy, ppem } = this;
+		this.uppx = this.upm / this.ppem;
 
 		this.glyphTop =
 			this.round(strategy.BLUEZONE_BOTTOM_CENTER) +
@@ -75,29 +101,6 @@ class Hinter {
 		this.CHEBYSHEV_3 = toVQ(strategy.CONCENTRATE, ppem) / 200;
 		this.CHEBYSHEV_4 = toVQ(strategy.CHEBYSHEV_4, ppem) / -200;
 		this.CHEBYSHEV_5 = toVQ(strategy.CHEBYSHEV_5, ppem) / 200;
-
-		//// GLYPH SPECIFIC
-		this.A = fdefs.collisionMatrices.alignment;
-		this.C = fdefs.collisionMatrices.collision;
-		this.S = fdefs.collisionMatrices.swap;
-		this.P = fdefs.collisionMatrices.promixity;
-
-		this.directOverlaps = fdefs.directOverlaps;
-		this.strictOverlaps = fdefs.strictOverlaps;
-
-		this.triplets = fdefs.triplets;
-		this.strictTriplets = fdefs.strictTriplets;
-
-		this.stats = fdefs.stats;
-
-		//// CALCULATED
-		this.tightness = this.getTightness(fdefs);
-		this.nStems = fdefs.stems.length;
-		const tws = this.decideWidths(fdefs.stems, fdefs.dominancePriority);
-		this.avails = decideAvails.call(this, fdefs.stems, tws);
-		this.symmetry = decideSymmetry.call(this);
-
-		this.X_EXPAND = 1 + Math.round(toVQ(strategy.X_EXPAND, ppem)) / 100;
 	}
 	getTightness(fdefs) {
 		let d = 0xffff;

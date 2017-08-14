@@ -12,7 +12,7 @@ var stringifyToStream = require("../support/stringify-to-stream");
 var cvtlib = require("../instructor/cvt");
 var { talk, generateCVT } = require("../instructor/vtttalk");
 
-var hashContours = require("../support/otdParser").hashContours;
+var hashContours = require("../core/otdParser").hashContours;
 
 var crypto = require("crypto");
 function md5(text) {

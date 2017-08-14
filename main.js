@@ -1,4 +1,4 @@
-exports.findstem = require('./findstem');
-exports.extractfeature = require('./extractfeature');
-exports.hinter = require('./hinter');
-exports.instructor = require('./instructor');
+exports.findstem = require("./core/findstem");
+exports.extractfeature = require("./core/extractfeature");
+exports.hinter = require("./core/hinter");
+exports.instructor = require("./instructor");

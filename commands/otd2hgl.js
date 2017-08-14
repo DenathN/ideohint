@@ -1,7 +1,7 @@
 "use strict";
 
 var fs = require("fs");
-var hashContours = require("../support/otdParser").hashContours;
+var hashContours = require("../core/otdParser").hashContours;
 var JSONStream = require("JSONStream");
 
 function codePointCanBeHandledWithIDH(code) {
