@@ -6,7 +6,10 @@ const Glyph = require("./types").Glyph;
 
 const crypto = require("crypto");
 function getSHA1(text) {
-	return crypto.createHash("sha1").update(text).digest("hex");
+	return crypto
+		.createHash("sha1")
+		.update(text)
+		.digest("hex");
 }
 function hashContours(input) {
 	var buf = "";
@@ -25,27 +28,44 @@ function hashContours(input) {
 	return getSHA1(buf);
 }
 
+function rotatePoints(c) {
+	let zm = c[0],
+		jm = 0;
+	for (let j = 1; j < c.length; j++) {
+		if (c[j].x + c[j].y < zm.x + zm.y) {
+			zm = c[j];
+			jm = j;
+		}
+	}
+	return [...c.slice(jm), ...c.slice(0, jm)];
+}
+
 function parseOTD(input) {
-	var contours = [],
+	let contours = [],
 		indexedPoints = [];
-	var ptindex = 0;
-	for (var j = 0; j < input.length; j++) {
-		var c = input[j];
-		if (c.length < 1) continue;
-		var currentContour = new Contour();
-		var c0index = ptindex;
-		for (var k = 0; k < c.length; k++) {
-			var pt = new Point(c[k].x, c[k].y, c[k].on, ptindex);
+	let ptindex = 0;
+	for (let j = 0; j < input.length; j++) {
+		const c = input[j];
+		const currentContour = new Contour();
+		for (let k = 0; k < c.length; k++) {
+			const pt = new Point(c[k].x, c[k].y, c[k].on, ptindex);
 			currentContour.points.push(pt);
 			indexedPoints[ptindex] = pt;
 			ptindex++;
 		}
-		var pt = new Point(c[0].x, c[0].y, c[0].on, c0index);
-		currentContour.points.push(pt);
-		indexedPoints[c0index] = pt;
+		if (currentContour.points.length < 1) continue;
+		currentContour.points = rotatePoints(currentContour.points);
+		currentContour.points.push(
+			new Point(
+				currentContour.points[0].x,
+				currentContour.points[0].y,
+				currentContour.points[0].on,
+				currentContour.points[0].id
+			)
+		);
 		contours.push(currentContour);
 	}
-	var glyph = new Glyph(contours);
+	const glyph = new Glyph(contours);
 	glyph.unifyZ();
 	glyph.stat();
 	glyph.nPoints = ptindex - 1;

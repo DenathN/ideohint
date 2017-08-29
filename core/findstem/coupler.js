@@ -204,7 +204,7 @@ function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
 				expandingU = false;
 			}
 			for (let k = 0; k < segs.length; k++)
-				if (!used[k] && up[k] !== up[j] === !!(pass % 2)) {
+				if (!used[k] && (up[k] !== up[j]) === !!(pass % 2)) {
 					let sameSide, otherSide;
 					if (up[k]) {
 						sameSide = candidate.high;

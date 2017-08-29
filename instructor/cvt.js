@@ -13,11 +13,10 @@ function createCvt(src, strategy, padding) {
 	padding = padding || 0;
 	if (padding) cvt = cvt.slice(0, padding);
 	while (cvt.length < padding) cvt.push(0);
-	pushWhenAbsent(cvt, 0);
-	var upm = strategy.UPM;
+	pushWhenAbsent(cvt, 0); // padding + 0
 	pushWhenAbsent(cvt, strategy.BLUEZONE_TOP_CENTER);
 	pushWhenAbsent(cvt, strategy.BLUEZONE_BOTTOM_CENTER);
-	pushWhenAbsent(cvt, 0);
+	pushWhenAbsent(cvt, 0); // padding + 3
 	for (var ppem = 1; ppem <= strategy.PPEM_MAX; ppem++) {
 		var rtg = roundings.Rtg(strategy.UPM, ppem);
 		var vtop = Math.round(
