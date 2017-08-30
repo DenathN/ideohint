@@ -4,6 +4,7 @@ const roundings = require("../support/roundings");
 const toF26D6P = roundings.toF26D6P;
 const { decideDelta, decideDeltaShift } = require("./delta.js");
 const { getVTTAux } = require("./cvt");
+const toposort = require("toposort");
 
 const ROUNDING_SEGMENTS = 8;
 
@@ -179,6 +180,82 @@ function table(min, max, f) {
 		a[j] = f(j);
 	}
 	return a;
+}
+
+function sortIPSAs(calls) {
+	let defs = [],
+		edges = [];
+	for (let c of calls) {
+		if (c.length < 2) continue;
+		if (c.length === 2) {
+			edges.push(c);
+			defs[c[1]] = c;
+		} else {
+			for (let m = 2; m < c.length; m++) {
+				edges.push([c[0], c[m]], [c[1], c[m]]);
+				defs[c[m]] = [c[0], c[1], c[m]];
+			}
+		}
+	}
+	for (let j = 0; j < defs.length; j++)
+		if (defs[j] && defs[j].length > 2)
+			for (let k = 0; k < defs.length; k++)
+				if (defs[k] && defs[k].length === 2) {
+					edges.push([j, k]);
+				}
+	try {
+		let sorted = toposort(edges);
+		return sorted.map(j => defs[j]).filter(c => c && c.length >= 2);
+	} catch (e) {
+		return calls;
+	}
+}
+
+function collectIPSAs(calls) {
+	calls = sortIPSAs(calls);
+	// collect groups
+	let groups = [];
+	for (let c of calls) {
+		if (c.length < 2) continue;
+		if (!groups[groups.length - 1] || groups[groups.length - 1].isShift !== (c.length === 2)) {
+			groups.push({
+				isShift: c.length === 2,
+				items: [c]
+			});
+		} else {
+			groups[groups.length - 1].items.push(c);
+		}
+	}
+	groups = groups.map(g => {
+		if (g.isShift) {
+			g.items = g.items.sort((a, b) => a[0] - b[0]);
+		} else {
+			g.items = g.items
+				.map(c => (c[0] < c[1] ? c : [c[1], c[0], ...c.slice(2)]))
+				.sort((a, b) => (a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]));
+		}
+		return g;
+	});
+
+	let answer = [];
+	for (let g of groups) {
+		let currentInstr = [];
+		for (let c of g.items) {
+			if (g.isShift) {
+				answer.push(c.slice(0));
+			} else {
+				if (c[0] === currentInstr[0] && c[1] === currentInstr[1]) {
+					currentInstr = currentInstr.concat(c.slice(2));
+				} else {
+					answer.push(currentInstr);
+					currentInstr = c.slice(0);
+				}
+			}
+		}
+		if (currentInstr.length) answer.push(currentInstr);
+	}
+
+	return answer;
 }
 
 // si : size-inpendent actions
@@ -470,25 +547,9 @@ ${encodeAnchor(z.id, pDstsTop0, pDstsTop, pmin, pmax, strategy)}`,
 		talk(`DAlign(${da.l},${da.zs.join(",")},${da.r})`);
 	}
 	/** IPSA calls */
-	var l = 0;
-	for (let j = 1; j < si.ipsacalls.length; j++) {
-		if (
-			si.ipsacalls[l] &&
-			si.ipsacalls[j] &&
-			si.ipsacalls[l].length > 2 &&
-			si.ipsacalls[l].length < 16 &&
-			si.ipsacalls[j].length > 2 &&
-			si.ipsacalls[l][0] === si.ipsacalls[j][0] &&
-			si.ipsacalls[l][1] === si.ipsacalls[j][1]
-		) {
-			si.ipsacalls[l].push(si.ipsacalls[j][2]);
-			si.ipsacalls[j] = null;
-		} else {
-			l = j;
-		}
-	}
-	for (let c of si.ipsacalls) {
-		if (!c) continue;
+	const calls = collectIPSAs(si.ipsacalls);
+	for (let c of calls) {
+		if (!c || c.length < 2) continue;
 		if (c.length >= 3) {
 			// ip
 			if (c[0] !== c[1]) talk(`YInterpolate(${c[0]},${c.slice(2).join(",")},${c[1]})`);
