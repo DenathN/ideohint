@@ -73,7 +73,24 @@ function encodeAnchor(z, ref, chosen, pmin, pmax, strategy) {
 	}
 	return sanityDelta(z, deltas);
 }
-function encodeStem(s, sid, sd, strategy, pos0s) {
+
+function standardAdvance(zpos, zadv, strategy) {
+	if (strategy.SIGNIFICANT_LINK_ARROW) {
+		return `YNoRound(${zadv})
+YDist(${zpos},${zadv})`;
+	} else {
+		return `YShift(${zpos},${zadv}) /* !IMPORTANT */`;
+	}
+}
+
+function SWAdvance(cvt) {
+	return function(zpos, zadv) {
+		return `YNoRound(${zadv})
+YLink(${zpos},${zadv},${cvt})`;
+	};
+}
+
+function encodeStem(s, sid, sd, strategy, pos0s, sws) {
 	let buf = "";
 	const upm = strategy.UPM;
 	function talk(s) {
@@ -81,9 +98,18 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 	}
 
 	let deltaPos = [];
-	let deltaADv = [];
 	let pDsts = [];
 	let totalPosDelta = 0;
+
+	const wsrc = s.posKeyAtTop
+		? s.posKey.y - s.advKey.y + (s.advKey.x - s.posKey.x) * s.slope
+		: s.advKey.y - s.posKey.y + (s.posKey.x - s.advKey.x) * s.slope;
+	const advDeltaGroups = [
+		{ wsrc, totalDelta: 0, deltas: [], fn: standardAdvance },
+		...sws
+			.map(s => ({ wsrc: s.width, totalDelta: 0, deltas: [], fn: SWAdvance(s.cvtid) }))
+			.filter(g => Math.abs(1 - g.wsrc / wsrc) <= 1 / 6)
+	];
 
 	for (let ppem = 0; ppem < sd.length; ppem++) {
 		const pos0 = pos0s ? pos0s[ppem] : s.posKey.y;
@@ -93,36 +119,36 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 		}
 		const [ytouch, wtouch, isStrict, isStacked] = sd[ppem].y[sid];
 		const uppx = upm / ppem;
-		const wsrc = s.posKeyAtTop
-			? s.posKey.y - s.advKey.y + (s.advKey.x - s.posKey.x) * s.slope
-			: s.advKey.y - s.posKey.y + (s.posKey.x - s.advKey.x) * s.slope;
 		const psrc = roundings.rtg(pos0, upm, ppem);
 		const wdst = wtouch * (upm / ppem);
+
 		if (s.posKeyAtTop) {
 			const pdst = ytouch * (upm / ppem);
+			pDsts[ppem] = pdst;
 			const posdelta = {
 				ppem,
 				delta: decideDelta(ROUNDING_SEGMENTS, psrc, pdst, upm, ppem) / ROUNDING_SEGMENTS
 			};
 			totalPosDelta += posdelta.delta * posdelta.delta;
 			deltaPos.push(posdelta);
-			deltaADv.push({
-				ppem,
-				delta:
+			for (let adg of advDeltaGroups) {
+				const advDelta =
 					decideDeltaShift(
 						ROUNDING_SEGMENTS,
 						-1,
 						isStrict,
 						isStacked,
 						pdst,
-						wsrc,
+						adg,
+						adg.wsrc,
 						pdst,
 						wdst,
 						upm,
 						ppem
-					) / ROUNDING_SEGMENTS
-			});
-			pDsts[ppem] = pdst;
+					) / ROUNDING_SEGMENTS;
+				adg.deltas.push({ ppem, delta: advDelta });
+				adg.totalDelta += advDelta * advDelta;
+			}
 		} else {
 			const pdst = (ytouch - wtouch) * (upm / ppem) - (s.advKey.x - s.posKey.x) * s.slope;
 			const posdelta = {
@@ -131,40 +157,35 @@ function encodeStem(s, sid, sd, strategy, pos0s) {
 			};
 			totalPosDelta += posdelta.delta * posdelta.delta;
 			deltaPos.push(posdelta);
-			deltaADv.push({
-				ppem,
-				delta:
+			pDsts[ppem] = psrc + posdelta.delta * (upm / ppem);
+			for (let adg of advDeltaGroups) {
+				const advDelta =
 					decideDeltaShift(
 						ROUNDING_SEGMENTS,
 						1,
 						isStrict,
 						isStacked,
 						pdst,
-						wsrc,
+						adg.wsrc,
 						pdst,
 						wdst,
 						upm,
 						ppem
-					) / ROUNDING_SEGMENTS
-			});
-			pDsts[ppem] = psrc + posdelta.delta * (upm / ppem);
+					) / ROUNDING_SEGMENTS;
+				adg.deltas.push({ ppem, delta: advDelta });
+				adg.totalDelta += advDelta * advDelta;
+			}
 		}
 	}
 
 	talk(sanityDelta(s.posKey.id, deltaPos));
-	if (strategy.SIGNIFICANT_LINK_ARROW) {
-		talk(`YNoRound(${s.advKey.id})`);
-		talk(`YDist(${s.posKey.id},${s.advKey.id})`);
-	} else {
-		talk(`YShift(${s.posKey.id},${s.advKey.id}) /* !IMPORTANT */`);
-	}
-	talk(sanityDelta(s.advKey.id, deltaADv));
-	for (let zp of s.posAlign) {
-		talk(`YShift(${s.posKey.id},${zp.id})`);
-	}
-	for (let zp of s.advAlign) {
-		talk(`YShift(${s.advKey.id},${zp.id})`);
-	}
+
+	const adg = advDeltaGroups.reduce((a, b) => (a.totalDelta <= b.totalDelta ? a : b));
+	talk(adg.fn(s.posKey.id, s.advKey.id, strategy));
+	talk(sanityDelta(s.advKey.id, adg.deltas));
+
+	for (let zp of s.posAlign) talk(`YShift(${s.posKey.id},${zp.id})`);
+	for (let zp of s.advAlign) talk(`YShift(${s.advKey.id},${zp.id})`);
 	return {
 		buf: buf,
 		ipz: s.posKey.id,
@@ -258,6 +279,30 @@ function collectIPSAs(calls) {
 	return answer;
 }
 
+const KEY_ITEM_STEM = 1;
+const KEY_ITEM_BOTTOM = 2;
+const KEY_ITEM_TOP = 3;
+
+function CoTalkBottomAnchor(zid, cvtID, deltas) {
+	return () => `
+/* !!IDH!! Bottom Anchor Kind 2 */
+YAnchor(${zid},${cvtID})
+${deltas || ""}`;
+}
+function CoTalkTopAnchor(zid, cvtID, cvtTopBotDistId, deltas) {
+	return function(z) {
+		if (z >= 0) {
+			return `/* !!IDH!! Top Anchor Kind 3 */
+YLink(${z},${zid},${cvtTopBotDistId})`;
+		} else {
+			return `
+/* !!IDH!! Bottom Anchor Kind 2 */
+YAnchor(${zid},${cvtID})
+${deltas || ""}`;
+		}
+	};
+}
+
 // si : size-inpendent actions
 // sd : size-dependent actions
 // strategy : strategy object
@@ -279,10 +324,32 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	const cvtTopBotDistId = padding + 7;
 	const cvtTopBotDDistId = padding + 8;
 
-	const { yBotBar, yTopBar, yBotD, yTopD } = getVTTAux(
-		strategy.BLUEZONE_BOTTOM_CENTER,
-		strategy.BLUEZONE_TOP_CENTER
-	);
+	const cvtCSW = padding + 9;
+	const cvtCSWD = padding + 10;
+
+	const {
+		yBotBar,
+		yTopBar,
+		yBotD,
+		yTopD,
+		canonicalSW,
+		canonicalSWD,
+		canonicalSWD1,
+		canonicalSWD2,
+		canonicalSWD3,
+		canonicalSWD4,
+		canonicalSWD5
+	} = getVTTAux(strategy);
+
+	const SWS = [
+		{ width: canonicalSW, cvtid: cvtCSW },
+		{ width: canonicalSWD, cvtid: cvtCSWD },
+		{ width: canonicalSWD1, cvtid: cvtCSWD + 1 },
+		{ width: canonicalSWD2, cvtid: cvtCSWD + 2 },
+		{ width: canonicalSWD3, cvtid: cvtCSWD + 3 },
+		{ width: canonicalSWD4, cvtid: cvtCSWD + 4 },
+		{ width: canonicalSWD5, cvtid: cvtCSWD + 5 }
+	];
 
 	let buf = "";
 	function talk(s) {
@@ -357,82 +424,59 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	);
 	let candidates = [];
 
-	let hasBottommost = false;
-	let bottomMostZ = null;
-
 	// Initialize candidates
 	for (let z of si.blue.bottomZs) {
 		if (Math.abs(z.y - yBotD) < Math.abs(z.y - strategy.BLUEZONE_BOTTOM_CENTER)) {
 			candidates.push({
 				ipz: z.id,
+				told: false,
 				pOrg: z.y,
-				kind: 3,
-				talk: `
-/* !!IDH!! Bottom Anchor Kind 2 */
-YAnchor(${z.id},${cvtBottomDId})
-${encodeAnchor(z.id, pDstsBotD, pDstsBot, pmin, pmax, strategy)}`,
+				kind: KEY_ITEM_BOTTOM,
+				talk: CoTalkBottomAnchor(
+					z.id,
+					cvtBottomDId,
+					encodeAnchor(z.id, pDstsBotD, pDstsBot, pmin, pmax, strategy)
+				),
 				pDsts: pDstsBot
 			});
-			if (
-				!hasBottommost ||
-				z.y < bottomMostZ.y ||
-				(z.y === bottomMostZ.y && z.x < bottomMostZ.x)
-			) {
-				hasBottommost = true;
-				bottomMostZ = z;
-			}
 		} else {
 			candidates.push({
 				ipz: z.id,
+				told: false,
 				pOrg: z.y,
-				kind: 3,
-				talk: `
-/* !!IDH!! Bottom Anchor Kind 1 */
-YAnchor(${z.id},${cvtBottomId})`,
+				kind: KEY_ITEM_BOTTOM,
+				talk: CoTalkBottomAnchor(z.id, cvtBottomId),
 				pDsts: pDstsBot
 			});
-			if (
-				!hasBottommost ||
-				z.y < bottomMostZ.y ||
-				(z.y === bottomMostZ.y && z.x < bottomMostZ.x)
-			) {
-				hasBottommost = true;
-				bottomMostZ = z;
-			}
 		}
 	}
 	for (let z of si.blue.topZs) {
-		// 		if (hasBottommost) {
-		// 			candidates.push({
-		// 				ipz: z.id,
-		// 				pOrg: z.y,
-		// 				kind: 2,
-		// 				talk: `
-		// /* !!IDH!! Top Anchor Kind 3 */
-		// YLink(${bottomMostZ.id},${z.id},${cvtTopBotDistId})`,
-		// 				pDsts: pDstsTop
-		// 			});
-		// 		} else
 		if (Math.abs(z.y - yTopD) < Math.abs(z.y - strategy.BLUEZONE_TOP_CENTER)) {
 			candidates.push({
 				ipz: z.id,
+				told: false,
 				pOrg: z.y,
-				kind: 2,
-				talk: `
-/* !!IDH!! Top Anchor Kind 2 */
-YAnchor(${z.id},${cvtTopDId})
-${encodeAnchor(z.id, pDstsTopD, pDstsTop, pmin, pmax, strategy)}`,
+				kind: KEY_ITEM_TOP,
+				talk: CoTalkTopAnchor(
+					z.id,
+					cvtTopDId,
+					cvtTopBotDistId,
+					encodeAnchor(z.id, pDstsTopD, pDstsTop, pmin, pmax, strategy)
+				),
 				pDsts: pDstsTop
 			});
 		} else {
 			candidates.push({
 				ipz: z.id,
+				told: false,
 				pOrg: z.y,
-				kind: 2,
-				talk: `
-/* !!IDH!! Top Anchor Kind 1 */
-YAnchor(${z.id},${cvtTopId})
-${encodeAnchor(z.id, pDstsTop0, pDstsTop, pmin, pmax, strategy)}`,
+				kind: KEY_ITEM_TOP,
+				talk: CoTalkTopAnchor(
+					z.id,
+					cvtTopId,
+					cvtTopBotDistId,
+					encodeAnchor(z.id, pDstsTop0, pDstsTop, pmin, pmax, strategy)
+				),
 				pDsts: pDstsTop
 			});
 		}
@@ -440,11 +484,12 @@ ${encodeAnchor(z.id, pDstsTop0, pDstsTop, pmin, pmax, strategy)}`,
 	for (let sid = 0; sid < si.stems.length; sid++) {
 		const s = si.stems[sid];
 		candidates.push({
+			ipz: s.posKey.id,
+			told: false,
+			pOrg: s.posKey.y,
+			kind: KEY_ITEM_STEM,
 			stem: s,
 			sid: sid,
-			ipz: s.posKey.id,
-			kind: 1,
-			pOrg: s.posKey.y,
 			pDsts: null
 		});
 	}
@@ -454,34 +499,25 @@ ${encodeAnchor(z.id, pDstsTop0, pDstsTop, pmin, pmax, strategy)}`,
 	const refTop = candidates[candidates.length - 1];
 	const refBottom = candidates[0];
 	if (refTop && refBottom) {
-		if (!refTop.pDsts) {
-			talk(`/* !!IDH!! StemDef ${refTop.sid} TOP */`);
-			let { pDsts: pDsts1, buf: buf1 } = encodeStem(
-				refTop.stem,
-				refTop.sid,
-				sd,
-				strategy,
-				null
-			);
-			talk(`YAnchor(${refTop.ipz})`);
-			refTop.pDsts = pDsts1;
-			talk(buf1);
-		}
-		if (!refBottom.pDsts) {
+		// Bottom key term
+		let refBottomZ = -1;
+		if (refBottom.kind === KEY_ITEM_STEM) {
 			talk(`/* !!IDH!! StemDef ${refBottom.sid} BOTTOM */`);
 			let { pDsts: pDsts1, buf: buf1, totalPosDelta: tpd1 } = encodeStem(
 				refBottom.stem,
 				refBottom.sid,
 				sd,
 				strategy,
-				null
+				null,
+				SWS
 			);
 			let { pDsts: pDsts2, buf: buf2, totalPosDelta: tpd2 } = encodeStem(
 				refBottom.stem,
 				refBottom.sid,
 				sd,
 				strategy,
-				pDstsBotB
+				pDstsBotB,
+				SWS
 			);
 			if (tpd1 < tpd2) {
 				talk(`YAnchor(${refBottom.ipz})`);
@@ -492,21 +528,73 @@ ${encodeAnchor(z.id, pDstsTop0, pDstsTop, pmin, pmax, strategy)}`,
 				refBottom.pDsts = pDsts2;
 				talk(buf2);
 			}
+			refBottom.told = true;
+
+			let rbIsEqualToBot = true;
+			for (let ppem = pmin; ppem <= pmax; ppem++) {
+				if (refBottom.pDsts[ppem] !== pDstsBot[ppem]) rbIsEqualToBot = false;
+			}
+			if (rbIsEqualToBot) {
+				refBottomZ = refBottom.ipz;
+			}
+		} else {
+			// BKT must have a talk()
+			talk(refBottom.talk());
+			refBottom.told = true;
+			refBottomZ = refBottom.ipz;
 		}
+
+		// Top key term
+		if (refTop.told) {
+			// pass
+		} else if (refTop.kind === KEY_ITEM_STEM) {
+			talk(`/* !!IDH!! StemDef ${refTop.sid} TOP */`);
+			let { pDsts: pDsts1, buf: buf1, totalPosDelta: tpd1 } = encodeStem(
+				refTop.stem,
+				refTop.sid,
+				sd,
+				strategy,
+				null,
+				SWS
+			);
+			let { pDsts: pDsts2, buf: buf2, totalPosDelta: tpd2 } = encodeStem(
+				refTop.stem,
+				refTop.sid,
+				sd,
+				strategy,
+				pDstsTopB,
+				SWS
+			);
+
+			if (tpd1 < tpd2) {
+				talk(`YAnchor(${refTop.ipz})`);
+				refTop.pDsts = pDsts1;
+				talk(buf1);
+			} else {
+				talk(`YAnchor(${refTop.ipz},${cvtTopBarId})`);
+				refTop.pDsts = pDsts2;
+				talk(buf2);
+			}
+			refTop.told = true;
+		} else {
+			talk(refTop.talk(refBottomZ));
+			refTop.told = true;
+		}
+
+		// Intermediates
 		const ipAnchorZs = [];
 		const ipZs = [];
 		for (let r of candidates) {
-			if ((r === refTop || r === refBottom) && r.talk) {
-				talk(r.talk);
-				continue;
-			}
-			if (r.stem) {
+			if (r.told) {
+				//pass
+			} else if (r.stem) {
 				if (r.pDsts) continue;
 				if (r.pOrg > refBottom.pOrg && r.pOrg < refTop.pOrg) {
 					ipAnchorZs.push(r.ipz);
 				}
 			} else {
 				ipZs.push(r.ipz);
+				r.told = true;
 			}
 		}
 		if (ipAnchorZs.length) {
@@ -517,8 +605,7 @@ ${encodeAnchor(z.id, pDstsTop0, pDstsTop, pmin, pmax, strategy)}`,
 		}
 
 		for (let r of candidates) {
-			if (!r.stem) continue;
-			if (r.pDsts) continue;
+			if (r.told) continue;
 			if (r.pOrg > refBottom.pOrg && r.pOrg < refTop.pOrg) {
 				talk(`/* !!IDH!! StemDef ${r.sid} INTERPOLATE */`);
 				let pos0s = table(pmin, pmax, ppem => {
@@ -527,15 +614,18 @@ ${encodeAnchor(z.id, pDstsTop0, pDstsTop, pmin, pmax, strategy)}`,
 					const cur_range = refTop.pDsts[ppem] - refBottom.pDsts[ppem];
 					return refBottom.pDsts[ppem] + cur_range * org_dist / org_range;
 				});
-				let { pDsts, buf } = encodeStem(r.stem, r.sid, sd, strategy, pos0s);
+				let { pDsts, buf } = encodeStem(r.stem, r.sid, sd, strategy, pos0s, SWS);
 				talk(buf);
 				r.pDsts = pDsts;
+				r.told = true;
 			} else {
+				// Should not happen
 				talk(`/* !!IDH!! StemDef ${r.sid} DIRECT */`);
 				talk(`YAnchor(${r.ipz})`);
-				let { pDsts, buf } = encodeStem(r.stem, r.sid, sd, strategy, null);
+				let { pDsts, buf } = encodeStem(r.stem, r.sid, sd, strategy, null, SWS);
 				talk(buf);
 				r.pDsts = pDsts;
+				r.told = true;
 			}
 		}
 	}
@@ -562,10 +652,19 @@ ${encodeAnchor(z.id, pDstsTop0, pDstsTop, pmin, pmax, strategy)}`,
 }
 
 function generateCVT(cvt, cvtPadding, strategy) {
-	const { yBotBar, yTopBar, yBotD, yTopD } = getVTTAux(
-		strategy.BLUEZONE_BOTTOM_CENTER,
-		strategy.BLUEZONE_TOP_CENTER
-	);
+	const {
+		yBotBar,
+		yTopBar,
+		yBotD,
+		yTopD,
+		canonicalSW,
+		canonicalSWD,
+		canonicalSWD1,
+		canonicalSWD2,
+		canonicalSWD3,
+		canonicalSWD4,
+		canonicalSWD5
+	} = getVTTAux(strategy);
 	cvt = cvt
 		.replace(new RegExp(`${cvtPadding}` + "\\s*:\\s*-?\\d+"), "")
 		.replace(new RegExp(`${cvtPadding + 1}` + "\\s*:\\s*-?\\d+"), "")
@@ -589,6 +688,13 @@ ${cvtPadding + 5} : ${yTopD}
 ${cvtPadding + 6} : ${yBotD}
 ${cvtPadding + 7} : ${strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER}
 ${cvtPadding + 8} : ${yTopD - yBotD}
+${cvtPadding + 9} : ${canonicalSW}
+${cvtPadding + 10} : ${canonicalSWD}
+${cvtPadding + 11} : ${canonicalSWD1}
+${cvtPadding + 12} : ${canonicalSWD2}
+${cvtPadding + 13} : ${canonicalSWD3}
+${cvtPadding + 14} : ${canonicalSWD4}
+${cvtPadding + 15} : ${canonicalSWD5}
 `
 	);
 }

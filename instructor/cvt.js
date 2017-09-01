@@ -3,6 +3,8 @@
 var fs = require("fs");
 var roundings = require("../support/roundings");
 const { mix } = require("../support/common");
+const toVQ = require("../support/vq");
+
 function pushWhenAbsent(a, x) {
 	a.push(x);
 }
@@ -48,13 +50,24 @@ exports.getPadding = function(argv, parameterFile) {
 	}
 };
 exports.createCvt = createCvt;
-exports.getVTTAux = function(bot, top) {
+exports.getVTTAux = function(strategy) {
+	const bot = strategy.BLUEZONE_BOTTOM_CENTER;
+	const top = strategy.BLUEZONE_TOP_CENTER;
+	const canonicalSW = toVQ(strategy.CANONICAL_STEM_WIDTH, strategy.PPEM_MAX);
+	const canonicalSWD = toVQ(strategy.CANONICAL_STEM_WIDTH_DENSE, strategy.PPEM_MAX);
 	const p = 1 / 20;
 	const pd = 1 / 40;
 	return {
 		yBotBar: Math.round(mix(bot, top, p)),
 		yBotD: Math.round(mix(bot, top, pd)),
 		yTopBar: Math.round(mix(top, bot, p)),
-		yTopD: Math.round(mix(top, bot, pd))
+		yTopD: Math.round(mix(top, bot, pd)),
+		canonicalSW: Math.round(canonicalSW),
+		canonicalSWD: Math.round(canonicalSWD),
+		canonicalSWD1: Math.round(canonicalSWD * 1 / 6),
+		canonicalSWD2: Math.round(canonicalSWD * 2 / 6),
+		canonicalSWD3: Math.round(canonicalSWD * 3 / 6),
+		canonicalSWD4: Math.round(canonicalSWD * 4 / 6),
+		canonicalSWD5: Math.round(canonicalSWD * 5 / 6)
 	};
 };
