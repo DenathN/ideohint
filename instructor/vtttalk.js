@@ -90,6 +90,10 @@ YLink(${zpos},${zadv},${cvt})`;
 	};
 }
 
+function estimateDeltaImpact(delta) {
+	return Math.ceil(Math.abs(delta));
+}
+
 function encodeStem(s, sid, sd, strategy, pos0s, sws) {
 	let buf = "";
 	const upm = strategy.UPM;
@@ -108,8 +112,8 @@ function encodeStem(s, sid, sd, strategy, pos0s, sws) {
 		{ wsrc, totalDelta: 0, deltas: [], fn: standardAdvance },
 		...sws
 			.map(s => ({ wsrc: s.width, totalDelta: 0, deltas: [], fn: SWAdvance(s.cvtid) }))
-			.filter(g => Math.abs(1 - g.wsrc / wsrc) <= 1 / 6)
-	];
+			.filter(g => Math.abs(1 - g.wsrc / wsrc) < 1 / 6)
+	].sort((a, b) => Math.abs(a.wsrc - wsrc) - Math.abs(b.wsrc - wsrc));
 
 	for (let ppem = 0; ppem < sd.length; ppem++) {
 		const pos0 = pos0s ? pos0s[ppem] : s.posKey.y;
@@ -129,7 +133,7 @@ function encodeStem(s, sid, sd, strategy, pos0s, sws) {
 				ppem,
 				delta: decideDelta(ROUNDING_SEGMENTS, psrc, pdst, upm, ppem) / ROUNDING_SEGMENTS
 			};
-			totalPosDelta += posdelta.delta * posdelta.delta;
+			totalPosDelta += estimateDeltaImpact(posdelta.delta);
 			deltaPos.push(posdelta);
 			for (let adg of advDeltaGroups) {
 				const advDelta =
@@ -147,7 +151,7 @@ function encodeStem(s, sid, sd, strategy, pos0s, sws) {
 						ppem
 					) / ROUNDING_SEGMENTS;
 				adg.deltas.push({ ppem, delta: advDelta });
-				adg.totalDelta += advDelta * advDelta;
+				adg.totalDelta += estimateDeltaImpact(advDelta);
 			}
 		} else {
 			const pdst = (ytouch - wtouch) * (upm / ppem) - (s.advKey.x - s.posKey.x) * s.slope;
@@ -155,7 +159,7 @@ function encodeStem(s, sid, sd, strategy, pos0s, sws) {
 				ppem,
 				delta: decideDelta(ROUNDING_SEGMENTS, psrc, pdst, upm, ppem) / ROUNDING_SEGMENTS
 			};
-			totalPosDelta += posdelta.delta * posdelta.delta;
+			totalPosDelta += estimateDeltaImpact(posdelta.delta);
 			deltaPos.push(posdelta);
 			pDsts[ppem] = psrc + posdelta.delta * (upm / ppem);
 			for (let adg of advDeltaGroups) {
@@ -173,7 +177,7 @@ function encodeStem(s, sid, sd, strategy, pos0s, sws) {
 						ppem
 					) / ROUNDING_SEGMENTS;
 				adg.deltas.push({ ppem, delta: advDelta });
-				adg.totalDelta += advDelta * advDelta;
+				adg.totalDelta += estimateDeltaImpact(advDelta);
 			}
 		}
 	}
@@ -327,28 +331,11 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	const cvtCSW = padding + 9;
 	const cvtCSWD = padding + 10;
 
-	const {
-		yBotBar,
-		yTopBar,
-		yBotD,
-		yTopD,
-		canonicalSW,
-		canonicalSWD,
-		canonicalSWD1,
-		canonicalSWD2,
-		canonicalSWD3,
-		canonicalSWD4,
-		canonicalSWD5
-	} = getVTTAux(strategy);
+	const { yBotBar, yTopBar, yBotD, yTopD, canonicalSW, SWDs } = getVTTAux(strategy);
 
 	const SWS = [
 		{ width: canonicalSW, cvtid: cvtCSW },
-		{ width: canonicalSWD, cvtid: cvtCSWD },
-		{ width: canonicalSWD1, cvtid: cvtCSWD + 1 },
-		{ width: canonicalSWD2, cvtid: cvtCSWD + 2 },
-		{ width: canonicalSWD3, cvtid: cvtCSWD + 3 },
-		{ width: canonicalSWD4, cvtid: cvtCSWD + 4 },
-		{ width: canonicalSWD5, cvtid: cvtCSWD + 5 }
+		...SWDs.map((x, j) => ({ width: x, cvtid: cvtCSWD + j }))
 	];
 
 	let buf = "";
@@ -652,19 +639,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 }
 
 function generateCVT(cvt, cvtPadding, strategy) {
-	const {
-		yBotBar,
-		yTopBar,
-		yBotD,
-		yTopD,
-		canonicalSW,
-		canonicalSWD,
-		canonicalSWD1,
-		canonicalSWD2,
-		canonicalSWD3,
-		canonicalSWD4,
-		canonicalSWD5
-	} = getVTTAux(strategy);
+	const { yBotBar, yTopBar, yBotD, yTopD, canonicalSW, SWDs } = getVTTAux(strategy);
 	cvt = cvt
 		.replace(new RegExp(`${cvtPadding}` + "\\s*:\\s*-?\\d+"), "")
 		.replace(new RegExp(`${cvtPadding + 1}` + "\\s*:\\s*-?\\d+"), "")
@@ -689,12 +664,7 @@ ${cvtPadding + 6} : ${yBotD}
 ${cvtPadding + 7} : ${strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER}
 ${cvtPadding + 8} : ${yTopD - yBotD}
 ${cvtPadding + 9} : ${canonicalSW}
-${cvtPadding + 10} : ${canonicalSWD}
-${cvtPadding + 11} : ${canonicalSWD1}
-${cvtPadding + 12} : ${canonicalSWD2}
-${cvtPadding + 13} : ${canonicalSWD3}
-${cvtPadding + 14} : ${canonicalSWD4}
-${cvtPadding + 15} : ${canonicalSWD5}
+${SWDs.map((x, j) => cvtPadding + 10 + j + " : " + x).join("\n")}
 `
 	);
 }
