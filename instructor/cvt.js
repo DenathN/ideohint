@@ -61,7 +61,7 @@ exports.getVTTAux = function(strategy) {
 
 	const SWDs = [];
 	for (let j = 1; j < SPLITS; j++) {
-		SWDs.push(Math.round(canonicalSW * j / SPLITS));
+		SWDs.push(Math.round(canonicalSW * (1 / 6 + j / SPLITS)));
 	}
 	return {
 		yBotBar: Math.round(mix(bot, top, p)),

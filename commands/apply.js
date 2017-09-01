@@ -16,7 +16,10 @@ var hashContours = require("../core/otdParser").hashContours;
 
 var crypto = require("crypto");
 function md5(text) {
-	return crypto.createHash("md5").update(text).digest("hex");
+	return crypto
+		.createHash("md5")
+		.update(text)
+		.digest("hex");
 }
 
 exports.command = "apply";
@@ -44,14 +47,13 @@ exports.handler = function(argv) {
 	var tsi = {};
 	var glyfcor = {};
 
+	var n = 1;
+
 	rl.on("line", function(line) {
 		const dataStr = line.trim();
 		if (!dataStr) return;
 		var data = JSON.parse(dataStr);
-		activeInstructions[data.hash] = {
-			TTF: instruct(data.ideohint_decision, strategy, cvtPadding),
-			VTTTalk: talk(data.ideohint_decision, strategy, cvtPadding, false) || ""
-		};
+		activeInstructions[data.hash] = data.ideohint_decision;
 	});
 	rl.on("close", function() {
 		pass_weaveOTD(activeInstructions);
@@ -74,32 +76,32 @@ exports.handler = function(argv) {
 				}
 				return maxp;
 			})
-			.on("node", "glyf.*", function(glyph, path) {
-				if (!glyph.contours || !glyph.contours.length) return glyph;
-				var hash = hashContours(glyph.contours);
-				if (!argv.just_modify_cvt && activeInstructions[hash]) {
-					glyph.instructions = activeInstructions[hash].TTF;
-					glyfcor[path[path.length - 1]] = hash;
-				}
-				return glyph;
-			})
 			.on("done", function(otd) {
 				if (!foundCVT) {
 					otd.cvt_ = cvtlib.createCvt([], strategy, cvtPadding);
 				}
-				if (otd.TSI_23) {
-					if (!otd.TSI_23.glyphs) otd.TSI_23.glyphs = {};
-					for (let k in otd.glyf) {
-						if (!otd.glyf[k].contours || !glyfcor[k]) continue;
-						let data = activeInstructions[glyfcor[k]];
-						otd.TSI_23.glyphs[k] = (data.VTTTalk || "").replace(/\n/g, "\r"); // vtt uses CR
-					}
-				}
-				if (otd.TSI_01 && otd.TSI_01.glyphs) {
-					for (let k in otd.TSI_01.glyphs) {
-						if (otd.TSI_23 && otd.TSI_23.glyphs && otd.TSI_23.glyphs[k]) {
-							otd.TSI_01.glyphs[k] = "";
+				if (otd.glyf) {
+					for (let g in otd.glyf) {
+						const glyph = otd.glyf[g];
+						if (!glyph.contours || !glyph.contours.length) continue;
+						const hash = hashContours(glyph.contours);
+						if (argv.just_modify_cvt || !activeInstructions[hash]) continue;
+						const airef = activeInstructions[hash];
+						if (otd.TSI_23) {
+							// Prefer VTTTalk than TTF
+							if (!otd.TSI_23.glyphs) otd.TSI_23.glyphs = {};
+							otd.TSI_23.glyphs[g] = (talk(airef, strategy, cvtPadding, false) || "")
+								.replace(/\n/g, "\r"); // vtt uses CR
+							glyph.instructions = [];
+							if (otd.TSI_01 && otd.TSI_01.glyphs) {
+								otd.TSI_01.glyphs[g] = "";
+							}
+						} else {
+							glyph.instructions = instruct(airef, strategy, cvtPadding);
 						}
+						n += 1;
+						if (n % 100 === 0)
+							process.stderr.write(` -- Processed ${n} glyphs of ${otdPath}.\n`);
 					}
 				}
 				if (otd.TSI_01 && otd.TSI_01.extra && otd.TSI_01.extra.cvt) {
