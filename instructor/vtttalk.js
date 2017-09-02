@@ -115,12 +115,14 @@ function clampAdvDelta(sign, isStrict, delta) {
 	}
 }
 
-function encodeStem(s, sid, sd, strategy, pos0s, sws) {
+function encodeStem(s, sid, sd, strategy, pos0s, sws, yMoves) {
 	let buf = "";
 	const upm = strategy.UPM;
 	function talk(s) {
 		buf += s + "\n";
 	}
+
+	yMoves = yMoves || [];
 
 	let deltaPos = [];
 	let hintedPositions = [];
@@ -150,11 +152,10 @@ function encodeStem(s, sid, sd, strategy, pos0s, sws) {
 		if (s.posKeyAtTop) {
 			const pdst = ytouch * (upm / ppem);
 			hintedPositions[ppem] = pdst;
-			const posdelta = {
+			deltaPos.push({
 				ppem,
 				delta: decideDelta(ROUNDING_SEGMENTS, psrc, pdst, upm, ppem) / ROUNDING_SEGMENTS
-			};
-			deltaPos.push(posdelta);
+			});
 			for (let adg of advDeltaGroups) {
 				const advDelta = clampAdvDelta(
 					-1,
@@ -176,12 +177,9 @@ function encodeStem(s, sid, sd, strategy, pos0s, sws) {
 			}
 		} else {
 			const pdst = (ytouch - wtouch) * (upm / ppem) - (s.advKey.x - s.posKey.x) * s.slope;
-			const posdelta = {
-				ppem,
-				delta: decideDelta(ROUNDING_SEGMENTS, psrc, pdst, upm, ppem) / ROUNDING_SEGMENTS
-			};
-			deltaPos.push(posdelta);
-			hintedPositions[ppem] = psrc + posdelta.delta * (upm / ppem);
+			const pd = decideDelta(ROUNDING_SEGMENTS, psrc, pdst, upm, ppem) / ROUNDING_SEGMENTS;
+			deltaPos.push({ ppem, delta: pd });
+			hintedPositions[ppem] = psrc + pd * (upm / ppem);
 			for (let adg of advDeltaGroups) {
 				const advDelta = clampAdvDelta(
 					1,
@@ -203,14 +201,33 @@ function encodeStem(s, sid, sd, strategy, pos0s, sws) {
 			}
 		}
 	}
-
-	talk(sanityDelta(s.posKey.id, deltaPos));
-
+	// decide optimal advance delta group
 	for (let g of advDeltaGroups) {
 		g.totalDelta += estimateDeltaImpact(g.deltas);
 	}
-
 	const adg = advDeltaGroups.reduce((a, b) => (a.totalDelta <= b.totalDelta ? a : b));
+
+	// decide optimal YMove
+	let bestYMove = 0;
+	let bestPosImpact = estimateDeltaImpact(deltaPos);
+	let bestPosDeltas = deltaPos;
+	for (let yMove of yMoves) {
+		if (!yMove) continue;
+		const yMoveImpact = yMove > 0 ? 3 : yMove < 0 ? 6 : 0;
+		const dps = deltaPos.map(d => ({ ppem: d.ppem, delta: d.delta - yMove }));
+		const impact = yMoveImpact + estimateDeltaImpact(dps);
+		if (impact < bestPosImpact) {
+			bestYMove = yMove;
+			bestPosDeltas = dps;
+			bestPosImpact = impact;
+		}
+	}
+
+	// instructions
+	// position edge
+	if (bestYMove) talk(`YMove(${bestYMove},${s.posKey.id})`);
+	talk(sanityDelta(s.posKey.id, bestPosDeltas));
+	// advance edge
 	talk(adg.fn(s.posKey.id, s.advKey.id, strategy));
 	talk(sanityDelta(s.advKey.id, adg.deltas));
 
@@ -221,7 +238,7 @@ function encodeStem(s, sid, sd, strategy, pos0s, sws) {
 		ipz: s.posKey.id,
 		hintedPositions,
 		pOrg: s.posKey.y,
-		totalDeltaImpact: estimateDeltaImpact(deltaPos) + adg.totalDelta
+		totalDeltaImpact: bestPosImpact + adg.totalDelta
 	};
 }
 
@@ -403,6 +420,21 @@ function distHintedPositions(rp0, r, upm, pmin, pmax) {
 			return rp0.hintedPositions[ppem] - roundings.rtg(-org_dist, upm, ppem);
 		}
 	});
+}
+
+function chooseTBPos0(stemKind, stem, cvtCutin, choices) {
+	let chosen = choices[0];
+	for (let c of choices)
+		if (Math.abs(c.y - stem.pOrg) < Math.abs(chosen.y - stem.pOrg)) {
+			chosen = c;
+		}
+	let { cvt, y, pos0s } = chosen;
+	if (Math.abs(stem.pOrg - y) > cvtCutin) return null;
+
+	return {
+		posInstr: `/* !!IDH!! StemDef ${stem.sid} ${stemKind} ABSORB */\nYAnchor(${stem.ipz},${cvt})`,
+		pos0s
+	};
 }
 
 // si : size-inpendent actions
@@ -640,16 +672,21 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 					posInstr: `/* !!IDH!! StemDef ${bottomStem.sid} BOTTOM Direct */\nYAnchor(${bottomStem.ipz})`,
 					pos0s: null
 				},
-				{
-					posInstr: `/* !!IDH!! StemDef ${bottomStem.sid} BOTTOM Bar */\nYAnchor(${bottomStem.ipz},${cvtBottomBarId})`,
-					pos0s: hintedPositionsBotB
-				},
-				bottomAnchor.told
-					? {
+				chooseTBPos0("BOTTOM", bottomStem, upm / pmax, [
+					{ cvt: cvtBottomBarId, y: yBotBar, pos0s: hintedPositionsBotB },
+					{ cvt: cvtBottomDId, y: yBotD, pos0s: hintedPositionsBotD },
+					{
+						cvt: cvtBottomId,
+						y: strategy.BLUEZONE_BOTTOM_CENTER,
+						pos0s: hintedPositionsBot
+					}
+				]),
+				!bottomAnchor.told
+					? null
+					: {
 							posInstr: `/* !!IDH!! StemDef ${topStem.sid} BOTTOM Dist */\nYDist(${bottomAnchor.ipz},${bottomStem.ipz})`,
 							pos0s: distHintedPositions(bottomAnchor, bottomStem, upm, pmin, pmax)
 						}
-					: null
 			][bsMethod];
 			if (!bsParams) continue;
 			const { totalDeltaImpact: tdi, buf, hintedPositions } = encodeStem(
@@ -671,13 +708,18 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 		if (!topStem.told && topStem.kind === KEY_ITEM_STEM) {
 			const tsParams = [
 				{
-					posInstr: `/* !!IDH!! StemDef ${topStem.sid} TOP Bar */\nYAnchor(${topStem.ipz},${cvtTopBarId})`,
-					pos0s: hintedPositionsTopB
-				},
-				{
 					posInstr: `/* !!IDH!! StemDef ${topStem.sid} TOP Direct */\nYAnchor(${topStem.ipz})`,
 					pos0s: null
 				},
+				chooseTBPos0("TOP", topStem, upm / pmax, [
+					{ cvt: cvtTopBarId, y: yTopBar, pos0s: hintedPositionsTopB },
+					{ cvt: cvtTopDId, y: yTopD, pos0s: hintedPositionsTopD },
+					{
+						cvt: cvtTopId,
+						y: strategy.BLUEZONE_TOP_CENTER,
+						pos0s: hintedPositionsTop0
+					}
+				]),
 				topAnchor.told
 					? {
 							posInstr: `/* !!IDH!! StemDef ${topStem.sid} TOP Dist */\nYDist(${topAnchor.ipz},${topStem.ipz})`,
@@ -730,7 +772,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 			// ASSERT: r.kind === KEY_ITEM_STEM
 			if (r.pOrg > bottomStem.pOrg && r.pOrg < topStem.pOrg) {
 				talk(`/* !!IDH!! StemDef ${r.sid} INTERPOLATE */`);
-				let { hintedPositions, buf, totalDeltaImpact } = encodeStem(
+				const g = encodeStem(
 					r.stem,
 					r.sid,
 					sd,
@@ -738,22 +780,15 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 					iphintedPositions(bottomStem, r, topStem, pmin, pmax),
 					SWS
 				);
-				talk(buf);
-				tdis += totalDeltaImpact;
+				talk(g.buf);
+				tdis += g.totalDeltaImpact;
 			} else {
 				// Should not happen
 				talk(`/* !!IDH!! StemDef ${r.sid} DIRECT */`);
 				talk(`YAnchor(${r.ipz})`);
-				let { hintedPositions, buf, totalDeltaImpact } = encodeStem(
-					r.stem,
-					r.sid,
-					sd,
-					strategy,
-					null,
-					SWS
-				);
-				talk(buf);
-				tdis += totalDeltaImpact;
+				const g = encodeStem(r.stem, r.sid, sd, strategy, null, SWS);
+				talk(g.buf);
+				tdis += g.totalDeltaImpact;
 			}
 		}
 		if (tdis < bestTDI) {
