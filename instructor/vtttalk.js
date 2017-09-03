@@ -58,13 +58,20 @@ function deltaDataOf(deltas) {
 }
 
 function estimateDeltaImpact(d) {
+	// impact caused by DLTP[]
 	let impact = 0;
+	// impact caused by SDS[]
+	let sdsImpact = 0;
 	// encoding bytes
-	for (let dr of d) impact += 2 * Math.ceil(Math.abs(dr.delta)); // two bytes for each entry
+	for (let dr of d) {
+		let dq = Math.ceil(Math.abs(dr.delta));
+		impact += 2 * dq; // two bytes for each entry
+		if (dq > 1) sdsImpact = 4; // having a delta greater than one pixel would cause a SDS[]
+	}
 	const deltas = d.filter(x => x.delta);
 	const { keys } = deltaDataOf(deltas);
 	impact += keys.length * 2;
-	return impact;
+	return impact + sdsImpact;
 }
 
 function sanityDelta(z, d, tag) {
@@ -107,8 +114,10 @@ YLink(${zpos},${zadv},${cvt})`;
 	};
 }
 
-function clampAdvDelta(sign, isStrict, delta) {
-	if (Math.abs(delta) < 1.5 && !isStrict) {
+function clampAdvDelta(sign, isStrict, isLess, delta) {
+	if (!delta) return 0;
+	const willExpand = sign > 0 === delta < 0;
+	if (Math.abs(delta) < 1.5 && (!isStrict || willExpand === isLess)) {
 		return 0;
 	} else {
 		return delta / ROUNDING_SEGMENTS;
@@ -135,7 +144,10 @@ function encodeStem(s, sid, sd, strategy, pos0s, sws, yMoves) {
 		{ wsrc, totalDelta: 0, deltas: [], fn: standardAdvance },
 		...sws
 			.map(s => ({ wsrc: s.width, totalDelta: 0, deltas: [], fn: SWAdvance(s.cvtid) }))
-			.filter(g => Math.abs(1 - g.wsrc / wsrc) < 1 / 6)
+			.filter(
+				g =>
+					g.wsrc > wsrc ? (g.wsrc - wsrc) / wsrc < 1 / 12 : (wsrc - g.wsrc) / wsrc < 1 / 6
+			)
 	].sort((a, b) => Math.abs(a.wsrc - wsrc) - Math.abs(b.wsrc - wsrc));
 
 	for (let ppem = 0; ppem < sd.length; ppem++) {
@@ -157,22 +169,19 @@ function encodeStem(s, sid, sd, strategy, pos0s, sws, yMoves) {
 				delta: decideDelta(ROUNDING_SEGMENTS, psrc, pdst, upm, ppem) / ROUNDING_SEGMENTS
 			});
 			for (let adg of advDeltaGroups) {
-				const advDelta = clampAdvDelta(
+				const rawDelta = decideDeltaShift(
+					ROUNDING_SEGMENTS,
 					-1,
 					isStrict,
-					decideDeltaShift(
-						ROUNDING_SEGMENTS,
-						-1,
-						isStrict,
-						isStacked,
-						pdst,
-						adg.wsrc,
-						pdst,
-						wdst,
-						upm,
-						ppem
-					)
+					isStacked,
+					pdst,
+					adg.wsrc,
+					pdst,
+					wdst,
+					upm,
+					ppem
 				);
+				const advDelta = clampAdvDelta(-1, isStrict, adg.wsrc <= wsrc, rawDelta);
 				adg.deltas.push({ ppem, delta: advDelta });
 			}
 		} else {
@@ -181,22 +190,19 @@ function encodeStem(s, sid, sd, strategy, pos0s, sws, yMoves) {
 			deltaPos.push({ ppem, delta: pd });
 			hintedPositions[ppem] = psrc + pd * (upm / ppem);
 			for (let adg of advDeltaGroups) {
-				const advDelta = clampAdvDelta(
+				const rawDelta = decideDeltaShift(
+					ROUNDING_SEGMENTS,
 					1,
 					isStrict,
-					decideDeltaShift(
-						ROUNDING_SEGMENTS,
-						1,
-						isStrict,
-						isStacked,
-						pdst,
-						adg.wsrc,
-						pdst,
-						wdst,
-						upm,
-						ppem
-					)
+					isStacked,
+					pdst,
+					adg.wsrc,
+					pdst,
+					wdst,
+					upm,
+					ppem
 				);
+				const advDelta = clampAdvDelta(1, isStrict, adg.wsrc <= wsrc, rawDelta);
 				adg.deltas.push({ ppem, delta: advDelta });
 			}
 		}
@@ -842,7 +848,7 @@ function generateCVT(cvt, cvtPadding, strategy) {
 	return (
 		cvt +
 		`
-/* IDEOHINT */
+/*## !! MEGAMINX !! BEGIN SECTION ideohint_CVT_entries ##*/
 ${cvtPadding} : ${0}
 ${cvtPadding + 1} : ${strategy.BLUEZONE_TOP_CENTER}
 ${cvtPadding + 2} : ${strategy.BLUEZONE_BOTTOM_CENTER}
@@ -854,6 +860,7 @@ ${cvtPadding + 7} : ${strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CE
 ${cvtPadding + 8} : ${yTopD - yBotD}
 ${cvtPadding + 9} : ${canonicalSW}
 ${SWDs.map((x, j) => cvtPadding + 10 + j + " : " + x).join("\n")}
+/*## !! MEGAMINX !! END SECTION ideohint_CVT_entries ##*/
 `
 	);
 }
