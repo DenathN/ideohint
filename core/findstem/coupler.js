@@ -34,15 +34,27 @@ function segmentJoinable(pivot, segment, radical) {
 function isStrictlyHorizontal(u) {
 	return u[0][0].y === u[u.length - 1][u[u.length - 1].length - 1].y;
 }
-function isVertical(radical, u, v, mh, ov) {
+function isVertical(radical, strategy, u, v, mh, ov) {
 	let d1 = minmaxOfSeg(u);
 	let d2 = minmaxOfSeg(v);
 	let p = leftmostZ(u);
 	let q = leftmostZ(v);
+	const sprop = xclamp(
+		0,
+		(Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min)) / strategy.UPM * 2,
+		1
+	);
+
+	const slope1 = slopeOf(u),
+		slope2 = slopeOf(v);
+	const slope = (slope1 + slope2) / 2;
 
 	return (
-		Math.abs(p.y - q.y) > mh ||
-		(Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min)) * ov < Math.abs(p.y - q.y) * 0.9
+		(slope >= 0
+			? slope <= strategy.SLOPE_FUZZ * sprop
+			: slope >= -strategy.SLOPE_FUZZ_NEG * sprop) &&
+		(Math.abs(p.y - q.y) > mh ||
+			(Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min)) * ov < Math.abs(p.y - q.y) * 0.9)
 	);
 }
 
@@ -57,12 +69,9 @@ function eqSlopeA(z1, z2) {
 
 function approSlopeA(z1, z2, strategy) {
 	const slope = (z1.y - z2.y) / (z1.x - z2.x);
-	const sprop = xclamp(0, Math.abs(z1.x - z2.x) / strategy.UPM * 2, 1);
 	return (
 		Math.abs(z2.x - z1.x) >= strategy.Y_FUZZ * 2 &&
-		(slope >= 0
-			? slope <= strategy.SLOPE_FUZZ * sprop
-			: slope >= -strategy.SLOPE_FUZZ_NEG * sprop)
+		(slope >= 0 ? slope <= strategy.SLOPE_FUZZ : slope >= -strategy.SLOPE_FUZZ_NEG)
 	);
 }
 
@@ -254,6 +263,7 @@ function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
 				hasEnoughOverlap &&
 				!isVertical(
 					radical,
+					strategy,
 					highEdge,
 					lowEdge,
 					maxh,

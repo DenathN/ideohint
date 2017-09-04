@@ -148,6 +148,8 @@ class Avail {
 		this.xmin = stem.xmin;
 		this.xmax = stem.xmax;
 		this.length = stem.xmax - stem.xmin;
+		this.plength = this.length / upm;
+		this.hasLRSpur = stem.hasLRSpur;
 		// spatial relationships
 		this.atGlyphTop = env.atGlyphTop(stem);
 		this.atGlyphBottom = env.atGlyphBottom(stem);
@@ -196,7 +198,7 @@ function adjustAvails(avails, stems) {
 			const bot = avail.high - avail.properWidth;
 			const force =
 				stem.diagHigh || stem.diagLow
-					? this.BOTTOM_UNIFY_FORCE_DIAG
+					? stem.hasLRSpur ? 0 : this.BOTTOM_UNIFY_FORCE_DIAG
 					: this.BOTTOM_UNIFY_FORCE;
 			const bot1 =
 				topPx - (topPx - bot) * (topPx - bottomPx - force) / (topPx - bottomPx - force * 2);

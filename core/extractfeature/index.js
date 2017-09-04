@@ -12,6 +12,7 @@ const analyzeFlex = require("./flex");
 const getStemKeyInfo = require("./stem-keyinfo");
 const analyzeDominance = require("./dominance");
 const analyzeXInterpolate = require("./xinterpolate");
+const analyzeSpur = require("./analyze-spur");
 
 function byyori(a, b) {
 	return a.y - b.y;
@@ -22,6 +23,7 @@ exports.extractFeature = function(glyph, strategy) {
 	const strictOverlaps = analyzeDirectOverlaps(glyph, strategy, false);
 	analyzeStemKeyPoints(glyph, strategy, directOverlaps, glyph.collisionMatrices.promixity);
 	const blueZonePoints = analyzeBlueZonePoints(glyph, strategy);
+	analyzeSpur(blueZonePoints, glyph.stems);
 	const iss = analyzeInterpolations(glyph, strategy);
 	const edgeTouches = analyzeEdgeTouches(glyph.stems, glyph.stemOverlaps);
 	const overlaps = transitionClosure(directOverlaps);
