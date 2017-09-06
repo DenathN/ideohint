@@ -3,250 +3,17 @@
 const roundings = require("../support/roundings");
 const toF26D6P = roundings.toF26D6P;
 const { decideDelta, decideDeltaShift } = require("./delta.js");
-const { getVTTAux } = require("./cvt");
 const toposort = require("toposort");
 const product = require("../support/product");
+const { xclamp } = require("../support/common");
+const {
+	ROUNDING_SEGMENTS,
+	VTTTalkDeltaEncoder,
+	AssemblyDeltaEncoder,
+	VTTECompiler
+} = require("./vtt/encoder");
 
-const ROUNDING_SEGMENTS = 8;
-
-function showF26D6(x) {
-	return Math.round(x) + "+" + Math.round(64 * (x - Math.round(x))) + "/64";
-}
-
-function formatdelta(delta) {
-	if (delta > 8) return formatdelta(8);
-	if (delta < -8) return formatdelta(-8);
-	let u = Math.round(delta * ROUNDING_SEGMENTS);
-	let d = ROUNDING_SEGMENTS;
-	while (!(u % 2) && !(d % 2) && d > 1) {
-		(u /= 2), (d /= 2);
-	}
-	if (d > 1) {
-		return u + "/" + d;
-	} else {
-		return "" + u;
-	}
-}
-
-function encodeDelta(quantity, _ppems) {
-	const ppems = [..._ppems.sort((a, b) => a - b), 0];
-	let ppemstart = 0,
-		ppemend = 0;
-	let buf = [];
-	for (let ppem of ppems) {
-		if (ppem === ppemend + 1) {
-			ppemend += 1;
-		} else {
-			if (ppemstart > 0) {
-				buf.push(ppemend > ppemstart ? ppemstart + ".." + ppemend : "" + ppemstart);
-			}
-			ppemstart = ppemend = ppem;
-		}
-	}
-	return quantity + "@" + buf.join(";");
-}
-
-function deltaDataOf(deltas) {
-	let deltaData = {};
-	for (let { delta, ppem } of deltas) {
-		let quantity = formatdelta(delta);
-		if (!deltaData[quantity]) deltaData[quantity] = [];
-		deltaData[quantity].push(ppem);
-	}
-	const keys = Object.keys(deltaData);
-	return { keys, deltaData };
-}
-
-function estimateDeltaImpact(d) {
-	// impact caused by DLTP[]
-	let impact = 0;
-	// impact caused by SDS[]
-	let sdsImpact = 0;
-	// encoding bytes
-	for (let dr of d) {
-		let dq = Math.ceil(Math.abs(dr.delta));
-		impact += 2 * dq; // two bytes for each entry
-		if (dq > 1) sdsImpact = 4; // having a delta greater than one pixel would cause a SDS[]
-	}
-	const deltas = d.filter(x => x.delta);
-	const { keys } = deltaDataOf(deltas);
-	impact += keys.length * 2;
-	return impact + sdsImpact;
-}
-
-function sanityDelta(z, d, tag) {
-	var deltas = d.filter(x => x.delta);
-	if (!deltas.length) return "";
-
-	const { deltaData, keys } = deltaDataOf(deltas);
-	if (!keys.length) return "";
-	const deltaInstBody = keys.map(k => encodeDelta(k, deltaData[k])).join(",");
-	return `${tag || "YDelta"}(${z},${deltaInstBody})`;
-}
-
-function encodeAnchor(z, ref, chosen, pmin, pmax, strategy) {
-	const upm = strategy.UPM;
-	let deltas = [];
-	for (let ppem = pmin; ppem <= pmax; ppem++) {
-		deltas.push({
-			ppem,
-			delta:
-				decideDelta(ROUNDING_SEGMENTS, ref[ppem], chosen[ppem], upm, ppem) /
-				ROUNDING_SEGMENTS
-		});
-	}
-	return sanityDelta(z, deltas);
-}
-
-function standardAdvance(zpos, zadv, strategy) {
-	if (strategy.SIGNIFICANT_LINK_ARROW) {
-		return `YNoRound(${zadv})
-YDist(${zpos},${zadv})`;
-	} else {
-		return `YShift(${zpos},${zadv}) /* !IMPORTANT */`;
-	}
-}
-
-function SWAdvance(cvt) {
-	return function(zpos, zadv) {
-		return `YNoRound(${zadv})
-YLink(${zpos},${zadv},${cvt})`;
-	};
-}
-
-function clampAdvDelta(sign, isStrict, isLess, delta) {
-	if (!delta) return 0;
-	const willExpand = sign > 0 === delta < 0;
-	if (Math.abs(delta) < 1.5 && (!isStrict || willExpand === isLess)) {
-		return 0;
-	} else {
-		return delta / ROUNDING_SEGMENTS;
-	}
-}
-
-function encodeStem(s, sid, sd, strategy, pos0s, sws, yMoves) {
-	let buf = "";
-	const upm = strategy.UPM;
-	function talk(s) {
-		buf += s + "\n";
-	}
-
-	yMoves = yMoves || [];
-
-	let deltaPos = [];
-	let hintedPositions = [];
-	let totalDeltaImpact = 0;
-
-	const wsrc = s.posKeyAtTop
-		? s.posKey.y - s.advKey.y + (s.advKey.x - s.posKey.x) * s.slope
-		: s.advKey.y - s.posKey.y + (s.posKey.x - s.advKey.x) * s.slope;
-	const advDeltaGroups = [
-		{ wsrc, totalDelta: 0, deltas: [], fn: standardAdvance },
-		...sws
-			.map(s => ({ wsrc: s.width, totalDelta: 0, deltas: [], fn: SWAdvance(s.cvtid) }))
-			.filter(
-				g =>
-					g.wsrc > wsrc ? (g.wsrc - wsrc) / wsrc < 1 / 12 : (wsrc - g.wsrc) / wsrc < 1 / 6
-			)
-	].sort((a, b) => Math.abs(a.wsrc - wsrc) - Math.abs(b.wsrc - wsrc));
-
-	for (let ppem = 0; ppem < sd.length; ppem++) {
-		const pos0 = pos0s ? pos0s[ppem] : s.posKey.y;
-		if (!sd[ppem] || !sd[ppem].y || !sd[ppem].y[sid]) {
-			hintedPositions[ppem] = roundings.rtg(pos0, upm, ppem);
-			continue;
-		}
-		const [ytouch, wtouch, isStrict, isStacked] = sd[ppem].y[sid];
-		const uppx = upm / ppem;
-		const psrc = roundings.rtg(pos0, upm, ppem);
-		const wdst = wtouch * (upm / ppem);
-
-		if (s.posKeyAtTop) {
-			const pdst = ytouch * (upm / ppem);
-			hintedPositions[ppem] = pdst;
-			deltaPos.push({
-				ppem,
-				delta: decideDelta(ROUNDING_SEGMENTS, psrc, pdst, upm, ppem) / ROUNDING_SEGMENTS
-			});
-			for (let adg of advDeltaGroups) {
-				const rawDelta = decideDeltaShift(
-					ROUNDING_SEGMENTS,
-					-1,
-					isStrict,
-					isStacked,
-					pdst,
-					adg.wsrc,
-					pdst,
-					wdst,
-					upm,
-					ppem
-				);
-				const advDelta = clampAdvDelta(-1, isStrict, adg.wsrc <= wsrc, rawDelta);
-				adg.deltas.push({ ppem, delta: advDelta });
-			}
-		} else {
-			const pdst = (ytouch - wtouch) * (upm / ppem) - (s.advKey.x - s.posKey.x) * s.slope;
-			const pd = decideDelta(ROUNDING_SEGMENTS, psrc, pdst, upm, ppem) / ROUNDING_SEGMENTS;
-			deltaPos.push({ ppem, delta: pd });
-			hintedPositions[ppem] = psrc + pd * (upm / ppem);
-			for (let adg of advDeltaGroups) {
-				const rawDelta = decideDeltaShift(
-					ROUNDING_SEGMENTS,
-					1,
-					isStrict,
-					isStacked,
-					pdst,
-					adg.wsrc,
-					pdst,
-					wdst,
-					upm,
-					ppem
-				);
-				const advDelta = clampAdvDelta(1, isStrict, adg.wsrc <= wsrc, rawDelta);
-				adg.deltas.push({ ppem, delta: advDelta });
-			}
-		}
-	}
-	// decide optimal advance delta group
-	for (let g of advDeltaGroups) {
-		g.totalDelta += estimateDeltaImpact(g.deltas);
-	}
-	const adg = advDeltaGroups.reduce((a, b) => (a.totalDelta <= b.totalDelta ? a : b));
-
-	// decide optimal YMove
-	let bestYMove = 0;
-	let bestPosImpact = estimateDeltaImpact(deltaPos);
-	let bestPosDeltas = deltaPos;
-	for (let yMove of yMoves) {
-		if (!yMove) continue;
-		const yMoveImpact = yMove > 0 ? 3 : yMove < 0 ? 6 : 0;
-		const dps = deltaPos.map(d => ({ ppem: d.ppem, delta: d.delta - yMove }));
-		const impact = yMoveImpact + estimateDeltaImpact(dps);
-		if (impact < bestPosImpact) {
-			bestYMove = yMove;
-			bestPosDeltas = dps;
-			bestPosImpact = impact;
-		}
-	}
-
-	// instructions
-	// position edge
-	if (bestYMove) talk(`YMove(${bestYMove},${s.posKey.id})`);
-	talk(sanityDelta(s.posKey.id, bestPosDeltas));
-	// advance edge
-	talk(adg.fn(s.posKey.id, s.advKey.id, strategy));
-	talk(sanityDelta(s.advKey.id, adg.deltas));
-
-	for (let zp of s.posAlign) talk(`YShift(${s.posKey.id},${zp.id})`);
-	for (let zp of s.advAlign) talk(`YShift(${s.advKey.id},${zp.id})`);
-	return {
-		buf: buf,
-		ipz: s.posKey.id,
-		hintedPositions,
-		pOrg: s.posKey.y,
-		totalDeltaImpact: bestPosImpact + adg.totalDelta
-	};
-}
+const { getVTTAux, cvtIds, generateCVT, generateFPGM } = require("./vtt/vttenv");
 
 function table(min, max, f) {
 	let a = [];
@@ -447,25 +214,27 @@ function chooseTBPos0(stemKind, stem, cvtCutin, choices) {
 // sd : size-dependent actions
 // strategy : strategy object
 // padding : CVT padding value, padding + 2 -> bottom anchor; padding + 1 -> top anchor
-function produceVTTTalk(record, strategy, padding, isXML) {
+// fpgmPadding : FPGM padding
+function produceVTTTalk(record, strategy, padding, fpgmPadding) {
 	const sd = record.sd;
 	const si = record.si;
 	const pmin = record.pmin;
 	const pmax = record.pmax;
 	const upm = strategy.UPM;
 
-	const cvtZeroId = padding;
-	const cvtTopId = padding + 1;
-	const cvtBottomId = padding + 2;
-	const cvtTopDId = padding + 5;
-	const cvtBottomDId = padding + 6;
-	const cvtTopBarId = padding + 3;
-	const cvtBottomBarId = padding + 4;
-	const cvtTopBotDistId = padding + 7;
-	const cvtTopBotDDistId = padding + 8;
-
-	const cvtCSW = padding + 9;
-	const cvtCSWD = padding + 10;
+	const {
+		cvtZeroId,
+		cvtTopId,
+		cvtBottomId,
+		cvtTopDId,
+		cvtBottomDId,
+		cvtTopBarId,
+		cvtBottomBarId,
+		cvtTopBotDistId,
+		cvtTopBotDDistId,
+		cvtCSW,
+		cvtCSWD
+	} = cvtIds(padding);
 
 	const { yBotBar, yTopBar, yBotD, yTopD, canonicalSW, SWDs } = getVTTAux(strategy);
 
@@ -479,47 +248,11 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 		buf += s + "\n";
 	}
 
-	//// X
-
-	if (si.xIP && si.xIP.length > 1) {
-		const zmin = si.xIP[0];
-		const zmax = si.xIP[si.xIP.length - 1];
-		let deltaL = [];
-		let deltaR = [];
-		for (let ppem = 0; ppem < sd.length; ppem++) {
-			if (!sd[ppem] || !sd[ppem].x) continue;
-			const xExp = sd[ppem].x.expansion;
-			const xL0 = zmin.x;
-			const xL1 = strategy.UPM / 2 + (xL0 - strategy.UPM / 2) * xExp;
-			deltaL.push({
-				ppem,
-				delta: decideDelta(ROUNDING_SEGMENTS, xL0, xL1, upm, ppem) / ROUNDING_SEGMENTS
-			});
-
-			const xR0 = zmax.x;
-			const xR1 = strategy.UPM / 2 + (xR0 - strategy.UPM / 2) * xExp;
-			deltaR.push({
-				ppem,
-				delta: decideDelta(ROUNDING_SEGMENTS, xR0, xR1, upm, ppem) / ROUNDING_SEGMENTS
-			});
-		}
-		const tkL = sanityDelta(zmin.id, deltaL, "XDelta");
-		const tkR = sanityDelta(zmax.id, deltaR, "XDelta");
-		if (tkL || tkR) {
-			// talk("/** !!IDH!! X-Expansion");
-			// talk(`XAnchor(${zmin.id})`);
-			// talk(tkL);
-			// talk(`XAnchor(${zmax.id})`);
-			// talk(tkR);
-			// if (si.xIP.length > 2) {
-			// 	talk(`XInterpolate(${si.xIP.map(z => z.id).join(",")})`);
-			// }
-			// talk("**/");
-		}
-	}
+	const ec = new VTTECompiler(
+		fpgmPadding ? new AssemblyDeltaEncoder(fpgmPadding) : new VTTTalkDeltaEncoder()
+	);
 
 	//// Y
-
 	// ip decider
 	const hintedPositionsBot = table(pmin, pmax, ppem =>
 		roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
@@ -558,7 +291,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 				talk: CoTalkBottomAnchor(
 					z.id,
 					cvtBottomDId,
-					encodeAnchor(
+					ec.encodeAnchor(
 						z.id,
 						hintedPositionsBotD,
 						hintedPositionsBot,
@@ -591,7 +324,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 					z.id,
 					cvtTopDId,
 					cvtTopBotDistId,
-					encodeAnchor(
+					ec.encodeAnchor(
 						z.id,
 						hintedPositionsTopD,
 						hintedPositionsTop,
@@ -612,7 +345,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 					z.id,
 					cvtTopId,
 					cvtTopBotDistId,
-					encodeAnchor(
+					ec.encodeAnchor(
 						z.id,
 						hintedPositionsTop0,
 						hintedPositionsTop,
@@ -695,7 +428,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 						}
 			][bsMethod];
 			if (!bsParams) continue;
-			const { totalDeltaImpact: tdi, buf, hintedPositions } = encodeStem(
+			const { totalDeltaImpact: tdi, buf, hintedPositions } = ec.encodeStem(
 				bottomStem.stem,
 				bottomStem.sid,
 				sd,
@@ -734,7 +467,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 					: null
 			][tsMethod];
 			if (!tsParams) continue;
-			const { totalDeltaImpact: tdi, buf, hintedPositions } = encodeStem(
+			const { totalDeltaImpact: tdi, buf, hintedPositions } = ec.encodeStem(
 				topStem.stem,
 				topStem.sid,
 				sd,
@@ -778,7 +511,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 			// ASSERT: r.kind === KEY_ITEM_STEM
 			if (r.pOrg > bottomStem.pOrg && r.pOrg < topStem.pOrg) {
 				talk(`/* !!IDH!! StemDef ${r.sid} INTERPOLATE */`);
-				const g = encodeStem(
+				const g = ec.encodeStem(
 					r.stem,
 					r.sid,
 					sd,
@@ -792,7 +525,7 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 				// Should not happen
 				talk(`/* !!IDH!! StemDef ${r.sid} DIRECT */`);
 				talk(`YAnchor(${r.ipz})`);
-				const g = encodeStem(r.stem, r.sid, sd, strategy, null, SWS);
+				const g = ec.encodeStem(r.stem, r.sid, sd, strategy, null, SWS);
 				talk(g.buf);
 				tdis += g.totalDeltaImpact;
 			}
@@ -833,37 +566,6 @@ function produceVTTTalk(record, strategy, padding, isXML) {
 	return buf;
 }
 
-function generateCVT(cvt, cvtPadding, strategy) {
-	const { yBotBar, yTopBar, yBotD, yTopD, canonicalSW, SWDs } = getVTTAux(strategy);
-	cvt = cvt
-		.replace(new RegExp(`${cvtPadding}` + "\\s*:\\s*-?\\d+"), "")
-		.replace(new RegExp(`${cvtPadding + 1}` + "\\s*:\\s*-?\\d+"), "")
-		.replace(new RegExp(`${cvtPadding + 2}` + "\\s*:\\s*-?\\d+"), "")
-		.replace(new RegExp(`${cvtPadding + 3}` + "\\s*:\\s*-?\\d+"), "")
-		.replace(new RegExp(`${cvtPadding + 4}` + "\\s*:\\s*-?\\d+"), "")
-		.replace(new RegExp(`${cvtPadding + 5}` + "\\s*:\\s*-?\\d+"), "")
-		.replace(new RegExp(`${cvtPadding + 6}` + "\\s*:\\s*-?\\d+"), "")
-		.replace(new RegExp(`${cvtPadding + 7}` + "\\s*:\\s*-?\\d+"), "")
-		.replace(new RegExp(`${cvtPadding + 8}` + "\\s*:\\s*-?\\d+"), "");
-	return (
-		cvt +
-		`
-/*## !! MEGAMINX !! BEGIN SECTION ideohint_CVT_entries ##*/
-${cvtPadding} : ${0}
-${cvtPadding + 1} : ${strategy.BLUEZONE_TOP_CENTER}
-${cvtPadding + 2} : ${strategy.BLUEZONE_BOTTOM_CENTER}
-${cvtPadding + 3} : ${yTopBar}
-${cvtPadding + 4} : ${yBotBar}
-${cvtPadding + 5} : ${yTopD}
-${cvtPadding + 6} : ${yBotD}
-${cvtPadding + 7} : ${strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER}
-${cvtPadding + 8} : ${yTopD - yBotD}
-${cvtPadding + 9} : ${canonicalSW}
-${SWDs.map((x, j) => cvtPadding + 10 + j + " : " + x).join("\n")}
-/*## !! MEGAMINX !! END SECTION ideohint_CVT_entries ##*/
-`
-	);
-}
-
 exports.talk = produceVTTTalk;
 exports.generateCVT = generateCVT;
+exports.generateFPGM = generateFPGM;

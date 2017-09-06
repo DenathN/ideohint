@@ -2,8 +2,6 @@
 
 var fs = require("fs");
 var roundings = require("../support/roundings");
-const { mix } = require("../support/common");
-const toVQ = require("../support/vq");
 
 function pushWhenAbsent(a, x) {
 	a.push(x);
@@ -49,26 +47,13 @@ exports.getPadding = function(argv, parameterFile) {
 		return 0;
 	}
 };
-exports.createCvt = createCvt;
-
-const SPLITS = 16 + 7;
-exports.getVTTAux = function(strategy) {
-	const bot = strategy.BLUEZONE_BOTTOM_CENTER;
-	const top = strategy.BLUEZONE_TOP_CENTER;
-	const canonicalSW = toVQ(strategy.CANONICAL_STEM_WIDTH, strategy.PPEM_MAX);
-	const p = 1 / 20;
-	const pd = 1 / 40;
-
-	const SWDs = [];
-	for (let j = 1; j < SPLITS; j++) {
-		SWDs.push(Math.round(canonicalSW * (1 / 6 + j / SPLITS)));
+exports.getFpgmPadding = function(argv, parameterFile) {
+	if (parameterFile && parameterFile.fpgm) {
+		return parameterFile.fpgm.padding - 0 || 0;
+	} else if (argv.FPGM_PADDING) {
+		return argv.FPGM_PADDING - 0 || 0;
+	} else {
+		return 0;
 	}
-	return {
-		yBotBar: Math.round(mix(bot, top, p)),
-		yBotD: Math.round(mix(bot, top, pd)),
-		yTopBar: Math.round(mix(top, bot, p)),
-		yTopD: Math.round(mix(top, bot, pd)),
-		canonicalSW: Math.round(canonicalSW),
-		SWDs: SWDs
-	};
 };
+exports.createCvt = createCvt;

@@ -51,10 +51,10 @@ function isVertical(radical, strategy, u, v, mh, ov) {
 
 	return (
 		(slope >= 0
-			? slope <= strategy.SLOPE_FUZZ * sprop
-			: slope >= -strategy.SLOPE_FUZZ_NEG * sprop) &&
-		(Math.abs(p.y - q.y) > mh ||
-			(Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min)) * ov < Math.abs(p.y - q.y) * 0.9)
+			? slope > strategy.SLOPE_FUZZ * sprop
+			: slope < -strategy.SLOPE_FUZZ_NEG * sprop) ||
+		Math.abs(p.y - q.y) > mh ||
+		(Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min)) * ov < Math.abs(p.y - q.y) * 0.9
 	);
 }
 

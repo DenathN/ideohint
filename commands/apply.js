@@ -10,7 +10,7 @@ var oboe = require("oboe");
 var instruct = require("../instructor").instruct;
 var stringifyToStream = require("../support/stringify-to-stream");
 var cvtlib = require("../instructor/cvt");
-var { talk, generateCVT } = require("../instructor/vtttalk");
+var { talk, generateCVT, generateFPGM } = require("../instructor/vtttalk");
 
 var hashContours = require("../core/otdParser").hashContours;
 
@@ -40,7 +40,8 @@ exports.handler = function(argv) {
 	var parameterFile = require("../support/paramfile").from(argv);
 	var strategy = require("../support/strategy").from(argv, parameterFile);
 
-	var cvtPadding = cvtlib.getPadding(argv, parameterFile);
+	const cvtPadding = cvtlib.getPadding(argv, parameterFile);
+	const fpgmPadding = cvtlib.getFpgmPadding(argv, parameterFile);
 	var linkCvt = cvtlib.createCvt([], strategy, cvtPadding);
 
 	var activeInstructions = {};
@@ -90,7 +91,12 @@ exports.handler = function(argv) {
 						if (otd.TSI_23) {
 							// Prefer VTTTalk than TTF
 							if (!otd.TSI_23.glyphs) otd.TSI_23.glyphs = {};
-							otd.TSI_23.glyphs[g] = (talk(airef, strategy, cvtPadding, false) || "")
+							otd.TSI_23.glyphs[g] = (talk(
+								airef,
+								strategy,
+								cvtPadding,
+								fpgmPadding
+							) || "")
 								.replace(/\n/g, "\r"); // vtt uses CR
 							glyph.instructions = [];
 							if (otd.TSI_01 && otd.TSI_01.glyphs) {
@@ -106,6 +112,7 @@ exports.handler = function(argv) {
 				}
 				if (otd.TSI_01 && otd.TSI_01.extra && otd.TSI_01.extra.cvt) {
 					otd.TSI_01.extra.cvt = generateCVT(otd.TSI_01.extra.cvt, cvtPadding, strategy);
+					otd.TSI_01.extra.fpgm = generateFPGM(otd.TSI_01.extra.fpgm, fpgmPadding);
 				}
 				if (argv.padvtt && !otd.TSI_01) {
 					otd.TSI_01 = { glyphs: {}, extra: {} };
