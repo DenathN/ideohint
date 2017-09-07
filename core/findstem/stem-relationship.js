@@ -310,7 +310,11 @@ exports.analyzeStemSpatialRelationships = function(stems, radicals, overlaps, st
 	for (var k = 0; k < stems.length; k++) {
 		analyzePointToStemSpatialRelationships(stems[k], radicals, strategy);
 		for (var j = 0; j < stems.length; j++) {
-			if (overlaps[j][k] > strategy.COLLISION_MIN_OVERLAP_RATIO && stems[j].y > stems[k].y) {
+			if (
+				overlaps[j][k] > strategy.COLLISION_MIN_OVERLAP_RATIO &&
+				stems[j].y > stems[k].y &&
+				!(stems[j].rid && stems[j].rid === stems[k].rid)
+			) {
 				stems[k].hasGlyphStemAbove = true;
 				stems[j].hasGlyphStemBelow = true;
 				if (stems[j].belongRadical === stems[k].belongRadical) {
