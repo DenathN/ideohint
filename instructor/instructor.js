@@ -179,7 +179,7 @@ function instruct(record, strategy, padding) {
 			let deltas = [];
 			for (var k = 0; k < instrs.length; k++) {
 				if (!instrs[k]) continue;
-				const [y, w, isStrict, isStacked] = instrs[k];
+				const [y, w, isStrict, isStacked, addpxs] = instrs[k];
 				const stem = si.stems[k];
 				const y0 = stem.posKeyAtTop ? stem.posKey.y : stem.advKey.y;
 				const w0 = stem.posKeyAtTop
@@ -215,7 +215,8 @@ function instruct(record, strategy, padding) {
 							ypos,
 							targetAdvance,
 							upm,
-							ppem
+							ppem,
+							addpxs
 						),
 						ppem
 					)

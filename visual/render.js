@@ -106,7 +106,7 @@ function interpretTT(glyphs, strategy, ppem) {
 				l = glyph.indexedPoints[stem.posKey.id];
 			}
 			const keyDX = h.x - l.x;
-			const [y, w, strict, stacked] = action;
+			const [y, w, strict, stacked, addpxs] = action;
 			const yTopTarget = (h.ytouch = y * uppx);
 			const yBotTarget = (l.ytouch = (y - w) * uppx - keyDX * stem.slope);
 			h.touched = l.touched = true;
@@ -122,6 +122,7 @@ function interpretTT(glyphs, strategy, ppem) {
 				) {
 					l.ytouch += dir;
 				}
+				l.ytouch -= addpxs * uppx;
 			} else {
 				const dir = w * uppx > h.y - l.y ? -1 / 16 * uppx : 1 / 16 * uppx;
 				while (
@@ -133,6 +134,7 @@ function interpretTT(glyphs, strategy, ppem) {
 				) {
 					h.ytouch += dir;
 				}
+				h.ytouch += addpxs * uppx;
 			}
 		});
 		// Alignments
@@ -294,9 +296,10 @@ function RenderPreviewForPPEM(glyphs, strategy, hdc, basex, basey, ppem) {
 	for (var j = 0; j < vpixels; j++) {
 		let aa = hAA.createImageData(hpixels, 1);
 		for (var k = 0; k < hpixels; k++) {
-			(aa.data[k * 4] = 0xff), (aa.data[k * 4 + 1] = 0), (aa.data[k * 4 + 2] = 0), (aa.data[
-				k * 4 + 3
-			] = 0xff);
+			(aa.data[k * 4] = 0xff),
+				(aa.data[k * 4 + 1] = 0),
+				(aa.data[k * 4 + 2] = 0),
+				(aa.data[k * 4 + 3] = 0xff);
 			for (var component = 0; component < 3; component++) {
 				let coverage = 0;
 				for (let ssy = 0; ssy < SAMPLING_Y; ssy++)

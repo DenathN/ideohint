@@ -506,11 +506,11 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding) {
 			talk(`YInterpolate(${bottomAnchor.ipz},${ipZs.join(",")},${topAnchor.ipz})`);
 		}
 
+		let innerBufParts = [];
 		for (let r of candidates) {
 			if (r.told) continue;
 			// ASSERT: r.kind === KEY_ITEM_STEM
 			if (r.pOrg > bottomStem.pOrg && r.pOrg < topStem.pOrg) {
-				talk(`/* !!IDH!! StemDef ${r.sid} INTERPOLATE */`);
 				const g = ec.encodeStem(
 					r.stem,
 					r.sid,
@@ -519,17 +519,24 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding) {
 					iphintedPositions(bottomStem, r, topStem, pmin, pmax),
 					SWS
 				);
-				talk(g.buf);
+				for (let p = 0; p < g.parts.length; p++) {
+					if (!innerBufParts[p]) innerBufParts[p] = "";
+					innerBufParts[p] += g.parts[p];
+				}
 				tdis += g.totalDeltaImpact;
 			} else {
 				// Should not happen
 				talk(`/* !!IDH!! StemDef ${r.sid} DIRECT */`);
 				talk(`YAnchor(${r.ipz})`);
 				const g = ec.encodeStem(r.stem, r.sid, sd, strategy, null, SWS);
-				talk(g.buf);
+				for (let p = 0; p < g.parts.length; p++) {
+					if (!innerBufParts[p]) innerBufParts[p] = "";
+					innerBufParts[p] += g.parts[p] + "\n";
+				}
 				tdis += g.totalDeltaImpact;
 			}
 		}
+		talk(innerBufParts.join("\n"));
 		if (tdis < bestTDI) {
 			bestTalk = buf;
 			bestTDI = tdis;

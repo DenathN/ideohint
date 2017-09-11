@@ -5,7 +5,7 @@ const roundings = require("../support/roundings");
 const ROUNDING_CUTOFF = 1 / 2 - 4 / 64;
 const STRICT_CUTOFF = 1 / 4;
 const HALF_PIXEL_PPEM = 18;
-const MINIMAL_STROKE_WIDTH = 3 / 4;
+const MINIMAL_STROKE_WIDTH = 5 / 8;
 
 function decideDelta(gear, original, target, upm, ppem) {
 	return Math.round(gear * (target - original) / (upm / ppem));
@@ -23,8 +23,21 @@ function decideDelta(gear, original, target, upm, ppem) {
  * @param {number} dist1 
  * @param {number} upm 
  * @param {number} ppem 
+ * @param {number} addpxs 
  */
-function decideDeltaShift(gear, sign, isStrict, isStacked, base0, dist0, base1, dist1, upm, ppem) {
+function decideDeltaShift(
+	gear,
+	sign,
+	isStrict,
+	isStacked,
+	base0,
+	dist0,
+	base1,
+	dist1,
+	upm,
+	ppem,
+	addpxs
+) {
 	var uppx = upm / ppem;
 	var y1 = base0 + sign * dist0;
 	var y2 = base1 + sign * dist1;
@@ -48,7 +61,7 @@ function decideDeltaShift(gear, sign, isStrict, isStacked, base0, dist0, base1, 
 			break;
 		delta = delta > 0 ? delta - 1 : delta + 1;
 	}
-	return delta + deltaDesired;
+	return delta + deltaDesired + Math.floor(addpxs * gear / 2) * sign;
 }
 
 exports.decideDelta = decideDelta;

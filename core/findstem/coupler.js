@@ -176,7 +176,7 @@ function uuCouplable(sj, sk, radical, strategy) {
 }
 function udMatchable(sj, sk, radical, strategy) {
 	return (
-		radical.includesTetragon(sj, sk) &&
+		radical.includesTetragon(sj, sk, strategy.X_FUZZ) &&
 		!(
 			!!slopeOf([sj]) !== !!slopeOf([sk]) &&
 			Math.abs(slopeOf([sj]) - slopeOf([sk])) >= strategy.SLOPE_FUZZ / 2

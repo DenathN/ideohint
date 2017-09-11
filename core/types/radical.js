@@ -45,52 +45,45 @@ Radical.prototype.includesSegmentEdge = function(z1, z2, umx, deltax, umy, delta
 	//console.log("IXS", z1, z2, umx, deltax, umy, deltay);
 	return false;
 };
-Radical.prototype.includesTetragon = function(s1, s2) {
-	for (var u = 0; u < s1.length - 1; u++) {
-		for (var v = 0; v < s2.length - 1; v++) {
-			var p = s1[u],
+Radical.prototype.includesTetragon = function(s1, s2, _dS) {
+	let xmin1 = s1[0].x,
+		xmax1 = s1[0].x,
+		xmin2 = s2[0].x,
+		xmax2 = s2[0].x;
+	for (let u = 0; u < s1.length; u++) {
+		if (s1[u].x < xmin1) xmin1 = s1[u].x;
+		if (s1[u].x > xmax1) xmax1 = s1[u].x;
+	}
+	for (let u = 0; u < s2.length; u++) {
+		if (s2[u].x < xmin2) xmin2 = s2[u].x;
+		if (s2[u].x > xmax2) xmax2 = s2[u].x;
+	}
+	const dS = Math.min(_dS, (xmax1 - xmin1) / 3, (xmax2 - xmin2) / 3);
+	//console.log(s1.map(z => z.id), s2.map(z => z.id), xmin1, xmax1, xmin2, xmax2, dS);
+	for (let u = 0; u < s1.length - 1; u++) {
+		for (let v = 0; v < s2.length - 1; v++) {
+			let p = s1[u],
 				q = s1[u + 1];
-			var r = s2[v],
+			let r = s2[v],
 				s = s2[v + 1];
 			if (p.x > q.x) {
-				var t = p;
+				let t = p;
 				p = q;
 				q = t;
 			}
 			if (r.x > s.x) {
-				var t = r;
+				let t = r;
 				r = s;
 				s = t;
 			}
-			const cross1 = r.x > q.x;
-			const cross2 = p.x > s.x;
-			const q1 = u === 0 || u === s1.length - 1 || v === 0 || v === s2.length - 1 ? 5 : 2;
-			if (p.y === q.y && r.y === s.y) {
-				if (!this.includesSegmentEdge(p, r, 2, 1, 1, 1)) return false;
-				if (!this.includesSegmentEdge(q, s, 2, 1, 1, 1)) return false;
-				if (!(cross1 || this.includesSegmentEdge(p, s, 1, 3, 1, 2))) return false;
-				if (!(cross2 || this.includesSegmentEdge(q, r, 1, 3, 1, 2))) return false;
-				if (!this.includesSegmentEdge(mixz(p, q, 1 / 2), mixz(r, s, 1 / 2), 2, 2, 2, 2))
-					return false;
-				if (
-					!this.includesSegmentEdge(mixz(p, q, 1 / 5), mixz(r, s, 1 / 5), 2, 2, 2, 2) ||
-					!this.includesSegmentEdge(mixz(p, q, 4 / 5), mixz(r, s, 4 / 5), 2, 2, 2, 2)
-				)
-					return false;
-			} else {
-				if (
-					!this.includesSegmentEdge(mixz(p, q, 1 / 2), mixz(r, s, 1 / 2), 2, 2, 2, 2) ||
-					!(cross1 || this.includesSegmentEdge(p, s, q1, 3, 2, 2)) ||
-					!(cross2 || this.includesSegmentEdge(q, r, q1, 3, 2, 2)) ||
-					!this.includesSegmentEdge(p, r, q1, 5, 2, 2) ||
-					!this.includesSegmentEdge(q, s, q1, 5, 2, 2) ||
-					!this.includesSegmentEdge(p, mixz(r, s, 1 / 2), q1, 5, 2, 2) ||
-					!this.includesSegmentEdge(q, mixz(r, s, 1 / 2), q1, 5, 2, 2) ||
-					!this.includesSegmentEdge(mixz(p, q, 1 / 2), r, q1, 5, 2, 2) ||
-					!this.includesSegmentEdge(mixz(p, q, 1 / 2), s, q1, 5, 2, 2) ||
-					!this.includesSegmentEdge(mixz(p, q, 1 / 5), mixz(r, s, 1 / 5), q1, 5, 2, 2) ||
-					!this.includesSegmentEdge(mixz(p, q, 4 / 5), mixz(r, s, 4 / 5), q1, 5, 2, 2)
-				) {
+			const N = 8;
+			for (let sg = 0; sg <= N; sg++) {
+				let ztop = mixz(p, q, sg / N);
+				let zbot = mixz(r, s, sg / N);
+				if (!(ztop.x >= xmin1 + dS && ztop.x <= xmax1 - dS)) continue;
+				if (!(zbot.x >= xmin2 + dS && zbot.x <= xmax2 - dS)) continue;
+				if (!this.includesSegmentEdge(ztop, zbot, 1, 1, 1, 1)) {
+					//console.log(p, q, r, s, ztop, zbot);
 					return false;
 				}
 			}

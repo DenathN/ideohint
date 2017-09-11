@@ -23,13 +23,14 @@ class HintingStrategy {
 		this.STEM_SIDE_MIN_DIST_DESCENT = 30;
 		this.BOTTOM_UNIFY_FORCE = 100;
 		this.BOTTOM_UNIFY_FORCE_DIAG = 75;
-		this.SLOPE_FUZZ = 0.132;
+		this.SLOPE_FUZZ = 0.144;
 		this.SLOPE_FUZZ_POS = 0.156;
 		this.SLOPE_FUZZ_POST = 0.25;
 		this.SLOPE_FUZZ_NEG = 0.075;
 		this.SLOPE_FUZZ_K = 0.035;
 		this.SLOPE_FUZZ_R = 0.01;
 		this.SLOPE_FUZZ_P = 0.005;
+		this.X_FUZZ = 7;
 		this.Y_FUZZ = 7;
 		this.Y_FUZZ_DIAG = 15;
 		this.BLUEZONE_BOTTOM_CENTER = -67;

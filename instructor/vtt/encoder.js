@@ -188,12 +188,8 @@ class AssemblyDeltaEncoder extends VTTTalkDeltaEncoder {
 }
 
 function standardAdvance(zpos, zadv, strategy) {
-	if (strategy.SIGNIFICANT_LINK_ARROW) {
-		return `YNoRound(${zadv})
+	return `YNoRound(${zadv})
 YDist(${zpos},${zadv})`;
-	} else {
-		return `YShift(${zpos},${zadv}) /* !IMPORTANT */`;
-	}
 }
 
 function SWAdvance(cvt) {
@@ -264,7 +260,7 @@ class VTTECompiler {
 				hintedPositions[ppem] = roundings.rtg(pos0, upm, ppem);
 				continue;
 			}
-			const [ytouch, wtouch, isStrict, isStacked] = sd[ppem].y[sid];
+			const [ytouch, wtouch, isStrict, isStacked, addpxs] = sd[ppem].y[sid];
 			const uppx = upm / ppem;
 			const psrc = roundings.rtg(pos0, upm, ppem);
 			const wdst = wtouch * (upm / ppem);
@@ -287,9 +283,15 @@ class VTTECompiler {
 						pdst,
 						wdst,
 						upm,
-						ppem
+						ppem,
+						addpxs
 					);
-					const advDelta = clampAdvDelta(-1, isStrict, adg.wsrc <= wsrc, rawDelta);
+					const advDelta = clampAdvDelta(
+						-1,
+						isStrict || isStacked,
+						adg.wsrc <= wsrc,
+						rawDelta
+					);
 					adg.deltas.push({ ppem, delta: advDelta });
 				}
 			} else {
@@ -309,9 +311,15 @@ class VTTECompiler {
 						pdst,
 						wdst,
 						upm,
-						ppem
+						ppem,
+						addpxs
 					);
-					const advDelta = clampAdvDelta(1, isStrict, adg.wsrc <= wsrc, rawDelta);
+					const advDelta = clampAdvDelta(
+						1,
+						isStrict || isStacked,
+						adg.wsrc <= wsrc,
+						rawDelta
+					);
 					adg.deltas.push({ ppem, delta: advDelta });
 				}
 			}
@@ -339,17 +347,32 @@ class VTTECompiler {
 		}
 
 		// instructions
-		// position edge
+		// Position delta
+		talk(`/* !!IDH!! StemDef ${sid} INTERPOLATE */`);
 		if (bestYMove) talk(`YMove(${bestYMove},${s.posKey.id})`);
 		talk(this.deltaEncoder.encode(s.posKey.id, bestPosDeltas));
-		// advance edge
-		talk(adg.fn(s.posKey.id, s.advKey.id, strategy));
-		talk(this.deltaEncoder.encode(s.advKey.id, adg.deltas));
+		const bufPosDelta = buf;
+		buf = "";
 
+		// Advance link
+		talk(adg.fn(s.posKey.id, s.advKey.id, strategy));
+		const bufAdvLink = buf;
+		buf = "";
+
+		// Advance delta
+		talk(this.deltaEncoder.encode(s.advKey.id, adg.deltas));
+		const bufAdvDelta = buf;
+		buf = "";
+
+		// In-stem alignments
 		for (let zp of s.posAlign) talk(`YShift(${s.posKey.id},${zp.id})`);
 		for (let zp of s.advAlign) talk(`YShift(${s.advKey.id},${zp.id})`);
+		const bufIsal = buf;
+
+		const parts = [bufPosDelta, bufAdvLink, bufAdvDelta, bufIsal];
 		return {
-			buf: buf,
+			buf: parts.join(""),
+			parts,
 			ipz: s.posKey.id,
 			hintedPositions,
 			pOrg: s.posKey.y,
