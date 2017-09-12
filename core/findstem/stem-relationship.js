@@ -143,8 +143,8 @@ function analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, str
 				pointBelowStem(point, stem, blueFuzz) &&
 				point.xStrongExtrema &&
 				!(point.yExtrema && !point.yStrongExtrema) &&
-				point.x < xmax + stem.width &&
-				point.x > xmin - stem.width
+				point.x < xmax + Math.min((xmax - xmin) / 3, stem.width) &&
+				point.x > xmin - Math.min((xmax - xmin) / 3, stem.width)
 			) {
 				if (
 					(!point.atleft && point.x > xmin + (xmax - xmin) * 0.2) ||

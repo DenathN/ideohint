@@ -87,7 +87,7 @@ class AssemblyDeltaEncoder extends VTTTalkDeltaEncoder {
 	encodeDeltaByte(dPPEM, shift) {
 		return dPPEM * 16 + (shift > 0 ? 7 + shift : shift + 8);
 	}
-	encode(z, d, tag) {
+	encodeShift(z, d, shift, pmin, pmax, tag) {
 		const SDB = 9;
 		const SDS = ROUNDING_SEGMENTS;
 		const dltpg = {
@@ -95,8 +95,10 @@ class AssemblyDeltaEncoder extends VTTTalkDeltaEncoder {
 			DLTP2: [],
 			DLTP3: []
 		};
-
+		let bytes = shift ? 10 : 0;
+		let buf = "";
 		for (let { ppem, delta: deltaPpem } of d) {
+			if (ppem >= pmin && ppem <= pmax) deltaPpem -= shift;
 			if (!deltaPpem) continue;
 			const dltp =
 				ppem >= SDB && ppem < SDB + 16
@@ -117,6 +119,7 @@ class AssemblyDeltaEncoder extends VTTTalkDeltaEncoder {
 					} else {
 						dltp.push(`(${z} @${dPPEM} ${shift})`);
 					}
+					bytes += 1;
 					delta -= shift;
 				} while (delta);
 			else
@@ -128,11 +131,10 @@ class AssemblyDeltaEncoder extends VTTTalkDeltaEncoder {
 					} else {
 						dltp.push(`(${z} @${dPPEM} ${shift})`);
 					}
-
+					bytes += 1;
 					delta -= shift;
 				} while (delta);
 		}
-		let buf = "/** > " + super.encode(z, d, tag) + " < **/\n";
 		if (this.fpgmPad) {
 			if (
 				dltpg.DLTP1.length &&
@@ -164,14 +166,44 @@ class AssemblyDeltaEncoder extends VTTTalkDeltaEncoder {
 					}
 				}
 			}
-			return buf;
+			return { bytes, buf: buf };
 		} else {
 			for (let instr in dltpg) {
 				if (!dltpg[instr].length) continue;
 				buf += `    ${instr}[${dltpg[instr].join("")}]\n`;
 			}
-			return `ASM("\n${buf}")`;
+			return { bytes, buf: `ASM("\n${buf}")` };
 		}
+	}
+	encode(z, d, tag) {
+		let ppemMin = 0xff,
+			ppemMax = 0,
+			qtyMap = new Map();
+		for (let { ppem, delta } of d) {
+			if (ppem < ppemMin) ppemMin = ppem;
+			if (ppem > ppemMax) ppemMax = ppem;
+			if (!qtyMap.has(delta)) qtyMap.set(delta, 0);
+			qtyMap.set(delta, 1 + qtyMap.get(delta));
+		}
+
+		let { bytes: mbytes, buf: mBuf } = this.encodeShift(z, d, 0, ppemMin, ppemMax, tag);
+		for (let [k, v] of qtyMap) {
+			if (!k) continue;
+			let { bytes, buf } = this.encodeShift(z, d, k, ppemMin, ppemMax, tag);
+			if (bytes < mbytes) {
+				mbytes = bytes;
+				mBuf = (k ? `Call(${z},${k * 64},${ppemMin},${ppemMax},72)` : "") + buf;
+			}
+		}
+		return (
+			"/*" +
+			d
+				.filter(x => x.delta)
+				.map(x => x.ppem + ":" + x.delta)
+				.join(";") +
+			"*/\n" +
+			mBuf
+		);
 	}
 	estimateImpact(d) {
 		// impact caused by DLTP[]
@@ -250,7 +282,7 @@ class VTTECompiler {
 					g =>
 						g.wsrc > wsrc
 							? (g.wsrc - wsrc) / wsrc < 1 / 12
-							: (wsrc - g.wsrc) / wsrc < 1 / 6
+							: (wsrc - g.wsrc) / wsrc < 1 / 8
 				)
 		].sort((a, b) => Math.abs(a.wsrc - wsrc) - Math.abs(b.wsrc - wsrc));
 
@@ -292,7 +324,7 @@ class VTTECompiler {
 						adg.wsrc <= wsrc,
 						rawDelta
 					);
-					adg.deltas.push({ ppem, delta: advDelta });
+					adg.deltas.push({ ppem, delta: advDelta, rawDelta });
 				}
 			} else {
 				const pdst = (ytouch - wtouch) * (upm / ppem) - (s.advKey.x - s.posKey.x) * s.slope;
@@ -320,7 +352,7 @@ class VTTECompiler {
 						adg.wsrc <= wsrc,
 						rawDelta
 					);
-					adg.deltas.push({ ppem, delta: advDelta });
+					adg.deltas.push({ ppem, delta: advDelta, rawDelta });
 				}
 			}
 		}

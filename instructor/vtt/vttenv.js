@@ -187,7 +187,7 @@ ENDF[]
 
 /// CVT
 
-const SPLITS = 16 + 7;
+const SPLITS = 7 + 16;
 function getVTTAux(strategy) {
 	const bot = strategy.BLUEZONE_BOTTOM_CENTER;
 	const top = strategy.BLUEZONE_TOP_CENTER;
@@ -197,7 +197,7 @@ function getVTTAux(strategy) {
 
 	const SWDs = [];
 	for (let j = 1; j < SPLITS; j++) {
-		SWDs.push(Math.round(canonicalSW * (1 / 6 + j / SPLITS)));
+		SWDs.push(Math.round(canonicalSW * mix(1 / 2, 1 + 1 / 5, j / SPLITS)));
 	}
 	return {
 		yBotBar: Math.round(mix(bot, top, p)),

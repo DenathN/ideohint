@@ -33,12 +33,9 @@ class Individual {
 				if (
 					avails[j].rid &&
 					avails[j].rid === avails[k].rid &&
-					(y[j] - y[k] >
-						Math.ceil(avails[j].y0px - avails[k].y0px + DIAG_BIAS_PIXELS) ||
+					(y[j] - y[k] > Math.ceil(avails[j].y0px - avails[k].y0px + DIAG_BIAS_PIXELS) ||
 						y[j] - y[k] <
-							Math.ceil(
-								avails[j].y0px - avails[k].y0px - DIAG_BIAS_PIXELS_NEG
-							))
+							Math.ceil(avails[j].y0px - avails[k].y0px - DIAG_BIAS_PIXELS_NEG))
 				) {
 					p += S[j][k]; // diagonal break
 				}

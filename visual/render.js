@@ -270,10 +270,14 @@ function RenderPreviewForPPEM(glyphs, strategy, hdc, basex, basey, ppem) {
 	hTemp.fillRect(0, 0, eTemp.width, eTemp.height);
 
 	function txp(x, m) {
-		return (x + m * strategy.UPM) / uppx * 3 * SUPERSAMPLING;
+		const v = (x + m * strategy.UPM) / uppx * 3 * SUPERSAMPLING;
+		if (!isFinite(v)) v = 0;
+		return v;
 	}
 	function typ(y) {
-		return (-y / uppx + Math.round(strategy.BLUEZONE_TOP_CENTER / uppx) + 1) * SAMPLING_Y;
+		const v = (-y / uppx + Math.round(strategy.BLUEZONE_TOP_CENTER / uppx) + 1) * SAMPLING_Y;
+		if (!isFinite(v)) v = 0;
+		return v;
 	}
 	// Fill
 	hTemp.fillStyle = "black";
