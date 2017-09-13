@@ -81,6 +81,26 @@ class VTTTalkDeltaEncoder {
 	}
 }
 
+class VTTCall {
+	constructor(...forms) {
+		this.comment = "";
+		this.forms = forms;
+	}
+	then(that) {
+		return new VTTCall(...this.forms, ...that.forms);
+	}
+	toString() {
+		return (
+			this.comment +
+			"\n" +
+			this.forms
+				.filter(c => c && c.length)
+				.map(c => `Call(${c})`)
+				.join("\n")
+		);
+	}
+}
+
 class AssemblyDeltaEncoder extends VTTTalkDeltaEncoder {
 	constructor(fpgmPad) {
 		super();
@@ -89,13 +109,17 @@ class AssemblyDeltaEncoder extends VTTTalkDeltaEncoder {
 	encode(z, d, tag) {
 		if (!this.fpgmPad) return super.encode(z, d, tag);
 		let deltaComment =
-			"/*" +
+			"/* Delta for " +
+			z +
+			" | " +
 			d
 				.filter(x => x.delta)
 				.map(x => x.ppem + ":" + x.delta)
 				.join(" ") +
-			"*/\n";
-		return deltaComment + this.encodeDelta(z, d, tag).buf;
+			"*/";
+		let buf = this.encodeDelta(z, d, tag).buf;
+		buf.comment = deltaComment;
+		return buf;
 	}
 
 	encodeDeltaByte(dPPEM, shift) {
@@ -108,7 +132,7 @@ class AssemblyDeltaEncoder extends VTTTalkDeltaEncoder {
 			DLTP3: []
 		};
 		let bytes = 0;
-		let buf = "";
+		let buf = new VTTCall();
 		for (let { ppem, delta: deltaPpem } of d) {
 			if (!deltaPpem) continue;
 			const dltp =
@@ -140,7 +164,7 @@ class AssemblyDeltaEncoder extends VTTTalkDeltaEncoder {
 					delta -= shift;
 				} while (delta);
 		}
-		if (!bytes) return { bytes: 0, buf: "" };
+		if (!bytes) return { bytes: 0, buf: new VTTCall() };
 
 		if (
 			dltpg.DLTP1.length &&
@@ -155,7 +179,7 @@ class AssemblyDeltaEncoder extends VTTTalkDeltaEncoder {
 					? [((n1 - 1) << 4) | (n2 - 1), this.fpgmPad + fpgmShiftOf._combined_ss]
 					: [n1, n2, this.fpgmPad + fpgmShiftOf._combined];
 			const args = [...dltpg.DLTP1, ...dltpg.DLTP2, z, ...trailArgs];
-			buf += `Call(${args.join(",")})\n`;
+			buf = buf.then(new VTTCall(args));
 			bytes += n1 <= 16 && n2 <= 16 ? 4 : 5;
 		} else {
 			for (let instr in dltpg) {
@@ -164,8 +188,9 @@ class AssemblyDeltaEncoder extends VTTTalkDeltaEncoder {
 					let slcLen = Math.min(60, dltpg[instr].length);
 					let slc = dltpg[instr].slice(0, slcLen);
 					dltpg[instr] = dltpg[instr].slice(slcLen);
-					buf += `Call(${slc.join(",")},${z},${slcLen},${this.fpgmPad +
-						fpgmShiftOf[instr]})\n`;
+					buf = buf.then(
+						new VTTCall([...slc, z, slcLen, this.fpgmPad + fpgmShiftOf[instr]])
+					);
 					bytes += 4;
 				}
 			}
@@ -222,13 +247,13 @@ class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
 		}
 		if (dataBytes.length) {
 			if (dataBytes.length >= 8 || pmin < SDB || pmin >= SDB + 32) return null;
-			let args = [[...dataBytes].reverse(), z, ((pmin - SDB) << 3) | dataBytes.length];
+			let args = [...[...dataBytes].reverse(), z, ((pmin - SDB) << 3) | dataBytes.length];
 			return {
-				buf: `Call(${args},${fnid})`,
+				buf: new VTTCall([...args, fnid]),
 				bytes: 4 + dataBytes.length
 			};
 		} else {
-			return { buf: "", bytes: 0 };
+			return { buf: new VTTCall(), bytes: 0 };
 		}
 	}
 	encodeIntDeltaInternal(z, d, fnid, gear, lv, tag) {
@@ -245,7 +270,7 @@ class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
 		if (!r2) return null;
 		return {
 			bytes: r1.bytes + r2.bytes,
-			buf: r1.buf + "\n" + r2.buf
+			buf: r1.buf.then(r2.buf)
 		};
 	}
 	encodeDeltaIntLevel(z, d, level, tag) {
@@ -328,10 +353,12 @@ class AssemblyDeltaEncoder3 extends AssemblyDeltaEncoder2 {
 			if (ppemMin >= ppemMax) continue;
 			let { bytes, buf } = super.encodeDelta(z, d, tag);
 			bytes += shift > 0 ? 6 : 10;
-			let shiftCall = shift ? `Call(${z},${shift * 64},${ppemMin},${ppemMax},72)` : "";
+			let shiftCall = shift
+				? new VTTCall([z, shift * 64, ppemMin, ppemMax, 72])
+				: new VTTCall();
 			if (bytes < mbytes) {
 				mbytes = bytes;
-				mBuf = shiftCall + "\n" + buf;
+				mBuf = shiftCall.then(buf);
 			}
 		}
 		return { bytes: mbytes, buf: mBuf };
@@ -377,7 +404,7 @@ class VTTECompiler {
 		}
 		return this.deltaEncoder.encode(z, deltas);
 	}
-	encodeStem(s, sid, sd, strategy, pos0s, sws, yMoves) {
+	encodeStem(s, sid, sd, strategy, pos0s, cvtLinkEntries, yMoves) {
 		let buf = "";
 		const upm = strategy.UPM;
 		function talk(s) {
@@ -395,8 +422,15 @@ class VTTECompiler {
 			: s.advKey.y - s.posKey.y + (s.posKey.x - s.advKey.x) * s.slope;
 		const advDeltaGroups = [
 			{ wsrc, totalDelta: 0, deltas: [], fn: standardAdvance },
-			...sws
-				.map(s => ({ wsrc: s.width, totalDelta: 0, deltas: [], fn: SWAdvance(s.cvtid) }))
+			...cvtLinkEntries
+				.map(i => ({
+					wsrc: s.posKeyAtTop
+						? i.width + (s.advKey.x - s.posKey.x) * s.slope
+						: i.width + (s.posKey.x - s.advKey.x) * s.slope,
+					totalDelta: 0,
+					deltas: [],
+					fn: SWAdvance(i.cvtid)
+				}))
 				.filter(
 					g =>
 						g.wsrc > wsrc
@@ -481,41 +515,14 @@ class VTTECompiler {
 		}
 		const adg = advDeltaGroups.reduce((a, b) => (a.totalDelta <= b.totalDelta ? a : b));
 
-		// decide optimal YMove
-		let bestYMove = 0;
-		let bestPosImpact = this.deltaEncoder.estimateImpact(deltaPos);
-		let bestPosDeltas = deltaPos;
-		for (let yMove of yMoves) {
-			if (!yMove) continue;
-			const yMoveImpact = yMove > 0 ? 3 : yMove < 0 ? 6 : 0;
-			const dps = deltaPos.map(d => ({ ppem: d.ppem, delta: d.delta - yMove }));
-			const impact = yMoveImpact + this.deltaEncoder.estimateImpact(dps);
-			if (impact < bestPosImpact) {
-				bestYMove = yMove;
-				bestPosDeltas = dps;
-				bestPosImpact = impact;
-			}
-		}
-
 		// instructions
-		// Position delta
-		talk(`/* !!IDH!! StemDef ${sid} INTERPOLATE */`);
-		if (bestYMove) talk(`YMove(${bestYMove},${s.posKey.id})`);
-		talk(this.deltaEncoder.encode(s.posKey.id, bestPosDeltas));
-		const bufPosDelta = buf;
-		buf = "";
-
-		// Advance link
-		talk(adg.fn(s.posKey.id, s.advKey.id, strategy));
-		const bufAdvLink = buf;
-		buf = "";
-
-		// Advance delta
-		talk(this.deltaEncoder.encode(s.advKey.id, adg.deltas));
-		const bufAdvDelta = buf;
-		buf = "";
+		const posDeltaImpact = this.deltaEncoder.estimateImpact(deltaPos);
+		const bufPosDelta = this.deltaEncoder.encode(s.posKey.id, deltaPos);
+		const bufAdvLink = adg.fn(s.posKey.id, s.advKey.id, strategy);
+		const bufAdvDelta = this.deltaEncoder.encode(s.advKey.id, adg.deltas);
 
 		// In-stem alignments
+		buf = "";
 		for (let zp of s.posAlign) talk(`YShift(${s.posKey.id},${zp.id})`);
 		for (let zp of s.advAlign) talk(`YShift(${s.advKey.id},${zp.id})`);
 		const bufIsal = buf;
@@ -527,7 +534,7 @@ class VTTECompiler {
 			ipz: s.posKey.id,
 			hintedPositions,
 			pOrg: s.posKey.y,
-			totalDeltaImpact: bestPosImpact + adg.totalDelta
+			totalDeltaImpact: posDeltaImpact + adg.totalDelta
 		};
 	}
 }
@@ -536,5 +543,6 @@ module.exports = {
 	ROUNDING_SEGMENTS,
 	VTTTalkDeltaEncoder,
 	AssemblyDeltaEncoder: AssemblyDeltaEncoder2,
-	VTTECompiler
+	VTTECompiler,
+	VTTCall
 };

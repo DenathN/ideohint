@@ -22,17 +22,39 @@ function mgmGroup(group, ...s) {
 /// FPGM
 
 exports.fpgmShiftOf = {
-	comp_integral: 0,
+	interpreter: 0,
 	DLTP1: 1,
 	DLTP2: 2,
 	DLTP3: 3,
 	_combined: 4,
 	_combined_ss: 5,
-	comp_octet: 6,
-	comp_quad: 7
+	comp_integral: 6,
+	comp_octet: 7,
+	comp_quad: 8
 };
 
 exports.generateFPGM = (function() {
+	const interpreterF = fid => `
+/* Function ${fid}, the interpreter */
+FDEF[], ${fid}
+#BEGIN
+	#PUSHOFF
+	DUP[]
+	#PUSH, 6
+	SWAP[]
+	#PUSHON
+	JROF[],*,*
+	#PUSHOFF
+	CALL[]
+	#PUSH, -9
+	#PUSHON
+	JMPR[],*
+	#PUSHOFF
+	POP[]
+	#PUSHON
+#END
+ENDF[]
+`;
 	const splitStackTopByte = (d, s1, s2) => `
 	DUP[]
 	DUP[]
@@ -264,13 +286,14 @@ ENDF[]
 			fpgm +
 			mgmGroup(
 				GROUP_FPGM,
-				intCompressedDeltaFunction(padding, 1),
+				interpreterF(padding),
 				compressedDeltaFunction(padding + 1, "DELTAP1"),
 				compressedDeltaFunction(padding + 2, "DELTAP2"),
 				compressedDeltaFunction(padding + 3, "DELTAP3"),
 				combinedCompDeltaFunction(padding + 4),
-				intCompressedDeltaFunction(padding + 6, 8),
-				intCompressedDeltaFunction(padding + 7, 4)
+				intCompressedDeltaFunction(padding + 6, 1),
+				intCompressedDeltaFunction(padding + 7, 8),
+				intCompressedDeltaFunction(padding + 8, 4)
 			)
 		);
 	};
