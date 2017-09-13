@@ -1,11 +1,12 @@
 "use strict";
 
 const roundings = require("../support/roundings");
+const { xclamp } = require("../support/common");
 
 const ROUNDING_CUTOFF = 1 / 2 - 4 / 64;
 const STRICT_CUTOFF = 1 / 4;
 const HALF_PIXEL_PPEM = 18;
-const MINIMAL_STROKE_WIDTH = 5 / 8;
+const MINIMAL_STROKE_WIDTH = 1 / 2 + 1 / 16;
 
 function decideDelta(gear, original, target, upm, ppem) {
 	return Math.round(gear * (target - original) / (upm / ppem));
@@ -61,7 +62,7 @@ function decideDeltaShift(
 			break;
 		delta = delta > 0 ? delta - 1 : delta + 1;
 	}
-	return delta + deltaDesired + Math.floor(addpxs * gear / 2) * sign;
+	return delta + deltaDesired + Math.floor(addpxs * gear * xclamp(0, 8 / ppem, 1 / 2)) * sign;
 }
 
 exports.decideDelta = decideDelta;
