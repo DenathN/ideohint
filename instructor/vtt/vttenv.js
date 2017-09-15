@@ -21,7 +21,7 @@ function mgmGroup(group, ...s) {
 
 /// FPGM
 
-exports.fpgmShiftOf = {
+const fpgmShiftOf = (exports.fpgmShiftOf = {
 	interpreter: 0,
 	DLTP1: 1,
 	DLTP2: 2,
@@ -29,9 +29,13 @@ exports.fpgmShiftOf = {
 	_combined: 4,
 	_combined_ss: 5,
 	comp_integral: 6,
-	comp_octet: 7,
-	comp_quad: 8
-};
+	comp_integral_pos: 8,
+	comp_integral_neg: 10,
+	comp_octet: 12,
+	comp_octet_neg: 14,
+	comp_quart: 16,
+	comp_quart_neg: 18
+});
 
 exports.generateFPGM = (function() {
 	const interpreterF = fid => `
@@ -70,70 +74,57 @@ ENDF[]
 	${s2 ? "#PUSH, " + s2 + "\n\tADD[]" : ""}
 	SWAP[]
 `;
-	const intCompressedSegment = (n, d) => `
-		/* section for startPpem + ${n} */
-			#PUSH, 4
-			MINDEX[]
-			DUP[]
+	const intCompressedSegment = (l, n, d) => {
+		const bitsPerSeg = 8 / l;
+		const multiplier = 1 << bitsPerSeg;
+		return `
+		#PUSH, 4
+		MINDEX[]
+		DUP[]
+		ROLL[]
+		DUP[]
+		SWAP[]
+		DUP[]
+		#PUSH, ${64 / multiplier}
+		MUL[]
+		#PUSH, ${256 * multiplier / 4}
+		MUL[]
+		SUB[]
+		ROLL[]
+		SWAP[]
+		#PUSH, ${n}
+		ADD[]
+		#PUSH, ${d}
+		DIV[]
+		#PUSH, 6
+		MINDEX[]
+		DUP[]
+		MPPEM[]
+		EQ[]
+		IF[]
 			ROLL[]
-			DUP[]
-			SWAP[]
-			DUP[]
-			#PUSH, 16
-			MUL[]
-			#PUSH, 256
-			MUL[]
-			SUB[]
 			ROLL[]
-			SWAP[]
-			#PUSH, ${d}
-			DIV[]
-			#PUSH, 6
-			MINDEX[]
-			DUP[]
-			MPPEM[]
-			EQ[]
-			IF[]
-				ROLL[]
-				ROLL[]
-				SHPIX[]
-			ELSE[]
-				ROLL[]
-				ROLL[]
-				POP[]
-				POP[]
-			EIF[]
-			#PUSH, 1
-			ADD[]
-			SWAP[]
-			#PUSH, 256
-			DIV[]
-			#PUSH, 4
-			MINDEX[]
-			SWAP[]
-		/* end */
+			SHPIX[]
+		ELSE[]
+			ROLL[]
+			ROLL[]
+			POP[]
+			POP[]
+		EIF[]
+		#PUSH, 1
+		ADD[]
+		SWAP[]
+		#PUSH, ${64 * multiplier}
+		DIV[]
+		#PUSH, 4
+		MINDEX[]
+		SWAP[]
 `;
+	};
 
-	const intCompressedDeltaFunction = (fid, d) => `
-/* Function ${fid} : Compressed form of integral Deltas
-	Arguments:
-	  b_n, ..., b_1 : argument bytes
-	  z : point ID
-	  startPpem : start ppem - 9 (5 bits)
-	  n : quantity of bytes      (3 bits)
-	
-	Each argument byte is a compact form of four delta values, 2 bits per value:
-	...     ---BYTE 2---    ---BYTE 1---    pointid     startPpem    n
-	...     dd'cc'bb'aa'    dd cc bb aa     ZZZZZZZZ      PPPPP     NNN | STACK TOP
-	  startPpem + 4 <-'      |       \`-> startPpem + 0
-	                         \`-> startPpem + 3
-	
-	For each 2-bit component of argument bytes, the meanings are:
-	  0 : 0
-	  1 : +${1 / d} pixel
-	  2 : -${2 / d} pixel
-	  3 : -${1 / d} pixel
- */
+	const intCompressedDeltaFunction = (fid, l, d, n) =>
+		`
+/* Function ${fid} : Compressed form of Deltas (${d} - ${n}) */
 FDEF[], ${fid}
 #BEGIN
 	#PUSHOFF
@@ -143,23 +134,21 @@ FDEF[], ${fid}
 	SVTCA[Y]
 	/* Loop begin */
 	DUP[]
-	#PUSH, 208
+	#PUSH, ${12 + 3 * l}
 	SWAP[]
 	#PUSHON
 	JROF[],*,*
 	#PUSHOFF
 		#PUSH, 4
-		MINDEX[]
-		${intCompressedSegment(0, d)}
-		${intCompressedSegment(1, d)}
-		${intCompressedSegment(2, d)}
-		${intCompressedSegment(3, d)}
-		/* The top byte is now zero */
+		MINDEX[]\n` +
+		`#PUSH, ${fid + 1}
+		CALL[]\n`.repeat(l) +
+		`/* The top byte is now zero */
 		/* Pop it */
 		POP[]
 		#PUSH, 1
 		SUB[]
-	#PUSH, -211
+	#PUSH, ${-15 - 3 * l}
 	#PUSHON
 	JMPR[],*
 	#PUSHOFF
@@ -169,7 +158,16 @@ FDEF[], ${fid}
 	#PUSHON
 #END
 ENDF[]
+
+FDEF[], ${fid + 1}
+#BEGIN
+	#PUSHOFF
+	${intCompressedSegment(l, n, d)}
+	#PUSHON
+#END
+ENDF[]
 `;
+
 	const compressedDeltaFunction = (fid, instr) => `
 /* Function ${fid} : Compressed form of ${instr}
    Arguments:
@@ -287,13 +285,17 @@ ENDF[]
 			mgmGroup(
 				GROUP_FPGM,
 				interpreterF(padding),
-				compressedDeltaFunction(padding + 1, "DELTAP1"),
-				compressedDeltaFunction(padding + 2, "DELTAP2"),
-				compressedDeltaFunction(padding + 3, "DELTAP3"),
-				combinedCompDeltaFunction(padding + 4),
-				intCompressedDeltaFunction(padding + 6, 1),
-				intCompressedDeltaFunction(padding + 7, 8),
-				intCompressedDeltaFunction(padding + 8, 4)
+				compressedDeltaFunction(padding + fpgmShiftOf.DLTP1, "DELTAP1"),
+				compressedDeltaFunction(padding + fpgmShiftOf.DLTP2, "DELTAP2"),
+				compressedDeltaFunction(padding + fpgmShiftOf.DLTP3, "DELTAP3"),
+				combinedCompDeltaFunction(padding + fpgmShiftOf._combined),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral, 4, 1, 0),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_octet, 4, 8, 2),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_octet_neg, 4, 8, -1),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart, 4, 4, 2),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart_neg, 4, 4, -1),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral_pos, 8, 1, 0),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral_neg, 8, 1, 1)
 			)
 		);
 	};

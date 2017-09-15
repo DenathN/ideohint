@@ -303,10 +303,10 @@ function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
 }
 
 function by_yori(a, b) {
-	return b[0].y - a[0].y;
+	return a[0].y - b[0].y;
 }
 function by_xori(a, b) {
-	return b[0].y - a[0].y;
+	return a[0].x - b[0].x;
 }
 function pairSegmentsForRadical(radical, r, strategy) {
 	let graph = [],

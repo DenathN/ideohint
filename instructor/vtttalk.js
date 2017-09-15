@@ -233,7 +233,7 @@ const ibpCombiner = {
 	unknown: xs => xs.join("\n"),
 	str: xs => xs.join("\n"),
 	vttcall: (xs, fpgmPadding) => {
-		const primaryInvokes = [...xs.map(x => x.forms)];
+		const primaryInvokes = [...xs.map(x => x.forms)].filter(a => a.length);
 		if (primaryInvokes.length <= 1) return xs.join("\n");
 		let arglist = flatten(primaryInvokes);
 		if (!arglist.length) return "";
@@ -264,18 +264,35 @@ const ibpCombiner = {
 		}
 	}
 };
-function combineIBP(ibp, fpgmPadding) {
-	let m = new Map();
-	for (let x of ibp) {
-		let ty = ibpType(x);
-		if (!m.has(ty)) m.set(ty, []);
-		m.get(ty).push(x);
+
+class StemInstructionCombiner {
+	constructor(fpgmPadding) {
+		this.parts = [];
+		this.fpgmPadding = fpgmPadding;
 	}
-	let ans = "";
-	for (let [k, v] of m) {
-		if (v.length) ans += ibpCombiner[k](v, fpgmPadding) + "\n";
+	add(data) {
+		for (let p = 0; p < data.length; p++) {
+			if (!this.parts[p]) this.parts[p] = [];
+			this.parts[p].push(data[p]);
+		}
 	}
-	return ans;
+	combine() {
+		let ans = "";
+
+		for (let column of this.parts) {
+			let m = new Map();
+			for (let x of column) {
+				let ty = ibpType(x);
+				if (!m.has(ty)) m.set(ty, []);
+				m.get(ty).push(x);
+			}
+
+			for (let [k, v] of m) {
+				if (v.length) ans += ibpCombiner[k](v, this.fpgmPadding) + "\n";
+			}
+		}
+		return ans;
+	}
 }
 
 // si : size-inpendent actions
@@ -306,19 +323,20 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding) {
 
 	const { yBotBar, yTopBar, yBotD, yTopD, canonicalSW, SWDs } = getVTTAux(strategy);
 
-	const SWS = [
-		{ width: canonicalSW, cvtid: cvtCSW },
-		...SWDs.map((x, j) => ({ width: x, cvtid: cvtCSWD + j }))
-	];
-
 	let buf = "";
 	function talk(s) {
 		buf += s + "\n";
 	}
 
-	const ec = new VTTECompiler(
-		fpgmPadding ? new AssemblyDeltaEncoder(fpgmPadding) : new VTTTalkDeltaEncoder()
-	);
+	const ec = new VTTECompiler({
+		deltaEncoder: fpgmPadding
+			? new AssemblyDeltaEncoder(fpgmPadding)
+			: new VTTTalkDeltaEncoder(),
+		cvtLinkEntries: [
+			{ width: canonicalSW, cvtid: cvtCSW },
+			...SWDs.map((x, j) => ({ width: x, cvtid: cvtCSWD + j }))
+		]
+	});
 
 	//// Y
 	// ip decider
@@ -472,6 +490,7 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding) {
 			talk(topAnchor.talk(refBottomZ));
 			topAnchor.told = true;
 		}
+		let tbCombiner = new StemInstructionCombiner(fpgmPadding);
 		// Bottom stem reference
 		if (!bottomStem.told && bottomStem.kind === KEY_ITEM_STEM) {
 			const bsParams = [
@@ -496,18 +515,17 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding) {
 						}
 			][bsMethod];
 			if (!bsParams) continue;
-			const { totalDeltaImpact: tdi, buf, hintedPositions } = ec.encodeStem(
+			const { totalDeltaImpact: tdi, parts, hintedPositions } = ec.encodeStem(
 				bottomStem.stem,
 				bottomStem.sid,
 				sd,
 				strategy,
-				bsParams.pos0s,
-				SWS
+				bsParams.pos0s
 			);
 			talk(bsParams.posInstr);
 			bottomStem.hintedPositions = hintedPositions;
 			tdis += tdi;
-			talk(buf);
+			tbCombiner.add(parts);
 			bottomStem.told = true;
 		}
 
@@ -535,20 +553,20 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding) {
 					: null
 			][tsMethod];
 			if (!tsParams) continue;
-			const { totalDeltaImpact: tdi, buf, hintedPositions } = ec.encodeStem(
+			const { totalDeltaImpact: tdi, parts, hintedPositions } = ec.encodeStem(
 				topStem.stem,
 				topStem.sid,
 				sd,
 				strategy,
-				tsParams.pos0s,
-				SWS
+				tsParams.pos0s
 			);
 			talk(tsParams.posInstr);
 			topStem.hintedPositions = hintedPositions;
 			tdis += tdi;
-			talk(buf);
+			tbCombiner.add(parts);
 			topStem.told = true;
 		}
+		talk(tbCombiner.combine());
 
 		/// Intermediate items
 		talk(`\n\n/* !!IDH!! INTERMEDIATES */`);
@@ -574,7 +592,7 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding) {
 			talk(`YInterpolate(${bottomAnchor.ipz},${ipZs.join(",")},${topAnchor.ipz})`);
 		}
 
-		let innerBufParts = [];
+		const combiner = new StemInstructionCombiner(fpgmPadding);
 		for (let r of candidates) {
 			if (r.told) continue;
 			// ASSERT: r.kind === KEY_ITEM_STEM
@@ -584,30 +602,20 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding) {
 					r.sid,
 					sd,
 					strategy,
-					iphintedPositions(bottomStem, r, topStem, pmin, pmax),
-					SWS
+					iphintedPositions(bottomStem, r, topStem, pmin, pmax)
 				);
-				for (let p = 0; p < g.parts.length; p++) {
-					if (!innerBufParts[p]) innerBufParts[p] = [];
-					innerBufParts[p].push(g.parts[p]);
-				}
+				combiner.add(g.parts);
 				tdis += g.totalDeltaImpact;
 			} else {
 				// Should not happen
 				talk(`/* !!IDH!! StemDef ${r.sid} DIRECT */`);
 				talk(`YAnchor(${r.ipz})`);
-				const g = ec.encodeStem(r.stem, r.sid, sd, strategy, null, SWS);
-				for (let p = 0; p < g.parts.length; p++) {
-					if (!innerBufParts[p]) innerBufParts[p] = [];
-					innerBufParts[p].push(g.parts[p]);
-				}
+				const g = ec.encodeStem(r.stem, r.sid, sd, strategy, null);
+				combiner.add(g.parts);
 				tdis += g.totalDeltaImpact;
 			}
 		}
-		for (let ibp of innerBufParts) {
-			if (!ibp || !ibp.length) continue;
-			talk(combineIBP(ibp, fpgmPadding));
-		}
+		talk(combiner.combine());
 
 		if (tdis < bestTDI) {
 			bestTalk = buf;
