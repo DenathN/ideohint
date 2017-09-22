@@ -80,8 +80,10 @@ Radical.prototype.includesTetragon = function(s1, s2, _dS) {
 			for (let sg = 0; sg <= N; sg++) {
 				let ztop = mixz(p, q, sg / N);
 				let zbot = mixz(r, s, sg / N);
-				if (!(ztop.x >= xmin1 + dS && ztop.x <= xmax1 - dS)) continue;
-				if (!(zbot.x >= xmin2 + dS && zbot.x <= xmax2 - dS)) continue;
+				if (!p.turn && ztop.x < xmin1 + dS) continue;
+				if (!q.turn && ztop.x > xmax1 - dS) continue;
+				if (!r.turn && zbot.x < xmin2 + dS) continue;
+				if (!s.turn && zbot.x > xmax2 - dS) continue;
 				if (!this.includesSegmentEdge(ztop, zbot, 1, 1, 1, 1)) {
 					//console.log(p, q, r, s, ztop, zbot);
 					return false;
