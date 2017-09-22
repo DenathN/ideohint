@@ -1,4 +1,5 @@
 "use strict";
+const { mix, lerp, xlerp, xclamp } = require("../../support/common");
 
 const Y = 0;
 const W = 1;
@@ -50,6 +51,8 @@ function stemPositionToActions(y, w, stems) {
 			if (wj * uppx > sj.width) {
 				if (
 					yj - wj - yk === 1 &&
+					wj > 1 &&
+					wk > 1 &&
 					wk * uppx > sk.width &&
 					wj * uppx + wk * uppx >= sj.width + sk.width + uppx * 0.75 &&
 					(this.atGlyphTop(sj) || this.atGlyphBottom(sk)) &&
@@ -94,6 +97,8 @@ function stemPositionToActions(y, w, stems) {
 				// add additional pixel correction into it.
 				if (
 					yk - wk - yj === 1 &&
+					wj > 1 &&
+					wk > 1 &&
 					wk * uppx > sk.width &&
 					wj * uppx + wk * uppx >= sj.width + sk.width + uppx * 0.75 &&
 					(this.atGlyphBottom(sj) || this.atGlyphTop(sk)) &&
