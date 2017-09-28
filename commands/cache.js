@@ -45,7 +45,8 @@ function readCache(_) {
 		const l = line.trim();
 		if (!l) return;
 		const data = JSON.parse(l);
-		data.ideohint_version = core.version;
+		if (data.ideohint_version && data.ideohint_version !== core.version) return;
+		if (!data.ideohint_version) data.ideohint_version = core.version;
 		cache.set(data.hash, data);
 	});
 	rl.on("close", () => readCache(_));
