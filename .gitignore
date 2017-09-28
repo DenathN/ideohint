@@ -32,3 +32,5 @@ preview/
 .vscode/
 *.packed.js
 *.tgz
+
+package-lock.json

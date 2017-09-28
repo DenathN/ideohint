@@ -19,7 +19,10 @@ exports.builder = function(yargs) {
 		.alias("?", "help")
 		.alias("p", "parameters")
 		.describe("help", "Displays this help.")
-		.describe("o", "Output sfd path. When absent, the result sfd is written to STDOUT.")
+		.describe(
+			"o",
+			"Output HGI file path. When absent, the result HGI file is written to STDOUT."
+		)
 		.describe(
 			"d",
 			"Only process dk+m'th glyphs in the feature file. Combine with -m for parallel processing."
@@ -34,39 +37,78 @@ exports.builder = function(yargs) {
 exports.handler = function(argv) {
 	if (argv.help) {
 		yargs.showHelp();
-		process.exit(0);
+		return;
 	}
 
-	let inStream = argv._[1] ? fs.createReadStream(argv._[1]) : process.stdin;
-	let outStream = argv.o ? fs.createWriteStream(argv.o, { encoding: "utf-8" }) : process.stdout;
-	let rl = readline.createInterface(inStream, devnull());
+	readHGL({ argv });
+};
 
-	let parameterFile = paramfileLib.from(argv);
-	let strategy = strategyLib.from(argv, parameterFile);
+function readHGL(_) {
+	const argv = _.argv;
 
-	let divide = argv.d || 1;
-	let modulo = argv.m || 0;
-	let pendings = [];
+	const inStream = argv._[1] ? fs.createReadStream(argv._[1]) : process.stdin;
+	const outStream = argv.o ? fs.createWriteStream(argv.o, { encoding: "utf-8" }) : process.stdout;
+	const rl = readline.createInterface(inStream, devnull());
 
-	let name = "Hinting " + (argv._[1] || "(stdin)") + " " + modulo + "/" + divide;
+	const parameterFile = paramfileLib.from(argv);
+	const strategy = strategyLib.from(argv, parameterFile);
+
+	const divide = argv.d || 1;
+	const modulo = argv.m || 0;
+
+	const pendings = [];
+	const pendingSet = new Set();
 
 	let j = 0;
 	rl.on("line", function(line) {
 		if (j % divide === modulo % divide) {
 			const l = line.trim();
-			if (l) pendings.push(JSON.parse(l));
+			if (l) {
+				const data = JSON.parse(l);
+				pendings.push(data);
+				pendingSet.add(data.hash);
+			}
 		}
 		j += 1;
 	});
-	rl.on("close", finish.bind(null, name, strategy, pendings, outStream));
-};
+	rl.on("close", () => {
+		_.taskName = "Hinting " + (argv._[1] || "(stdin)") + " " + modulo + "/" + divide;
+		_.strategy = strategy;
+		_.pendings = pendings;
+		_.pendingSet = pendingSet;
+		_.outStream = outStream;
+		return readCache(_);
+	});
+}
+function readCache(_) {
+	const { argv, pendingSet } = _;
+	const cache = new Map();
+	_.cache = cache;
 
-function finish(name, strategy, pendings, outStream) {
-	progress(name, pendings, data => {
-		const contours = data.contours;
-		if (!contours) return;
-		data.ideohint_decision = core.hintSingleGlyph(contours, strategy);
-		outStream.write(JSON.stringify(data) + "\n");
+	if (!argv.cache || !fs.existsSync(argv.cache)) return setImmediate(() => doHints(_));
+
+	const rl = readline.createInterface(fs.createReadStream(argv.cache), devnull());
+	rl.on("line", function(line) {
+		const l = line.trim();
+		if (!l) return;
+		const data = JSON.parse(l);
+		if (!pendingSet.has(data.hash) || data.ideohint_version !== core.version) return;
+		cache.set(data.hash, data);
+	});
+	rl.on("close", () => doHints(_));
+}
+function doHints(_) {
+	const { taskName, strategy, pendings, outStream, cache } = _;
+	progress(taskName, pendings, data => {
+		if (cache.has(data.hash)) {
+			outStream.write(JSON.stringify(cache.get(data.hash)) + "\n");
+		} else {
+			const contours = data.contours;
+			if (!contours) return;
+			data.ideohint_decision = core.hintSingleGlyph(contours, strategy);
+			data.ideohint_version = core.version;
+			outStream.write(JSON.stringify(data) + "\n");
+		}
 	});
 	if (process.stdout !== outStream) outStream.end();
 }
