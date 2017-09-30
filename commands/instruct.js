@@ -52,6 +52,8 @@ function mapInstrut(_) {
 
 	const rl = readline.createInterface(InStream(), devnull());
 	const outStream = OutStream();
+
+	let n = 1;
 	rl.on("line", function(line) {
 		const l = line.trim();
 		if (!l) return;
@@ -65,6 +67,9 @@ function mapInstrut(_) {
 			VTTTalk: talk(data.ideohint_decision, strategy, cvtPadding, fpgmPadding) || ""
 		};
 		outStream.write(JSON.stringify(hgsData) + "\n");
+
+		if (n % 100 === 0) console.error(`Processed ${n} glyphs.`);
+		n += 1;
 	});
 	rl.on("close", function() {
 		if (process.stdout !== outStream) outStream.end();
