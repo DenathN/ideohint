@@ -48,13 +48,11 @@ exports.handler = function(argv) {
 	var tsi = {};
 	var glyfcor = {};
 
-	var n = 1;
-
 	rl.on("line", function(line) {
 		const dataStr = line.trim();
 		if (!dataStr) return;
-		var data = JSON.parse(dataStr);
-		activeInstructions[data.hash] = data.ideohint_decision;
+		const data = JSON.parse(dataStr);
+		activeInstructions[data.hash] = data;
 	});
 	rl.on("close", function() {
 		pass_weaveOTD(activeInstructions);
@@ -91,23 +89,19 @@ exports.handler = function(argv) {
 						if (otd.TSI_23) {
 							// Prefer VTTTalk than TTF
 							if (!otd.TSI_23.glyphs) otd.TSI_23.glyphs = {};
-							otd.TSI_23.glyphs[g] = (talk(
-								airef,
-								strategy,
-								cvtPadding,
-								fpgmPadding
-							) || "")
+							otd.TSI_23.glyphs[g] = (airef.VTTTalk ||
+								talk(airef.ideohint_decision, strategy, cvtPadding, fpgmPadding) ||
+								"")
 								.replace(/\n/g, "\r"); // vtt uses CR
 							glyph.instructions = [];
 							if (otd.TSI_01 && otd.TSI_01.glyphs) {
 								otd.TSI_01.glyphs[g] = "";
 							}
 						} else {
-							glyph.instructions = instruct(airef, strategy, cvtPadding);
+							glyph.instructions =
+								airef.TTF_instructions ||
+								instruct(airef.ideohint_decision, strategy, cvtPadding);
 						}
-						n += 1;
-						if (n % 100 === 0)
-							process.stderr.write(` -- Processed ${n} glyphs of ${otdPath}.\n`);
 					}
 				}
 				if (otd.TSI_01 && otd.TSI_01.extra && otd.TSI_01.extra.cvt) {

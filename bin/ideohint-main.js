@@ -8,4 +8,5 @@ var yargs = require("yargs")
 	.command(require("../commands/merge"))
 	.command(require("../commands/visual"))
 	.command(require("../commands/cache"))
+	.command(require("../commands/instruct"))
 	.help().argv;
