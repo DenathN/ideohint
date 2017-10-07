@@ -175,13 +175,11 @@ function uuCouplable(sj, sk, radical, strategy) {
 	return Math.abs(focus.y - desired) <= delta && segmentJoinable(sj, sk, radical);
 }
 function udMatchable(sj, sk, radical, strategy) {
-	return (
-		radical.includesTetragon(sj, sk, strategy.X_FUZZ) &&
-		!(
-			!!slopeOf([sj]) !== !!slopeOf([sk]) &&
-			Math.abs(slopeOf([sj]) - slopeOf([sk])) >= strategy.SLOPE_FUZZ / 2
-		)
-	);
+	if (!radical.includesTetragon(sj, sk, strategy.X_FUZZ)) return false;
+	const slopeJ = slopeOf([sj]);
+	const slopeK = slopeOf([sk]);
+	if (!!slopeJ !== !!slopeK && Math.abs(slopeJ - slopeK) >= strategy.SLOPE_FUZZ / 2) return false;
+	return true;
 }
 
 function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
