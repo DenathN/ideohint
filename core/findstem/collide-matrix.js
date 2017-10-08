@@ -214,6 +214,7 @@ module.exports = function calculateCollisionMatrices(
 					slopesCoeff *
 					promixityCoeff
 			);
+			if (!ovr) C[j][k] = 0;
 			if (stems[j].rid && stems[j].rid === stems[k].rid) {
 				C[j][k] = 0;
 			}
