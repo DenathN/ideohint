@@ -172,10 +172,11 @@ controls.VQ = function(ol, key, strategy, initVal, callback) {
 	}
 
 	if (initVal && initVal instanceof Array) {
+		const f = monoip(initVal);
 		for (let k of initVal)
 			if (vqModel[k[0]]) {
 				vqModel[k[0]].focus = true;
-				vqModel[k[0]].val = k[1];
+				vqModel[k[0]].val = f(k[0]);
 			}
 	} else if (typeof initVal === "number") {
 		vqModel[strategy.PPEM_MIN].focus = true;
@@ -184,25 +185,31 @@ controls.VQ = function(ol, key, strategy, initVal, callback) {
 		vqModel[strategy.PPEM_MAX].val = initVal;
 	}
 
-	function update(nocb) {
+	function update(nocb, initVal) {
 		let a = [];
-		for (let j = strategy.PPEM_MIN; j <= strategy.PPEM_MAX; j++) {
-			if (vqModel[j].focus) {
-				a.push([j, vqModel[j].val || 0]);
+		if (initVal && initVal instanceof Array) {
+			a = [...initVal];
+			for (let j = strategy.PPEM_MIN; j <= strategy.PPEM_MAX; j++) {
+				panels[j].input.className = vqModel[j].focus ? "focus" : "interpolated";
 			}
-			panels[j].input.className = vqModel[j].focus ? "focus" : "interpolated";
+		} else {
+			for (let j = strategy.PPEM_MIN; j <= strategy.PPEM_MAX; j++) {
+				if (vqModel[j].focus) a.push([j, vqModel[j].val || 0]);
+				panels[j].input.className = vqModel[j].focus ? "focus" : "interpolated";
+			}
 		}
-		let f = monoip(a);
+		const f = monoip(a);
 		for (let j = strategy.PPEM_MIN; j <= strategy.PPEM_MAX; j++) {
 			panels[j].input.value = vqModel[j].val = Math.round(f(j));
 		}
-		if (!nocb)
+		if (!nocb) {
 			setTimeout(function() {
 				callback(a);
 			}, 0);
+		}
 	}
 	ol.appendChild(d);
-	update(true);
+	update(true, initVal);
 };
 
 function createAdjusters() {

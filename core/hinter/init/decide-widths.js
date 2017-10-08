@@ -10,7 +10,9 @@ function calculateWidthOfStem(w, coordinate) {
 		pixels = w / this.uppx;
 	}
 
-	if (pixels > this.WIDTH_GEAR_PROPER) pixels = this.WIDTH_GEAR_PROPER;
+	if (pixels > this.WIDTH_GEAR_PROPER) {
+		return Math.floor(pixels);
+	}
 	if (pixels < this.WIDTH_GEAR_MIN) {
 		if (this.WIDTH_GEAR_MIN < 3) {
 			pixels = this.WIDTH_GEAR_MIN;
