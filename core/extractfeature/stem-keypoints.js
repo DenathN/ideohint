@@ -33,7 +33,8 @@ module.exports = function(glyph, strategy, dov, P) {
 		// when PRIORITIZE_POSKEY_AT_BOTTOM is set, posKeyShouldAtBottom is decided ONLY by whether a stem
 		// has another stem above it.
 		const posKeyShouldAtBottom = strategy.PRIORITIZE_POSKEY_AT_BOTTOM
-			? s.hasGlyphStemAbove
+			? s.hasGlyphStemAbove ||
+				s.y <= mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 0.5)
 			: atGlyphBottom(s, strategy) &&
 				(s.hasGlyphStemAbove ||
 					s.y <= mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 0.1));
