@@ -6,7 +6,8 @@ class Individual {
 	constructor(y, env, unbalanced) {
 		this.gene = y;
 		this.unbalanced = unbalanced;
-		this.collidePotential = this.getCollidePotential(env);
+		this.collidePotential =
+			this.getCollidePotential(env) + this.getSevereDistortionPotential(env);
 		this.ablationPotential = this.getAblationPotential(env);
 		this.fitness = this.getFitness();
 	}
@@ -14,40 +15,73 @@ class Individual {
 		return 1 / (1 + Math.max(0, this.collidePotential * 8 + this.ablationPotential / 16));
 	}
 	getCollidePotential(env) {
-		const y = this.gene;
-		const A = env.A,
+		const y = this.gene,
+			A = env.A,
 			C = env.C,
-			C0 = env.C0,
-			S = env.S,
 			n = y.length,
-			avails = env.avails,
-			sym = env.symmetry;
+			avails = env.avails;
+
 		let p = 0;
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
 				if (y[j] === y[k]) {
 					p += A[j][k]; // Alignment
 				} else if (y[j] <= y[k] + env.avails[j].properWidth) {
-					p += C[j][k]; // Collide
+					p += C[j][k] * (1 + env.avails[j].properWidth - (y[j] - y[k])); // Collide
 				}
-
+			}
+		}
+		return p;
+	}
+	_getOverseparationP(env) {
+		const y = this.gene,
+			avails = env.avails,
+			n = y.length,
+			dov = env.directOverlaps,
+			OVERSEP = env.COEFF_OVERSEP;
+		let p = 0;
+		for (let j = 0; j < n; j++) {
+			for (let k = 0; k < j; k++) {
+				if (!dov[j][k]) continue;
 				const overSeparation =
 					(y[j] - avails[j].properWidth - y[k]) /
 						(avails[j].y0px - avails[j].w0px - avails[k].y0px) -
 					1;
-				if (y[j] - avails[j].properWidth - y[k] > 0) {
-					p += overSeparation * overSeparation * C0[j][k];
-				}
-
+				if (y[j] - avails[j].properWidth - y[k] <= 0) continue;
+				p += overSeparation * overSeparation * OVERSEP;
+			}
+		}
+		return p;
+	}
+	_getDiagonalBreakP(env) {
+		const y = this.gene,
+			avails = env.avails,
+			n = y.length,
+			S = env.S;
+		let p = 0;
+		// Diagonal break
+		for (let j = 0; j < n; j++) {
+			for (let k = 0; k < j; k++) {
+				if (!(avails[j].rid && avails[j].rid === avails[k].rid)) continue;
 				if (
-					avails[j].rid &&
-					avails[j].rid === avails[k].rid &&
-					(y[j] - y[k] > Math.ceil(avails[j].y0px - avails[k].y0px + DIAG_BIAS_PIXELS) ||
-						y[j] - y[k] <
-							Math.ceil(avails[j].y0px - avails[k].y0px - DIAG_BIAS_PIXELS_NEG))
+					y[j] - y[k] > Math.ceil(avails[j].y0px - avails[k].y0px + DIAG_BIAS_PIXELS) ||
+					y[j] - y[k] < Math.ceil(avails[j].y0px - avails[k].y0px - DIAG_BIAS_PIXELS_NEG)
 				) {
 					p += S[j][k]; // diagonal break
 				}
+			}
+		}
+		return p;
+	}
+	_getSwapAndSymBreakP(env) {
+		const y = this.gene,
+			avails = env.avails,
+			n = y.length,
+			S = env.S,
+			sym = env.symmetry;
+		let p = 0;
+		for (let j = 0; j < n; j++) {
+			for (let k = 0; k < j; k++) {
 				if (j !== k && sym[j][k]) {
 					if (y[j] !== y[k]) {
 						p += S[j][k]; // Symmetry break
@@ -75,14 +109,23 @@ class Individual {
 		}
 		return p;
 	}
+	getSevereDistortionPotential(env) {
+		return (
+			this._getOverseparationP(env) +
+			this._getDiagonalBreakP(env) +
+			this._getSwapAndSymBreakP(env)
+		);
+	}
 	getAblationPotential(env) {
 		if (env.noAblation) return 0;
-		const y = this.gene;
-		const avails = env.avails,
+		const y = this.gene,
+			avails = env.avails,
 			triplets = env.triplets,
 			uppx = env.uppx,
 			n = y.length;
+
 		let p = 0;
+		// Prop distortion
 		for (let j = 0; j < y.length; j++) {
 			p += avails[j].ablationCoeff * uppx * Math.abs(y[j] - avails[j].center);
 			if (y[j] > avails[j].softHigh) {
@@ -99,6 +142,7 @@ class Individual {
 			}
 		}
 
+		// Triplet distortion
 		const finelimit = uppx / 8;
 		const dlimit = uppx / 3;
 		const dlimitx = 2 * uppx / 3;

@@ -79,18 +79,16 @@ module.exports = function calculateCollisionMatrices(
 	// S : Swap operator
 	var A = [],
 		C = [],
-		C0 = [],
 		S = [],
 		P = [],
 		n = stems.length;
 	for (var j = 0; j < n; j++) {
 		A[j] = [];
 		C[j] = [];
-		C0[j] = [];
 		S[j] = [];
 		P[j] = [];
 		for (var k = 0; k < n; k++) {
-			A[j][k] = C[j][k] = C0[j][k] = S[j][k] = P[j][k] = 0;
+			A[j][k] = C[j][k] = S[j][k] = P[j][k] = 0;
 		}
 	}
 	var slopes = stems.map(function(s) {
@@ -216,7 +214,6 @@ module.exports = function calculateCollisionMatrices(
 					slopesCoeff *
 					promixityCoeff
 			);
-			C0[j][k] = Math.round(strategy.COEFF_C0);
 			if (!ovr) C[j][k] = 0;
 			if (stems[j].rid && stems[j].rid === stems[k].rid) {
 				C[j][k] = 0;
@@ -266,7 +263,6 @@ module.exports = function calculateCollisionMatrices(
 	return {
 		alignment: A,
 		collision: C,
-		collisionMax: C0,
 		promixity: P,
 		swap: S
 	};

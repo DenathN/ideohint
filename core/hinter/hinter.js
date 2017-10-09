@@ -35,7 +35,6 @@ class Hinter {
 		//// GLYPH SPECIFIC
 		this.A = fdefs.collisionMatrices.alignment;
 		this.C = fdefs.collisionMatrices.collision;
-		this.C0 = fdefs.collisionMatrices.collisionMax;
 		this.S = fdefs.collisionMatrices.swap;
 		this.P = fdefs.collisionMatrices.promixity;
 
@@ -102,6 +101,8 @@ class Hinter {
 		this.CHEBYSHEV_3 = toVQ(strategy.CONCENTRATE, ppem) / 200;
 		this.CHEBYSHEV_4 = toVQ(strategy.CHEBYSHEV_4, ppem) / -200;
 		this.CHEBYSHEV_5 = toVQ(strategy.CHEBYSHEV_5, ppem) / 200;
+
+		this.COEFF_OVERSEP = strategy.COEFF_OVERSEP;
 	}
 	getTightness(fdefs) {
 		let d = 0xffff;
