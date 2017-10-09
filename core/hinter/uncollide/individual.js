@@ -17,8 +17,8 @@ class Individual {
 		const y = this.gene;
 		const A = env.A,
 			C = env.C,
+			C0 = env.C0,
 			S = env.S,
-			P = env.P,
 			n = y.length,
 			avails = env.avails,
 			sym = env.symmetry;
@@ -30,6 +30,15 @@ class Individual {
 				} else if (y[j] <= y[k] + env.avails[j].properWidth) {
 					p += C[j][k]; // Collide
 				}
+
+				const overSeparation =
+					(y[j] - avails[j].properWidth - y[k]) /
+						(avails[j].y0px - avails[j].w0px - avails[k].y0px) -
+					1;
+				if (y[j] - avails[j].properWidth - y[k] > 0) {
+					p += overSeparation * overSeparation * C0[j][k];
+				}
+
 				if (
 					avails[j].rid &&
 					avails[j].rid === avails[k].rid &&

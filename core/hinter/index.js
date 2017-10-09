@@ -14,7 +14,6 @@ class HintDecision {
 function hint(gd, ppem, strg, doSimpleHinting) {
 	const hinter = new Hinter(strg, gd, ppem);
 	if (!hinter.avails.length) return new HintDecision(hinter.xExpansion, [], false);
-
 	// position pass
 	let sp = null;
 	const spInit = hinter.decideInitHint();

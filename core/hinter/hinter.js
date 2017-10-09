@@ -35,6 +35,7 @@ class Hinter {
 		//// GLYPH SPECIFIC
 		this.A = fdefs.collisionMatrices.alignment;
 		this.C = fdefs.collisionMatrices.collision;
+		this.C0 = fdefs.collisionMatrices.collisionMax;
 		this.S = fdefs.collisionMatrices.swap;
 		this.P = fdefs.collisionMatrices.promixity;
 

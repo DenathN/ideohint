@@ -53,6 +53,7 @@ class HintingStrategy {
 		this.COEFF_A_FEATURE_LOSS = 1000;
 		this.COEFF_A_FEATURE_LOSS_XR = 30;
 		this.COEFF_A_RADICAL_MERGE = 1;
+		this.COEFF_C0 = 10000;
 		this.COEFF_C_MULTIPLIER = 100;
 		this.COEFF_C_SHAPE_LOST_XX = 250;
 		this.COEFF_C_FEATURE_LOSS = 12;
