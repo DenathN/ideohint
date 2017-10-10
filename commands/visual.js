@@ -45,19 +45,31 @@ function processPost(request, response, callback) {
 	}
 }
 
+const charCache = new Map();
+
 function acquireCharacters(hgl, w, callback) {
 	const instream = fs.createReadStream(hgl);
 	let matches = [];
+	let founds = new Set();
+	let wSet = new Set([...w].map(c => c.codePointAt(0)));
 	const rl = readline.createInterface(instream, devnull());
 	rl.on("line", function(line) {
 		if (!line.trim()) return;
-		var data = JSON.parse(line.trim());
-		var gid = data.name;
+		const data = JSON.parse(line.trim());
+		if (founds.has(data.hash)) return;
+		const gid = data.name;
 		if (gid.slice(0, 3) === "uni") {
-			for (var j = 0; j < w.length; j++)
-				if (parseInt(gid.slice(3), 16) === w.charCodeAt(j)) {
-					matches.push(data.contours);
-				}
+			if (wSet.has(parseInt(gid.slice(3), 16))) {
+				matches.push(data.contours);
+				founds.add(data.hash);
+			}
+		}
+		if (data.unicodes) {
+			for (let u of data.unicodes) {
+				if (!wSet.has(u) || founds.has(data.hash)) continue;
+				matches.push(data.contours);
+				founds.add(data.hash);
+			}
 		}
 	});
 	rl.on("close", function() {

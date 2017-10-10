@@ -28,6 +28,7 @@ exports.handler = function(argv) {
 
 	var hasCmap = false;
 	var keep = {};
+	const unicodes = new Map();
 	var selects = argv.select ? argv.select.split("").map(c => c.charCodeAt(0)) : null;
 
 	getCMAPInfo();
@@ -38,7 +39,8 @@ exports.handler = function(argv) {
 		sParseCmap.on("data", function(cmap) {
 			hasCmap = true;
 			for (var k in cmap) {
-				var code;
+				let code = 0;
+				const gid = cmap[k];
 				if (k[0] == "U" && k[1] == "+") {
 					// hex dump
 					code = parseInt(k.slice(2), 16);
@@ -48,13 +50,16 @@ exports.handler = function(argv) {
 
 				if (selects) {
 					if (selects.indexOf(code) >= 0) {
-						keep[cmap[k]] = true;
+						keep[gid] = true;
 					}
 				} else if (argv["all"]) {
-					keep[cmap[k]] = true;
+					keep[gid] = true;
 				} else if (codePointCanBeHandledWithIDH(code)) {
-					keep[cmap[k]] = true;
+					keep[gid] = true;
 				}
+				// record unicodes
+				if (!unicodes.has(gid)) unicodes.set(gid, []);
+				unicodes.set(gid, [...unicodes.get(gid), code]);
 			}
 		});
 		sParseCmap.on("end", function() {
@@ -73,10 +78,11 @@ exports.handler = function(argv) {
 					if (!lookups[lid]) continue;
 					if (lookups[lid].type !== "gsub_single") continue;
 					for (let subtable of lookups[lid].subtables) {
-						for (let g in subtable)
-							if (keep[g]) {
-								keep[subtable[g]] = true;
-							}
+						for (let g in subtable) {
+							if (!keep[g]) continue;
+							keep[subtable[g]] = true;
+							unicodes.set(subtable[g], unicodes.get(g));
+						}
 					}
 				}
 			}
@@ -99,6 +105,7 @@ exports.handler = function(argv) {
 				JSON.stringify({
 					name: k,
 					hash: h,
+					unicodes: unicodes.get(k) || [],
 					contours: glyph.contours
 				}) + "\n"
 			);
