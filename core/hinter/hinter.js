@@ -63,6 +63,8 @@ class Hinter {
 			this.round(strategy.BLUEZONE_BOTTOM_CENTER) +
 			this.round(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER);
 		this.glyphBottom = this.round(strategy.BLUEZONE_BOTTOM_CENTER);
+		this.glyphTopPixels = Math.round(this.glyphTop / this.uppx);
+		this.glyphBottomPixels = Math.round(this.glyphBottom / this.uppx);
 		this.BOTTOM_UNIFY_FORCE = toVQ(strategy.BOTTOM_UNIFY_FORCE, ppem) / 100;
 		this.BOTTOM_UNIFY_FORCE_DIAG = toVQ(strategy.BOTTOM_UNIFY_FORCE_DIAG, ppem) / 100;
 

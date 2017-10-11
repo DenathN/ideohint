@@ -40,6 +40,13 @@ class Individual {
 			dov = env.directOverlaps,
 			OVERSEP = env.COEFF_OVERSEP;
 		let p = 0;
+		// top oversep
+		for (let j = 0; j < n; j++) {
+			if (avails[j].atGlyphTop) continue;
+			const overSeparation =
+				(env.glyphTopPixels - y[j]) / (env.glyphTopPixels - avails[j].y0px) - 1;
+			p += overSeparation * overSeparation * OVERSEP;
+		}
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
 				if (!dov[j][k]) continue;

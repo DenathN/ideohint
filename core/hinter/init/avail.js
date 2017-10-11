@@ -187,7 +187,11 @@ function adjustAvails(avails, stems) {
 				)
 			);
 		}
-		if (!stem.hasGlyphStemAbove && !stem.diagLow && avail.center > (topPx + bottomPx) / 2) {
+		if (
+			!stem.hasGlyphStemAbove &&
+			!stem.diagLow &&
+			(avail.atGlyphTop ? avail.center > (topPx + bottomPx) / 2 : avail.center >= topPx - 1)
+		) {
 			// lock top
 			avail.low = Math.round(avail.center);
 		}
