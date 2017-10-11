@@ -335,7 +335,9 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding) {
 		cvtLinkEntries: [
 			{ width: canonicalSW, cvtid: cvtCSW },
 			...SWDs.map((x, j) => ({ width: x, cvtid: cvtCSWD + j }))
-		]
+		],
+		canonicalSW,
+		minSW: strategy.MINIMAL_STROKE_WIDTH_PIXELS || 1 / 8
 	});
 
 	//// Y

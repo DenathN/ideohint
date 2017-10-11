@@ -37,7 +37,8 @@ function decideDeltaShift(
 	dist1,
 	upm,
 	ppem,
-	addpxs
+	addpxs,
+	minsw
 ) {
 	var uppx = upm / ppem;
 	var y1 = base0 + sign * dist0;
@@ -51,7 +52,7 @@ function decideDeltaShift(
 		const delta1 = delta > 0 ? delta - 1 : delta + 1;
 		const y2a = y1 + (deltaDesired + delta1) * uppx / gear;
 		const d = Math.abs(base1 - y2a);
-		if (!isStacked && d < MINIMAL_STROKE_WIDTH * uppx) break;
+		if (!isStacked && d < (minsw || 0) * uppx) break;
 		if (roundings.rtg(y2 - base1, upm, ppem) !== roundings.rtg(y2a - base1, upm, ppem)) break; // wrong pixel!
 		if (Math.abs(y2a - roundings.rtg(y2, upm, ppem)) > ROUNDING_CUTOFF * uppx) break;
 		if (

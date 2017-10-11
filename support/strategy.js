@@ -30,6 +30,7 @@ class HintingStrategy {
 		this.SLOPE_FUZZ_K = 0.035;
 		this.SLOPE_FUZZ_R = 0.01;
 		this.SLOPE_FUZZ_P = 0.005;
+		this.MINIMAL_STROKE_WIDTH_PIXELS = 0.625;
 		this.X_FUZZ = 7;
 		this.Y_FUZZ = 7;
 		this.Y_FUZZ_DIAG = 15;

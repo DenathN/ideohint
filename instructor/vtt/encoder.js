@@ -372,6 +372,8 @@ function clampAdvDelta(sign, isStrict, isLess, delta) {
 
 class VTTECompiler {
 	constructor(_) {
+		this.canonicalSW = _.canonicalSW;
+		this.minSW = _.minSW;
 		this.deltaEncoder = _.deltaEncoder;
 		this.cvtLinkEntries = _.cvtLinkEntries;
 	}
@@ -388,7 +390,9 @@ class VTTECompiler {
 		}
 		return this.deltaEncoder.encode(z, deltas);
 	}
-
+	_calculateMinSW(sw) {
+		return sw / this.canonicalSW * this.minSW;
+	}
 	_encodeStemAdvance(upm, s, sid, sd) {
 		const wsrc = s.posKeyAtTop
 			? s.posKey.y - s.advKey.y + (s.advKey.x - s.posKey.x) * s.slope
@@ -431,7 +435,8 @@ class VTTECompiler {
 						wdst,
 						upm,
 						ppem,
-						addpxs
+						addpxs,
+						this._calculateMinSW(wsrc)
 					);
 					const advDelta = clampAdvDelta(
 						-1,
@@ -454,7 +459,8 @@ class VTTECompiler {
 						wdst,
 						upm,
 						ppem,
-						addpxs
+						addpxs,
+						this._calculateMinSW(wsrc)
 					);
 					const advDelta = clampAdvDelta(
 						1,
