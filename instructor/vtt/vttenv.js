@@ -16,7 +16,8 @@ function mgmGroupRegex(group) {
 function mgmGroup(group, ...s) {
 	return (`\n\n/*## !! MEGAMINX !! BEGIN SECTION ${group} ##*/\n` +
 		s.join("\n") +
-		`\n/*## !! MEGAMINX !! END SECTION ${group} ##*/\n\n`).replace(/\t/g, "    ");
+		`\n/*## !! MEGAMINX !! END SECTION ${group} ##*/\n\n`
+	).replace(/\t/g, "    ");
 }
 
 /// FPGM
@@ -280,6 +281,7 @@ FDEF[], ${fid + 1}
 ENDF[]
 `;
 	return function(fpgm, padding) {
+		if (!padding) return fpgm;
 		return (
 			fpgm +
 			mgmGroup(
