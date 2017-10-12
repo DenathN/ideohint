@@ -3,8 +3,8 @@
 const toVQ = require("../../support/vq");
 const { mix } = require("../../support/common");
 
-const GROUP_CVT = "ideohint_CVT_entries";
-const GROUP_FPGM = "ideohint_FPGM_entries";
+const GROUP_CVT = gid => "ideohint_CVT_entries" + (gid ? "_" + gid : "");
+const GROUP_FPGM = gid => "ideohint_FPGM_entries" + (gid ? "_" + gid : "");
 
 function mgmGroupRegex(group) {
 	return new RegExp(
@@ -280,12 +280,12 @@ FDEF[], ${fid + 1}
 #END
 ENDF[]
 `;
-	return function(fpgm, padding) {
+	return function(fpgm, padding, gid) {
 		if (!padding) return fpgm;
 		return (
 			fpgm +
 			mgmGroup(
-				GROUP_FPGM,
+				GROUP_FPGM(gid),
 				interpreterF(padding),
 				compressedDeltaFunction(padding + fpgmShiftOf.DLTP1, "DELTAP1"),
 				compressedDeltaFunction(padding + fpgmShiftOf.DLTP2, "DELTAP2"),
@@ -344,12 +344,12 @@ exports.cvtIds = function(padding) {
 	};
 };
 
-exports.generateCVT = function generateCVT(cvt, cvtPadding, strategy) {
+exports.generateCVT = function generateCVT(cvt, cvtPadding, strategy, gid) {
 	const { yBotBar, yTopBar, yBotD, yTopD, canonicalSW, SWDs } = getVTTAux(strategy);
 	return (
-		cvt.replace(mgmGroupRegex(GROUP_CVT), "") +
+		cvt.replace(mgmGroupRegex(GROUP_CVT(gid)), "") +
 		mgmGroup(
-			GROUP_CVT,
+			GROUP_CVT(gid),
 			`${cvtPadding} : ${0}`,
 			`${cvtPadding + 1} : ${strategy.BLUEZONE_TOP_CENTER}`,
 			`${cvtPadding + 2} : ${strategy.BLUEZONE_BOTTOM_CENTER}`,

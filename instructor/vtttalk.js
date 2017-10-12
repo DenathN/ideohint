@@ -300,7 +300,7 @@ class StemInstructionCombiner {
 // strategy : strategy object
 // padding : CVT padding value, padding + 2 -> bottom anchor; padding + 1 -> top anchor
 // fpgmPadding : FPGM padding
-function produceVTTTalk(record, strategy, padding, fpgmPadding) {
+function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 	const sd = record.sd;
 	const si = record.si;
 	const pmin = record.pmin;
@@ -323,7 +323,7 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding) {
 
 	const { yBotBar, yTopBar, yBotD, yTopD, canonicalSW, SWDs } = getVTTAux(strategy);
 
-	let buf = "";
+	let buf = "/* !!IDEOHINT!! VTT Compiler !! */\n";
 	function talk(s) {
 		buf += s + "\n";
 	}
@@ -651,8 +651,93 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding) {
 			talk(`YShift(${c[0]},${c[1]})`);
 		}
 	}
+
+	// Off hints
+	if (contours) {
+		const extrema = queryExtrema(contours).sort((a, b) => a.y - b.y);
+		if (candidates.length) {
+			let topZs = [],
+				bottomZs = [];
+			const topC = candidates[candidates.length - 1];
+			const bottomC = candidates[0];
+			for (let z of extrema) {
+				if (z.y > topC.pOrg) {
+					topZs.push(z);
+				} else if (z.y < bottomC.pOrg) {
+					bottomZs.push(z);
+				}
+			}
+
+			topZs = topZs.sort((a, b) => b.y - a.y);
+			bottomZs = bottomZs.sort((a, b) => a.y - b.y);
+			if (topZs.length) {
+				if (topZs[0].y - topC.pOrg < upm / 3) {
+					talk(`YDist(${topC.ipz},${topZs[0].id})`);
+				} else {
+					talk(`YAnchor(${topZs[0].id})`);
+				}
+				if (topZs.length > 1)
+					talk(
+						`YInterpolate(${topC.ipz},${topZs
+							.slice(1)
+							.map(z => z.id)
+							.join(",")},${topZs[0].id})`
+					);
+			}
+			if (bottomZs.length) {
+				if (bottomC.pOrg - bottomZs[0].y < upm / 3) {
+					talk(`YDist(${bottomC.ipz},${bottomZs[0].id})`);
+				} else {
+					talk(`YAnchor(${bottomZs[0].id})`);
+				}
+				if (bottomZs.length > 1)
+					talk(
+						`YInterpolate(${bottomC.ipz},${bottomZs
+							.slice(1)
+							.map(z => z.id)
+							.join(",")},${bottomZs[0].id})`
+					);
+			}
+		} else if (extrema.length >= 2) {
+			talk(`YAnchor(${extrema[0].id})`);
+			talk(`YDist(${extrema[0].id},${extrema[extrema.length - 1].id})`);
+			if (extrema.length > 2) {
+				talk(
+					`YInterpolate(${extrema[0].id},${extrema
+						.slice(1, -1)
+						.map(z => z.id)
+						.join(",")},${extrema[extrema.length - 1].id})`
+				);
+			}
+		}
+	}
 	talk("Smooth()");
 	return buf;
+}
+
+function queryExtrema(contours) {
+	let n = 0;
+	let ans = [];
+	for (let c of contours) {
+		let ctrTopID = -1,
+			ctrTop = null;
+		let ctrBottomID = -1,
+			ctrBottom = null;
+		for (let z of c) {
+			if (!ctrTop || z.y > ctrTop.y) {
+				ctrTopID = n;
+				ctrTop = z;
+			}
+			if (!ctrBottom || z.y < ctrBottom.y) {
+				ctrBottomID = n;
+				ctrBottom = z;
+			}
+			n++;
+		}
+		if (ctrTop) ans.push({ id: ctrTopID, x: ctrTop.x, y: ctrTop.y });
+		if (ctrBottom) ans.push({ id: ctrBottomID, x: ctrBottom.x, y: ctrBottom.y });
+	}
+	return ans;
 }
 
 exports.talk = produceVTTTalk;

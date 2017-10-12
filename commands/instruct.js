@@ -64,7 +64,8 @@ function mapInstrut(_) {
 			name: data.name,
 			ideohint_decision: data.ideohint_decision,
 			TTF_instructions: instruct(data.ideohint_decision, strategy, cvtPadding),
-			VTTTalk: talk(data.ideohint_decision, strategy, cvtPadding, fpgmPadding) || ""
+			VTTTalk:
+				talk(data.ideohint_decision, strategy, cvtPadding, fpgmPadding, data.contours) || ""
 		};
 		outStream.write(JSON.stringify(hgsData) + "\n");
 

@@ -43,6 +43,7 @@ function decideWidths(stems, priorityMap) {
 		totalWidth += stems[j].width;
 		areaLost += (stems[j].width / uppx - tws[j]) * (stems[j].xmax - stems[j].xmin);
 	}
+	if (strategy.DONT_COORDINATE_WIDTHS) return tws;
 	// Coordinate widths
 	let averageWidth = totalWidth / stems.length;
 	let coordinateWidth = calculateWidthOfStem.call(this, averageWidth, true);

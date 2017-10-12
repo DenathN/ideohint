@@ -90,9 +90,15 @@ exports.handler = function(argv) {
 							// Prefer VTTTalk than TTF
 							if (!otd.TSI_23.glyphs) otd.TSI_23.glyphs = {};
 							otd.TSI_23.glyphs[g] = (airef.VTTTalk ||
-								talk(airef.ideohint_decision, strategy, cvtPadding, fpgmPadding) ||
-								"")
-								.replace(/\n/g, "\r"); // vtt uses CR
+								talk(
+									airef.ideohint_decision,
+									strategy,
+									cvtPadding,
+									fpgmPadding,
+									data.contours
+								) ||
+								""
+							).replace(/\n/g, "\r"); // vtt uses CR
 							glyph.instructions = [];
 							if (otd.TSI_01 && otd.TSI_01.glyphs) {
 								otd.TSI_01.glyphs[g] = "";
@@ -105,8 +111,17 @@ exports.handler = function(argv) {
 					}
 				}
 				if (otd.TSI_01 && otd.TSI_01.extra && otd.TSI_01.extra.cvt) {
-					otd.TSI_01.extra.cvt = generateCVT(otd.TSI_01.extra.cvt, cvtPadding, strategy);
-					otd.TSI_01.extra.fpgm = generateFPGM(otd.TSI_01.extra.fpgm, fpgmPadding);
+					otd.TSI_01.extra.cvt = generateCVT(
+						otd.TSI_01.extra.cvt,
+						cvtPadding,
+						strategy,
+						argv.VTT_CVT_GROUP
+					);
+					otd.TSI_01.extra.fpgm = generateFPGM(
+						otd.TSI_01.extra.fpgm,
+						fpgmPadding,
+						argv.VTT_FPGM_GROUP
+					);
 				}
 				if (argv.padvtt && !otd.TSI_01) {
 					otd.TSI_01 = { glyphs: {}, extra: {} };

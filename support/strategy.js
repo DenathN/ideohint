@@ -94,6 +94,7 @@ class HintingStrategy {
 		this.TOP_CUT_DIAG_DIST = 0;
 		this.BOTTOM_CUT_DIAG_DIST = 0;
 		this.X_EXPAND = 0;
+		this.DONT_COORDINATE_WIDTHS = 0;
 	}
 }
 
