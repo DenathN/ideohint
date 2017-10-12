@@ -1,149 +1,38 @@
 "use strict";
 
 const roundings = require("../support/roundings");
-const toF26D6P = roundings.toF26D6P;
-const { decideDelta, decideDeltaShift } = require("./delta.js");
-const toposort = require("toposort");
 const product = require("../support/product");
-const { xclamp } = require("../support/common");
-const {
-	ROUNDING_SEGMENTS,
-	VTTTalkDeltaEncoder,
-	AssemblyDeltaEncoder,
-	VTTECompiler,
-	VTTCall
-} = require("./vtt/encoder");
+const { VTTTalkDeltaEncoder, AssemblyDeltaEncoder, VTTECompiler } = require("./vtt/encoder");
 
 const { getVTTAux, cvtIds, generateCVT, generateFPGM } = require("./vtt/vttenv");
+const HE = require("./vtt/hintingElement");
 
-function table(min, max, f) {
-	let a = [];
-	for (let j = min; j <= max; j++) {
-		a[j] = f(j);
-	}
-	return a;
-}
-
-function sortIPSAs(calls) {
-	let defs = [],
-		edges = [];
-	for (let c of calls) {
-		if (c.length < 2) continue;
-		if (c.length === 2) {
-			edges.push(c);
-			defs[c[1]] = c;
-		} else {
-			for (let m = 2; m < c.length; m++) {
-				edges.push([c[0], c[m]], [c[1], c[m]]);
-				defs[c[m]] = [c[0], c[1], c[m]];
-			}
-		}
-	}
-	for (let j = 0; j < defs.length; j++)
-		if (defs[j] && defs[j].length > 2)
-			for (let k = 0; k < defs.length; k++)
-				if (defs[k] && defs[k].length === 2) {
-					edges.push([j, k]);
-				}
-	try {
-		let sorted = toposort(edges);
-		return sorted.map(j => defs[j]).filter(c => c && c.length >= 2);
-	} catch (e) {
-		return calls;
-	}
-}
-
-function collectIPSAs(calls) {
-	calls = sortIPSAs(calls);
-	// collect groups
-	let groups = [];
-	for (let c of calls) {
-		if (c.length < 2) continue;
-		if (!groups[groups.length - 1] || groups[groups.length - 1].isShift !== (c.length === 2)) {
-			groups.push({
-				isShift: c.length === 2,
-				items: [c]
-			});
-		} else {
-			groups[groups.length - 1].items.push(c);
-		}
-	}
-	groups = groups.map(g => {
-		if (g.isShift) {
-			g.items = g.items.sort((a, b) => a[0] - b[0]);
-		} else {
-			g.items = g.items
-				.map(c => (c[0] < c[1] ? c : [c[1], c[0], ...c.slice(2)]))
-				.sort((a, b) => (a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]));
-		}
-		return g;
-	});
-
-	let answer = [];
-	for (let g of groups) {
-		let currentInstr = [];
-		for (let c of g.items) {
-			if (g.isShift) {
-				answer.push(c.slice(0));
-			} else {
-				if (c[0] === currentInstr[0] && c[1] === currentInstr[1]) {
-					currentInstr = currentInstr.concat(c.slice(2));
-				} else {
-					answer.push(currentInstr);
-					currentInstr = c.slice(0);
-				}
-			}
-		}
-		if (currentInstr.length) answer.push(currentInstr);
-	}
-
-	return answer;
-}
-
-const KEY_ITEM_STEM = 1;
-const KEY_ITEM_BOTTOM = 2;
-const KEY_ITEM_TOP = 3;
-
-function CoTalkBottomAnchor(zid, cvtID, deltas) {
-	return () => `
-/* !!IDH!! Bottom Anchor Kind Direct */
-YAnchor(${zid},${cvtID})
-${deltas || ""}`;
-}
-function CoTalkTopAnchor(zid, cvtID, cvtTopBotDistId, deltas) {
-	return function(z) {
-		if (z >= 0) {
-			return `/* !!IDH!! Top Anchor Kind Linked */
-YLink(${z},${zid},${cvtTopBotDistId})`;
-		} else {
-			return `
-/* !!IDH!! Top Anchor Kind Direct */
-YAnchor(${zid},${cvtID})
-${deltas || ""}`;
-		}
-	};
-}
+const StemInstructionCombiner = require("./vtt/stem-instruction-combiner");
+const formOffhints = require("./vtt/off-hints");
+const formTrailHints = require("./vtt/trail-hints");
+const formIntermediateHints = require("./vtt/intermediate-hints");
+const { table, distHintedPositions } = require("./vtt/predictor");
 
 const ABRefMethods = [
 	{
 		comment: "QUAD",
-		findItems: candidates => {
+		findItems: elements => {
 			let bottomAnchor = null,
 				bottomStem = null,
 				topAnchor = null,
 				topStem = null;
-			for (let j = 0; j < candidates.length; j++) {
-				if (!bottomAnchor && candidates[j].kind !== KEY_ITEM_STEM) {
-					bottomAnchor = candidates[j];
+			for (let j = 0; j < elements.length; j++) {
+				if (!bottomAnchor && elements[j].kind !== HE.KEY_ITEM_STEM) {
+					bottomAnchor = elements[j];
 				}
-				if (!bottomStem && candidates[j].kind === KEY_ITEM_STEM) {
-					bottomStem = candidates[j];
+				if (!bottomStem && elements[j].kind === HE.KEY_ITEM_STEM) {
+					bottomStem = elements[j];
 				}
-				if (candidates[j].kind !== KEY_ITEM_STEM) {
-					topAnchor = candidates[j];
+				if (elements[j].kind !== HE.KEY_ITEM_STEM) {
+					topAnchor = elements[j];
 				}
-				if (candidates[j].kind === KEY_ITEM_STEM) {
-					topStem = candidates[j];
+				if (elements[j].kind === HE.KEY_ITEM_STEM) {
+					topStem = elements[j];
 				}
 			}
 			if (topAnchor && !topStem) topStem = topAnchor;
@@ -160,14 +49,14 @@ const ABRefMethods = [
 
 	{
 		comment: "DUAL",
-		findItems: candidates => {
+		findItems: elements => {
 			let bottomAnchor = null,
 				topAnchor = null;
-			for (let j = 0; j < candidates.length; j++) {
+			for (let j = 0; j < elements.length; j++) {
 				if (!bottomAnchor) {
-					bottomAnchor = candidates[j];
+					bottomAnchor = elements[j];
 				}
-				topAnchor = candidates[j];
+				topAnchor = elements[j];
 			}
 			return { bottomAnchor, bottomStem: bottomAnchor, topAnchor, topStem: topAnchor };
 		}
@@ -175,26 +64,6 @@ const ABRefMethods = [
 ];
 
 const rfCombinations = [...product(ABRefMethods, [0, 1, 2], [0, 1, 2])];
-
-function iphintedPositions(bottomStem, r, topStem, pmin, pmax) {
-	return table(pmin, pmax, ppem => {
-		const org_dist = r.pOrg - bottomStem.pOrg;
-		const org_range = topStem.pOrg - bottomStem.pOrg;
-		const cur_range = topStem.hintedPositions[ppem] - bottomStem.hintedPositions[ppem];
-		return bottomStem.hintedPositions[ppem] + cur_range * org_dist / org_range;
-	});
-}
-
-function distHintedPositions(rp0, r, upm, pmin, pmax) {
-	return table(pmin, pmax, ppem => {
-		const org_dist = r.pOrg - rp0.pOrg;
-		if (org_dist > 0) {
-			return rp0.hintedPositions[ppem] + roundings.rtg(org_dist, upm, ppem);
-		} else {
-			return rp0.hintedPositions[ppem] - roundings.rtg(-org_dist, upm, ppem);
-		}
-	});
-}
 
 function chooseTBPos0(stemKind, stem, cvtCutin, choices) {
 	let chosen = choices[0];
@@ -211,87 +80,94 @@ function chooseTBPos0(stemKind, stem, cvtCutin, choices) {
 	};
 }
 
-function ibpType(x) {
-	if (typeof x === "stirng") return "str";
-	if (x instanceof VTTCall) return "vttcall";
-	return "unknown";
-}
+class VTTCompiler {
+	constructor(record, strategy, padding, fpgmPadding, contours) {
+		if (record) {
+			this.sd = record.sd;
+			this.si = record.si;
+			this.pmin = record.pmin;
+			this.pmax = record.pmax;
+			this.upm = strategy.UPM;
+			this.cvtCutin = this.upm / Math.max(40, this.pmax);
+			this.strategy = strategy;
+			this.fpgmPadding = fpgmPadding;
+			this.contours = contours;
 
-function flatten(ary) {
-	var ret = [];
-	for (var i = 0; i < ary.length; i++) {
-		if (Array.isArray(ary[i])) {
-			ret = ret.concat(flatten(ary[i]));
-		} else {
-			ret.push(ary[i]);
+			this.cvt = cvtIds(padding);
+			this.aux = getVTTAux(strategy);
+
+			this.buffer = "";
+			this._encoder = null;
+			this._hintedPositions = null;
 		}
 	}
-	return ret;
-}
-
-const ibpCombiner = {
-	unknown: xs => xs.join("\n"),
-	str: xs => xs.join("\n"),
-	vttcall: (xs, fpgmPadding) => {
-		const primaryInvokes = [...xs.map(x => x.forms)].filter(a => a.length);
-		if (primaryInvokes.length <= 1) return xs.join("\n");
-		let arglist = flatten(primaryInvokes);
-		if (!arglist.length) return "";
-		if (arglist.length > 256) return xs.join("\n");
-		if (arglist.length < 62) {
-			return (
-				xs
-					.map(x => x.comment)
-					.filter(x => !!x)
-					.join("\n") +
-				"\n" +
-				`Call(0,${arglist},${fpgmPadding})`
+	talk(s) {
+		this.buffer += s + "\n";
+	}
+	get encoder() {
+		if (!this._encoder) {
+			this._encoder = new VTTECompiler({
+				deltaEncoder: this.fpgmPadding
+					? new AssemblyDeltaEncoder(this.fpgmPadding)
+					: new VTTTalkDeltaEncoder(),
+				cvtLinkEntries: [
+					{ width: this.aux.canonicalSW, cvtid: this.cvt.cvtCSW },
+					...this.aux.SWDs.map((x, j) => ({ width: x, cvtid: this.cvt.cvtCSWD + j }))
+				],
+				canonicalSW: this.aux.canonicalSW,
+				minSW: this.strategy.MINIMAL_STROKE_WIDTH_PIXELS || 1 / 8
+			});
+		}
+		return this._encoder;
+	}
+	get buf() {
+		return this.buffer;
+	}
+	get hintedPositions() {
+		if (!this._hintedPositions) {
+			let hp = {};
+			const { upm, pmin, pmax, strategy } = this;
+			hp.bot = table(pmin, pmax, ppem =>
+				roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
 			);
-		} else {
-			let asm = `ASM("CALL[],0,${arglist},${fpgmPadding}")`;
-			if (asm.length < 800) {
-				return (
-					xs
-						.map(x => x.comment)
-						.filter(x => !!x)
-						.join("\n") +
-					"\n" +
-					asm
-				);
-			} else {
-				return xs.join("\n");
-			}
+			hp.top0 = table(pmin, pmax, ppem =>
+				roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem)
+			);
+			hp.top = table(
+				pmin,
+				pmax,
+				ppem =>
+					roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem) +
+					roundings.rtg(
+						strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER,
+						upm,
+						ppem
+					)
+			);
+			hp.botB = table(pmin, pmax, ppem => roundings.rtg(this.aux.yBotBar, upm, ppem));
+			hp.topB = table(pmin, pmax, ppem => roundings.rtg(this.aux.yTopBar, upm, ppem));
+			hp.botD = table(pmin, pmax, ppem => roundings.rtg(this.aux.yBotD, upm, ppem));
+			hp.topD = table(pmin, pmax, ppem => roundings.rtg(this.aux.yTopD, upm, ppem));
+			hp.topDLinked = table(
+				pmin,
+				pmax,
+				ppem =>
+					roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem) +
+					roundings.rtg(this.aux.yTopD - this.aux.yBotD, upm, ppem)
+			);
+			this._hintedPositions = hp;
 		}
+		return this._hintedPositions;
 	}
-};
-
-class StemInstructionCombiner {
-	constructor(fpgmPadding) {
-		this.parts = [];
-		this.fpgmPadding = fpgmPadding;
+	compileAnchor(z, ref, chosen) {
+		return this.encoder.encodeAnchor(z, ref, chosen, this.pmin, this.pmax, this.strategy);
 	}
-	add(data) {
-		for (let p = 0; p < data.length; p++) {
-			if (!this.parts[p]) this.parts[p] = [];
-			this.parts[p].push(data[p]);
-		}
-	}
-	combine() {
-		let ans = "";
-
-		for (let column of this.parts) {
-			let m = new Map();
-			for (let x of column) {
-				let ty = ibpType(x);
-				if (!m.has(ty)) m.set(ty, []);
-				m.get(ty).push(x);
-			}
-
-			for (let [k, v] of m) {
-				if (v.length) ans += ibpCombiner[k](v, this.fpgmPadding) + "\n";
-			}
-		}
-		return ans;
+}
+class MeasuredVTTCompiler extends VTTCompiler {
+	constructor(parent) {
+		super();
+		Object.assign(this, parent);
+		this.tdis = 0;
 	}
 }
 
@@ -301,443 +177,201 @@ class StemInstructionCombiner {
 // padding : CVT padding value, padding + 2 -> bottom anchor; padding + 1 -> top anchor
 // fpgmPadding : FPGM padding
 function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
-	const sd = record.sd;
-	const si = record.si;
-	const pmin = record.pmin;
-	const pmax = record.pmax;
-	const upm = strategy.UPM;
+	const $ = new VTTCompiler(record, strategy, padding, fpgmPadding, contours);
+	const ec = $.encoder;
 
-	const {
-		cvtZeroId,
-		cvtTopId,
-		cvtBottomId,
-		cvtTopDId,
-		cvtBottomDId,
-		cvtTopBarId,
-		cvtBottomBarId,
-		cvtTopBotDistId,
-		cvtTopBotDDistId,
-		cvtCSW,
-		cvtCSWD
-	} = cvtIds(padding);
-
-	const { yBotBar, yTopBar, yBotD, yTopD, canonicalSW, SWDs } = getVTTAux(strategy);
-
-	let buf = "/* !!IDEOHINT!! VTT Compiler !! */\n";
-	function talk(s) {
-		buf += s + "\n";
-	}
-
-	const ec = new VTTECompiler({
-		deltaEncoder: fpgmPadding
-			? new AssemblyDeltaEncoder(fpgmPadding)
-			: new VTTTalkDeltaEncoder(),
-		cvtLinkEntries: [
-			{ width: canonicalSW, cvtid: cvtCSW },
-			...SWDs.map((x, j) => ({ width: x, cvtid: cvtCSWD + j }))
-		],
-		canonicalSW,
-		minSW: strategy.MINIMAL_STROKE_WIDTH_PIXELS || 1 / 8
-	});
-
-	//// Y
-	// ip decider
-	const hintedPositionsBot = table(pmin, pmax, ppem =>
-		roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
-	);
-	const hintedPositionsTop0 = table(pmin, pmax, ppem =>
-		roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem)
-	);
-	const hintedPositionsTop = table(
-		pmin,
-		pmax,
-		ppem =>
-			roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem) +
-			roundings.rtg(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
-	);
-	const hintedPositionsBotB = table(pmin, pmax, ppem => roundings.rtg(yBotBar, upm, ppem));
-	const hintedPositionsTopB = table(pmin, pmax, ppem => roundings.rtg(yTopBar, upm, ppem));
-	const hintedPositionsBotD = table(pmin, pmax, ppem => roundings.rtg(yBotD, upm, ppem));
-	const hintedPositionsTopD = table(pmin, pmax, ppem => roundings.rtg(yTopD, upm, ppem));
-	const hintedPositionsTopDLinked = table(
-		pmin,
-		pmax,
-		ppem =>
-			roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem) +
-			roundings.rtg(yTopD - yBotD, upm, ppem)
-	);
-	let candidates = [];
-
-	// Initialize candidates
-	for (let z of si.blue.bottomZs) {
-		if (Math.abs(z.y - yBotD) < Math.abs(z.y - strategy.BLUEZONE_BOTTOM_CENTER)) {
-			candidates.push({
-				ipz: z.id,
-				told: false,
-				pOrg: z.y,
-				kind: KEY_ITEM_BOTTOM,
-				talk: CoTalkBottomAnchor(
-					z.id,
-					cvtBottomDId,
-					ec.encodeAnchor(
-						z.id,
-						hintedPositionsBotD,
-						hintedPositionsBot,
-						pmin,
-						pmax,
-						strategy
-					)
-				),
-				hintedPositions: hintedPositionsBot
-			});
+	// Initialize elements
+	// An hinting element represents something needed to be carefully dealt.
+	let elements = [];
+	for (let z of $.si.blue.bottomZs) {
+		if (Math.abs(z.y - $.aux.yBotD) < Math.abs(z.y - $.strategy.BLUEZONE_BOTTOM_CENTER)) {
+			elements.push(
+				new HE.Bottom(z.id, z.y, {
+					cvtID: $.cvt.cvtBottomDId,
+					deltas: $.compileAnchor(z.id, $.hintedPositions.botD, $.hintedPositions.bot),
+					hintedPositions: $.hintedPositions.bot
+				})
+			);
 		} else {
-			candidates.push({
-				ipz: z.id,
-				told: false,
-				pOrg: z.y,
-				kind: KEY_ITEM_BOTTOM,
-				talk: CoTalkBottomAnchor(z.id, cvtBottomId),
-				hintedPositions: hintedPositionsBot
-			});
+			elements.push(
+				new HE.Bottom(z.id, z.y, {
+					cvtID: $.cvt.cvtBottomId,
+					deltas: "",
+					hintedPositions: $.hintedPositions.bot
+				})
+			);
 		}
 	}
-	for (let z of si.blue.topZs) {
-		if (Math.abs(z.y - yTopD) < Math.abs(z.y - strategy.BLUEZONE_TOP_CENTER)) {
-			candidates.push({
-				ipz: z.id,
-				told: false,
-				pOrg: z.y,
-				kind: KEY_ITEM_TOP,
-				talk: CoTalkTopAnchor(
-					z.id,
-					cvtTopDId,
-					cvtTopBotDistId,
-					ec.encodeAnchor(
-						z.id,
-						hintedPositionsTopD,
-						hintedPositionsTop,
-						pmin,
-						pmax,
-						strategy
-					)
-				),
-				hintedPositions: hintedPositionsTop
-			});
+	for (let z of $.si.blue.topZs) {
+		if (Math.abs(z.y - $.aux.yTopD) < Math.abs(z.y - $.strategy.BLUEZONE_TOP_CENTER)) {
+			elements.push(
+				new HE.Top(z.id, z.y, {
+					hintedPositions: $.hintedPositions.top,
+					cvtID: $.cvt.cvtTopDId,
+					cvtTopBotDistId: $.cvt.cvtTopBotDistId,
+					deltas: $.compileAnchor(z.id, $.hintedPositions.topD, $.hintedPositions.top)
+				})
+			);
 		} else {
-			candidates.push({
-				ipz: z.id,
-				told: false,
-				pOrg: z.y,
-				kind: KEY_ITEM_TOP,
-				talk: CoTalkTopAnchor(
-					z.id,
-					cvtTopId,
-					cvtTopBotDistId,
-					ec.encodeAnchor(
-						z.id,
-						hintedPositionsTop0,
-						hintedPositionsTop,
-						pmin,
-						pmax,
-						strategy
-					)
-				),
-				hintedPositions: hintedPositionsTop
-			});
+			elements.push(
+				new HE.Top(z.id, z.y, {
+					hintedPositions: $.hintedPositions.top,
+					cvtID: $.cvt.cvtTopId,
+					cvtTopBotDistId: $.cvt.cvtTopBotDistId,
+					deltas: $.compileAnchor(z.id, $.hintedPositions.top0, $.hintedPositions.top)
+				})
+			);
 		}
 	}
-	for (let sid = 0; sid < si.stems.length; sid++) {
-		const s = si.stems[sid];
-		candidates.push({
-			ipz: s.posKey.id,
-			told: false,
-			pOrg: s.posKey.y,
-			kind: KEY_ITEM_STEM,
-			stem: s,
-			sid: sid,
-			hintedPositions: null
-		});
+	for (let sid = 0; sid < $.si.stems.length; sid++) {
+		const s = $.si.stems[sid];
+		elements.push(
+			new HE.Stem(s.posKey.id, s.posKey.y, {
+				stem: s,
+				sid: sid
+			})
+		);
 	}
-	candidates = candidates.sort((a, b) => a.pOrg - b.pOrg);
+	elements = elements.sort((a, b) => a.pOrg - b.pOrg);
 
 	/// Stems and Anchors
 	/// We choose one best combination of methods from 18 combinations
 	let bestTDI = 0xffff,
 		bestTalk = "";
 	for (let [refMethod, bsMethod, tsMethod] of rfCombinations) {
-		let { bottomAnchor, bottomStem, topAnchor, topStem } = refMethod.findItems(candidates);
+		const $$ = new MeasuredVTTCompiler($);
+		let { bottomAnchor, bottomStem, topAnchor, topStem } = refMethod.findItems(elements);
 		if (!(topAnchor && bottomAnchor && topStem && bottomStem)) continue;
 		// clear key items' status
-		for (let r of candidates) r.told = false;
+		for (let r of elements) r.untell();
 		// local talker
-		let buf = "";
-		let talk = s => {
-			buf += s + "\n";
-		};
-		let tdis = 0;
 
-		talk(`/* !!IDH!! REFMETHOD ${refMethod.comment} */`);
+		$$.talk(`/* !!IDH!! REFMETHOD ${refMethod.comment} */`);
 
 		/// Reference items
 		// Bottom anchor reference
 		let refBottomZ = -1;
-		if (!bottomAnchor.told && bottomAnchor.kind !== KEY_ITEM_STEM) {
+		if (!bottomAnchor.told && bottomAnchor.kind !== HE.KEY_ITEM_STEM) {
 			// BKT must have a talk()
-			talk(bottomAnchor.talk());
+			$$.talk(bottomAnchor.talk());
 			bottomAnchor.told = true;
 			refBottomZ = bottomAnchor.ipz;
 		}
 		// Top anchor reference
-		if (!topAnchor.told && topAnchor.kind !== KEY_ITEM_STEM) {
-			talk(topAnchor.talk(refBottomZ));
+		if (!topAnchor.told && topAnchor.kind !== HE.KEY_ITEM_STEM) {
+			$$.talk(topAnchor.talk(refBottomZ));
 			topAnchor.told = true;
 		}
-		let tbCombiner = new StemInstructionCombiner(fpgmPadding);
+		let tbCombiner = new StemInstructionCombiner($$.fpgmPadding);
 		// Bottom stem reference
-		if (!bottomStem.told && bottomStem.kind === KEY_ITEM_STEM) {
-			const bsParams = [
-				{
-					posInstr: `/* !!IDH!! StemDef ${bottomStem.sid} BOTTOM Direct */\nYAnchor(${bottomStem.ipz})`,
-					pos0s: null
-				},
-				chooseTBPos0("BOTTOM", bottomStem, upm / pmax, [
-					{ cvt: cvtBottomBarId, y: yBotBar, pos0s: hintedPositionsBotB },
-					{ cvt: cvtBottomDId, y: yBotD, pos0s: hintedPositionsBotD },
+		if (!bottomStem.told && bottomStem.kind === HE.KEY_ITEM_STEM) {
+			const bsHintingMethodList = [];
+			// Direct YAnchor
+			bsHintingMethodList.push({
+				posInstr: `/* !!IDH!! StemDef ${bottomStem.sid} BOTTOM Direct */\nYAnchor(${bottomStem.ipz})`,
+				pos0s: null
+			});
+			// CVT YAnchor
+			bsHintingMethodList.push(
+				chooseTBPos0("BOTTOM", bottomStem, $$.cvtCutin, [
 					{
-						cvt: cvtBottomId,
+						cvt: $$.cvt.cvtBottomBarId,
+						y: $$.aux.yBotBar,
+						pos0s: $$.hintedPositions.botB
+					},
+					{ cvt: $$.cvt.cvtBottomDId, y: $$.aux.yBotD, pos0s: $$.hintedPositions.botD },
+					{
+						cvt: $$.cvt.cvtBottomId,
 						y: strategy.BLUEZONE_BOTTOM_CENTER,
-						pos0s: hintedPositionsBot
+						pos0s: $$.hintedPositions.bot
 					}
-				]),
-				!bottomAnchor.told
-					? null
-					: {
-							posInstr: `/* !!IDH!! StemDef ${topStem.sid} BOTTOM Dist */\nYDist(${bottomAnchor.ipz},${bottomStem.ipz})`,
-							pos0s: distHintedPositions(bottomAnchor, bottomStem, upm, pmin, pmax)
-						}
-			][bsMethod];
+				])
+			);
+			// YDist to bottomAnchor knot
+			if (bottomAnchor.told) {
+				bsHintingMethodList.push({
+					posInstr: `/* !!IDH!! StemDef ${topStem.sid} BOTTOM Dist */\nYDist(${bottomAnchor.ipz},${bottomStem.ipz})`,
+					pos0s: distHintedPositions(bottomAnchor, bottomStem, $$.upm, $$.pmin, $$.pmax)
+				});
+			}
+			const bsParams = bsHintingMethodList[bsMethod];
 			if (!bsParams) continue;
 			const { totalDeltaImpact: tdi, parts, hintedPositions } = ec.encodeStem(
 				bottomStem.stem,
 				bottomStem.sid,
-				sd,
-				strategy,
+				$$.sd,
+				$$.strategy,
 				bsParams.pos0s
 			);
-			talk(bsParams.posInstr);
+			$$.talk(bsParams.posInstr);
 			bottomStem.hintedPositions = hintedPositions;
-			tdis += tdi;
+			$$.tdis += tdi;
 			tbCombiner.add(parts);
 			bottomStem.told = true;
 		}
 
 		// Top stem reference
-		if (!topStem.told && topStem.kind === KEY_ITEM_STEM) {
-			const tsParams = [
-				{
-					posInstr: `/* !!IDH!! StemDef ${topStem.sid} TOP Direct */\nYAnchor(${topStem.ipz})`,
-					pos0s: null
-				},
-				chooseTBPos0("TOP", topStem, upm / pmax, [
-					{ cvt: cvtTopBarId, y: yTopBar, pos0s: hintedPositionsTopB },
-					{ cvt: cvtTopDId, y: yTopD, pos0s: hintedPositionsTopD },
+		if (!topStem.told && topStem.kind === HE.KEY_ITEM_STEM) {
+			const tsHintingMethodList = [];
+			// Direct YAnchor
+			tsHintingMethodList.push({
+				posInstr: `/* !!IDH!! StemDef ${topStem.sid} TOP Direct */\nYAnchor(${topStem.ipz})`,
+				pos0s: null
+			});
+			// CVT YAnchor
+			tsHintingMethodList.push(
+				chooseTBPos0("TOP", topStem, $$.cvtCutin, [
+					{ cvt: $$.cvt.cvtTopBarId, y: $$.aux.yTopBar, pos0s: $$.hintedPositions.topB },
+					{ cvt: $$.cvt.cvtTopDId, y: $$.aux.yTopD, pos0s: $$.hintedPositions.topD },
 					{
-						cvt: cvtTopId,
+						cvt: $$.cvt.cvtTopId,
 						y: strategy.BLUEZONE_TOP_CENTER,
-						pos0s: hintedPositionsTop0
+						pos0s: $$.hintedPositions.top0
 					}
-				]),
-				topAnchor.told
-					? {
-							posInstr: `/* !!IDH!! StemDef ${topStem.sid} TOP Dist */\nYDist(${topAnchor.ipz},${topStem.ipz})`,
-							pos0s: distHintedPositions(topAnchor, topStem, upm, pmin, pmax)
-						}
-					: null
-			][tsMethod];
+				])
+			);
+			// YDist to bottomAnchor knot
+			if (topAnchor.told) {
+				tsHintingMethodList.push({
+					posInstr: `/* !!IDH!! StemDef ${topStem.sid} TOP Dist */\nYDist(${topAnchor.ipz},${topStem.ipz})`,
+					pos0s: distHintedPositions(topAnchor, topStem, $$.upm, $$.pmin, $$.pmax)
+				});
+			}
+			const tsParams = tsHintingMethodList[tsMethod];
 			if (!tsParams) continue;
 			const { totalDeltaImpact: tdi, parts, hintedPositions } = ec.encodeStem(
 				topStem.stem,
 				topStem.sid,
-				sd,
-				strategy,
+				$$.sd,
+				$$.strategy,
 				tsParams.pos0s
 			);
-			talk(tsParams.posInstr);
+			$$.talk(tsParams.posInstr);
 			topStem.hintedPositions = hintedPositions;
-			tdis += tdi;
+			$$.tdis += tdi;
 			tbCombiner.add(parts);
 			topStem.told = true;
 		}
-		talk(tbCombiner.combine());
+		$$.talk(tbCombiner.combine());
 
-		/// Intermediate items
-		talk(`\n\n/* !!IDH!! INTERMEDIATES */`);
-		const ipAnchorZs = [];
-		const ipZs = [];
-		for (let r of candidates) {
-			if (r.told) {
-				//pass
-			} else if (r.kind === KEY_ITEM_STEM) {
-				if (r.pOrg > bottomStem.pOrg && r.pOrg < topStem.pOrg) {
-					ipAnchorZs.push(r.ipz);
-				}
-			} else {
-				ipZs.push(r.ipz);
-				r.told = true;
-			}
-		}
+		$$.tdis += formIntermediateHints.call(
+			$$,
+			{ bottomStem, bottomAnchor, topStem, topAnchor },
+			$$.sd,
+			elements
+		);
 
-		if (ipAnchorZs.length) {
-			talk(`YIPAnchor(${bottomStem.ipz},${ipAnchorZs.join(",")},${topStem.ipz})`);
-		}
-		if (ipZs.length) {
-			talk(`YInterpolate(${bottomAnchor.ipz},${ipZs.join(",")},${topAnchor.ipz})`);
-		}
-
-		const combiner = new StemInstructionCombiner(fpgmPadding);
-		for (let r of candidates) {
-			if (r.told) continue;
-			// ASSERT: r.kind === KEY_ITEM_STEM
-			if (r.pOrg > bottomStem.pOrg && r.pOrg < topStem.pOrg) {
-				const g = ec.encodeStem(
-					r.stem,
-					r.sid,
-					sd,
-					strategy,
-					iphintedPositions(bottomStem, r, topStem, pmin, pmax)
-				);
-				combiner.add(g.parts);
-				tdis += g.totalDeltaImpact;
-			} else {
-				// Should not happen
-				talk(`/* !!IDH!! StemDef ${r.sid} DIRECT */`);
-				talk(`YAnchor(${r.ipz})`);
-				const g = ec.encodeStem(r.stem, r.sid, sd, strategy, null);
-				combiner.add(g.parts);
-				tdis += g.totalDeltaImpact;
-			}
-		}
-		talk(combiner.combine());
-
-		if (tdis < bestTDI) {
-			bestTalk = buf;
-			bestTDI = tdis;
+		if ($$.tdis < bestTDI) {
+			bestTalk = $$.buf;
+			bestTDI = $$.tdis;
 		}
 	}
-	talk(bestTalk);
+	$.talk(bestTalk);
 
-	/// Diagonal alignments
-	let diagAlignCalls = [];
-	for (let da of si.diagAligns) {
-		if (!da.zs.length) continue;
-		// IP METHOD
-		for (let z of da.zs) {
-			diagAlignCalls.push([da.l, da.r, z]);
-		}
-		// DALIGN METHOD
-		// talk(`XAnchor(${da.l})`);
-		// talk(`XAnchor(${da.r})`);
-		// talk(`DAlign(${da.l},${da.zs.join(",")},${da.r})`);
-	}
-
-	/// Interpolations and Shifts
-	const calls = collectIPSAs([...diagAlignCalls, ...si.ipsacalls]);
-	for (let c of calls) {
-		if (!c || c.length < 2) continue;
-		if (c.length >= 3) {
-			// ip
-			if (c[0] !== c[1]) talk(`YInterpolate(${c[0]},${c.slice(2).join(",")},${c[1]})`);
-		} else {
-			talk(`YShift(${c[0]},${c[1]})`);
-		}
-	}
-
-	// Off hints
-	if (contours) {
-		const extrema = queryExtrema(contours).sort((a, b) => a.y - b.y);
-		if (candidates.length) {
-			let topZs = [],
-				bottomZs = [];
-			const topC = candidates[candidates.length - 1];
-			const bottomC = candidates[0];
-			for (let z of extrema) {
-				if (z.y > topC.pOrg) {
-					topZs.push(z);
-				} else if (z.y < bottomC.pOrg) {
-					bottomZs.push(z);
-				}
-			}
-
-			topZs = topZs.sort((a, b) => b.y - a.y);
-			bottomZs = bottomZs.sort((a, b) => a.y - b.y);
-			if (topZs.length) {
-				if (topZs[0].y - topC.pOrg < upm / 3) {
-					talk(`YDist(${topC.ipz},${topZs[0].id})`);
-				} else {
-					talk(`YAnchor(${topZs[0].id})`);
-				}
-				if (topZs.length > 1)
-					talk(
-						`YInterpolate(${topC.ipz},${topZs
-							.slice(1)
-							.map(z => z.id)
-							.join(",")},${topZs[0].id})`
-					);
-			}
-			if (bottomZs.length) {
-				if (bottomC.pOrg - bottomZs[0].y < upm / 3) {
-					talk(`YDist(${bottomC.ipz},${bottomZs[0].id})`);
-				} else {
-					talk(`YAnchor(${bottomZs[0].id})`);
-				}
-				if (bottomZs.length > 1)
-					talk(
-						`YInterpolate(${bottomC.ipz},${bottomZs
-							.slice(1)
-							.map(z => z.id)
-							.join(",")},${bottomZs[0].id})`
-					);
-			}
-		} else if (extrema.length >= 2) {
-			talk(`YAnchor(${extrema[0].id})`);
-			talk(`YDist(${extrema[0].id},${extrema[extrema.length - 1].id})`);
-			if (extrema.length > 2) {
-				talk(
-					`YInterpolate(${extrema[0].id},${extrema
-						.slice(1, -1)
-						.map(z => z.id)
-						.join(",")},${extrema[extrema.length - 1].id})`
-				);
-			}
-		}
-	}
-	talk("Smooth()");
-	return buf;
-}
-
-function queryExtrema(contours) {
-	let n = 0;
-	let ans = [];
-	for (let c of contours) {
-		let ctrTopID = -1,
-			ctrTop = null;
-		let ctrBottomID = -1,
-			ctrBottom = null;
-		for (let z of c) {
-			if (!ctrTop || z.y > ctrTop.y) {
-				ctrTopID = n;
-				ctrTop = z;
-			}
-			if (!ctrBottom || z.y < ctrBottom.y) {
-				ctrBottomID = n;
-				ctrBottom = z;
-			}
-			n++;
-		}
-		if (ctrTop) ans.push({ id: ctrTopID, x: ctrTop.x, y: ctrTop.y });
-		if (ctrBottom) ans.push({ id: ctrBottomID, x: ctrBottom.x, y: ctrBottom.y });
-	}
-	return ans;
+	formTrailHints.call($, $.si);
+	formOffhints.call($, contours, elements);
+	$.talk("Smooth()");
+	return $.buf;
 }
 
 exports.talk = produceVTTTalk;
