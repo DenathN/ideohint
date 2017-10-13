@@ -13,24 +13,28 @@ function rtg(x, upm, ppem) {
 	if (distance > 0) {
 		val = distance + 32;
 		if (val > 0 && distance) {
-			val &= ~63
+			val &= ~63;
 		} else {
-			val = 0
+			val = 0;
 		}
 	} else {
-		val = -((32 - distance) & ~63)
+		val = -((32 - distance) & ~63);
 		if (val > 0) val = 0;
 	}
-	return val * (upm / ppem) / 64
+	return val * (upm / ppem) / 64;
 }
 function rtg1(x, upm, ppem) {
 	if (x >= 0) return Math.max(upm / ppem, rtg(x, upm, ppem));
-	else return -Math.max(upm / ppem, rtg(-x, upm, ppem))
+	else return -Math.max(upm / ppem, rtg(-x, upm, ppem));
 }
-function rtg_raw(y, upm, ppem) { return Math.round(y / upm * ppem) / ppem * upm; }
+function rtg_raw(y, upm, ppem) {
+	return Math.round(y / upm * ppem) / ppem * upm;
+}
 
 function Rtg(upm, ppem) {
-	return function (x) { return rtg(x, upm, ppem) };
+	return function(x) {
+		return rtg(x, upm, ppem);
+	};
 }
 function rutg(x, upm, ppem) {
 	var distance = toF26D6(x / upm * ppem);
@@ -38,18 +42,20 @@ function rutg(x, upm, ppem) {
 	if (distance > 0) {
 		val = distance + 63;
 		if (val > 0 && distance) {
-			val &= ~63
+			val &= ~63;
 		} else {
-			val = 0
+			val = 0;
 		}
 	} else {
-		val = -((63 - distance) & ~63)
+		val = -((63 - distance) & ~63);
 		if (val > 0) val = 0;
 	}
-	return val * (upm / ppem) / 64
+	return val * (upm / ppem) / 64;
 }
 function Rutg(upm, ppem) {
-	return function (x) { return rutg(x, upm, ppem) };
+	return function(x) {
+		return rutg(x, upm, ppem);
+	};
 }
 function rdtg(x, upm, ppem) {
 	var distance = toF26D6(x / upm * ppem);
@@ -57,18 +63,20 @@ function rdtg(x, upm, ppem) {
 	if (distance > 0) {
 		val = distance;
 		if (val > 0 && distance) {
-			val &= ~63
+			val &= ~63;
 		} else {
-			val = 0
+			val = 0;
 		}
 	} else {
-		val = -((0 - distance) & ~63)
+		val = -((0 - distance) & ~63);
 		if (val > 0) val = 0;
 	}
-	return val * (upm / ppem) / 64
+	return val * (upm / ppem) / 64;
 }
 function Rdtg(upm, ppem) {
-	return function (x) { return rdtg(x, upm, ppem) };
+	return function(x) {
+		return rdtg(x, upm, ppem);
+	};
 }
 
 exports.toF26D6P = toF26D6P;

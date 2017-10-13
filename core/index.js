@@ -4,7 +4,7 @@ const hintForSize = require("../core/hinter");
 const { parseOTD } = require("./otdParser");
 const { xclamp } = require("../support/common");
 
-exports.version = 10023;
+exports.version = 10030;
 
 exports.hintSingleGlyph = function(contours, strategy) {
 	return exports.decideHints(
@@ -51,6 +51,7 @@ function slicelast(x) {
 
 class SizeIndependentHints {
 	constructor(featData, strategy) {
+		this.upm = strategy.UPM;
 		this.blue = featData.blueZoned;
 		this.blue.topPos = strategy.BLUEZONE_TOP_CENTER;
 		this.blue.bottomPos = strategy.BLUEZONE_BOTTOM_CENTER;
