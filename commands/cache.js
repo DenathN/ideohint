@@ -2,14 +2,9 @@
 
 const fs = require("fs");
 const readline = require("readline");
-const stream = require("stream");
-const util = require("util");
 const devnull = require("dev-null");
-const paramfileLib = require("../support/paramfile");
-const strategyLib = require("../support/strategy");
 
 const core = require("../core/index");
-const { progress } = require("./support/progress");
 
 exports.command = "cache";
 exports.describe = "Update cache";
@@ -22,11 +17,6 @@ exports.builder = function(yargs) {
 };
 
 exports.handler = function(argv) {
-	if (argv.help) {
-		yargs.showHelp();
-		return;
-	}
-
 	const OutStream = () =>
 		argv.o ? fs.createWriteStream(argv.o, { encoding: "utf-8" }) : process.stdout;
 
@@ -34,7 +24,7 @@ exports.handler = function(argv) {
 };
 
 function readCache(_) {
-	const { cache, tasks, outStream } = _;
+	const { cache, tasks } = _;
 	if (!tasks.length) return setImmediate(() => finish(_));
 	const [current, ...rest] = tasks;
 	_.tasks = rest;
@@ -45,7 +35,12 @@ function readCache(_) {
 		const l = line.trim();
 		if (!l) return;
 		const data = JSON.parse(l);
-		if (data.ideohint_version && data.ideohint_version !== core.version) return;
+		if (
+			data.ideohint_version &&
+			data.ideohint_version !== "*" &&
+			data.ideohint_version !== core.version
+		)
+			return;
 		if (!data.ideohint_version) data.ideohint_version = core.version;
 		cache.set(data.hash, data);
 	});
@@ -54,7 +49,7 @@ function readCache(_) {
 function finish(_) {
 	const { OutStream, cache } = _;
 	const outStream = OutStream();
-	for (let [hash, data] of cache) {
+	for (let [, data] of cache) {
 		outStream.write(JSON.stringify(data) + "\n");
 	}
 	if (process.stdout !== outStream) outStream.end();

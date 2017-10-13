@@ -50,8 +50,10 @@ function slicelast(x) {
 }
 
 class SizeIndependentHints {
-	constructor(featData) {
+	constructor(featData, strategy) {
 		this.blue = featData.blueZoned;
+		this.blue.topPos = strategy.BLUEZONE_TOP_CENTER;
+		this.blue.bottomPos = strategy.BLUEZONE_BOTTOM_CENTER;
 		this.ipsacalls = getIpsaCalls(featData);
 		this.diagAligns = featData.diagAligns;
 		this.xIP = featData.xIP;
@@ -76,7 +78,6 @@ class SizeIndependentHints {
 
 exports.decideHints = function(featData, strategy) {
 	let sd = [];
-	let xExpansion = [];
 	let d = 0xffff;
 	for (let j = 0; j < featData.stems.length; j++) {
 		for (let k = 0; k < j; k++) {
@@ -99,7 +100,7 @@ exports.decideHints = function(featData, strategy) {
 	}
 
 	return {
-		si: new SizeIndependentHints(featData),
+		si: new SizeIndependentHints(featData, strategy),
 		sd: sd,
 		pmin: strategy.PPEM_MIN,
 		pmax: strategy.PPEM_MAX

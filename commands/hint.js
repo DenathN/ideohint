@@ -2,8 +2,6 @@
 
 const fs = require("fs");
 const readline = require("readline");
-const stream = require("stream");
-const util = require("util");
 const devnull = require("dev-null");
 const paramfileLib = require("../support/paramfile");
 const strategyLib = require("../support/strategy");
@@ -35,11 +33,6 @@ exports.builder = function(yargs) {
 };
 
 exports.handler = function(argv) {
-	if (argv.help) {
-		yargs.showHelp();
-		return;
-	}
-
 	readHGL({ argv });
 };
 
@@ -92,7 +85,8 @@ function readCache(_) {
 		const l = line.trim();
 		if (!l) return;
 		const data = JSON.parse(l);
-		if (!pendingSet.has(data.hash) || data.ideohint_version !== core.version) return;
+		if (!pendingSet.has(data.hash)) return;
+		if (data.ideohint_version !== "*" && data.ideohint_version !== core.version) return;
 		cache.set(data.hash, data);
 	});
 	rl.on("close", () => doHints(_));
