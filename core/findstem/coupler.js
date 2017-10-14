@@ -1,9 +1,6 @@
 "use strict";
 
 const overlapInfo = require("./overlap").overlapInfo;
-const by_start = function(p, q) {
-	return p[0].x - q[0].x;
-};
 const minmaxOfSeg = require("./seg").minmaxOfSeg;
 const slopeOf = require("../types/").slopeOf;
 const splitDiagonalStems = require("./splitting").splitDiagonalStems;
@@ -31,9 +28,6 @@ function segmentJoinable(pivot, segment, radical) {
 	return false;
 }
 
-function isStrictlyHorizontal(u) {
-	return u[0][0].y === u[u.length - 1][u[u.length - 1].length - 1].y;
-}
 function isVertical(radical, strategy, u, v, mh, ov) {
 	let d1 = minmaxOfSeg(u);
 	let d2 = minmaxOfSeg(v);
@@ -54,7 +48,8 @@ function isVertical(radical, strategy, u, v, mh, ov) {
 			? slope > strategy.SLOPE_FUZZ * sprop
 			: slope < -strategy.SLOPE_FUZZ_NEG * sprop) ||
 		Math.abs(p.y - q.y) > mh ||
-		(Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min)) * ov < Math.abs(p.y - q.y) * 0.9
+		(Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min)) * ov <
+			Math.abs(p.y - q.y) * (slope1 || slope2 ? 0.9 : 1.1)
 	);
 }
 
@@ -187,7 +182,6 @@ function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
 	const maxh =
 		toVQ(strategy.CANONICAL_STEM_WIDTH, strategy.PPEM_MAX) *
 		strategy.CANONICAL_STEM_WIDTH_LIMIT_X;
-	let strat, end, delta;
 	if (up[j]) {
 		candidate.high.push(j);
 	} else {
