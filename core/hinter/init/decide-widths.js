@@ -1,18 +1,16 @@
 "use strict";
 
-// decide the proper width of given stem locally
-function calculateWidthOfStem(w, coordinate) {
-	let pixels0 = w / this.uppx;
-	let pixels = pixels0;
-	if (coordinate) {
-		pixels = w / this.CANONICAL_STEM_WIDTH * this.WIDTH_GEAR_PROPER;
-	} else {
-		pixels = w / this.uppx;
-	}
+function gammaCorrect(pixels) {
+	let intpxs = Math.floor(pixels);
+	return intpxs + Math.pow(pixels - intpxs, 2.2);
+}
 
-	if (pixels > this.WIDTH_GEAR_PROPER) {
-		return Math.floor(pixels);
-	}
+// decide the proper width of given stem locally
+function calculateWidthOfStem(w, legacyTWS) {
+	if (!legacyTWS) return Math.max(1, Math.round(gammaCorrect(w / this.uppx)));
+
+	const pixels0 = w / this.uppx;
+	let pixels = w / this.CANONICAL_STEM_WIDTH * this.WIDTH_GEAR_PROPER;
 	if (pixels < this.WIDTH_GEAR_MIN) {
 		if (this.WIDTH_GEAR_MIN < 3) {
 			pixels = this.WIDTH_GEAR_MIN;
@@ -25,8 +23,12 @@ function calculateWidthOfStem(w, coordinate) {
 			pixels = this.WIDTH_GEAR_MIN;
 		}
 	}
+	if (pixels > this.WIDTH_GEAR_PROPER) {
+		return Math.floor(pixels);
+	}
+
 	let rpx = Math.round(pixels);
-	if (rpx > this.WIDTH_GEAR_MIN && rpx - pixels0 > this.SHRINK_THERSHOLD) {
+	if (rpx > 0 && rpx - pixels0 > this.SHRINK_THERSHOLD) {
 		rpx -= 1;
 	}
 	return rpx;
@@ -34,16 +36,20 @@ function calculateWidthOfStem(w, coordinate) {
 
 // Decide proper widths of stems globally
 function decideWidths(stems, priorityMap) {
-	const { ppem, uppx, strategy } = this;
+	const { strategy, upm, ppem, uppx } = this;
+	const doCoordinate =
+		!strategy.DONT_COORDINATE_WIDTHS &&
+		this.CANONICAL_STEM_WIDTH / upm < 0.004 * ppem &&
+		this.CANONICAL_STEM_WIDTH / upm > 0.0015 * ppem;
 	let tws = [];
 	let areaLost = 0;
 	let totalWidth = 0;
 	for (let j = 0; j < stems.length; j++) {
-		tws[j] = calculateWidthOfStem.call(this, stems[j].width, true);
+		tws[j] = calculateWidthOfStem.call(this, stems[j].width, doCoordinate);
 		totalWidth += stems[j].width;
 		areaLost += (stems[j].width / uppx - tws[j]) * (stems[j].xmax - stems[j].xmin);
 	}
-	if (strategy.DONT_COORDINATE_WIDTHS) return tws;
+	if (!doCoordinate) return tws;
 	// Coordinate widths
 	let averageWidth = totalWidth / stems.length;
 	let coordinateWidth = calculateWidthOfStem.call(this, averageWidth, true);

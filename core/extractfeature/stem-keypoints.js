@@ -1,26 +1,18 @@
 "use strict";
 
-const slopeOf = require("../types/").slopeOf;
 const hlkey = require("../findstem/hlkey");
 const { mix } = require("../../support/common");
 const { atGlyphBottom } = require("../../support/stem-spatial");
 
-function keyptPriority(incoming, current, atr) {
-	if (atr) {
-		return current.x < incoming.x;
-	} else {
-		return current.x > incoming.x;
-	}
-}
-
-function hasGreaterUpperPromixity(stems, js, dov, P) {
+function hasGreaterLowerPromixity(stems, js, dov, P) {
 	var promUp = 0;
 	var promDown = 0;
 	for (let j = 0; j < stems.length; j++) {
 		if (dov[j][js]) promUp += P[j][js];
 		if (dov[js][j]) promDown += P[js][j];
 	}
-	return promUp > promDown && promDown > 0;
+
+	return promUp * 2 <= promDown && promUp > 0;
 }
 
 module.exports = function(glyph, strategy, dov, P) {
@@ -28,12 +20,12 @@ module.exports = function(glyph, strategy, dov, P) {
 	for (var js = 0; js < glyph.stems.length; js++) {
 		const s = glyph.stems[js];
 		// posKeyShouldAtBottom : a bottom stem?
-		const { highkey, lowkey, slope } = hlkey.correctYWForStem(s, strategy);
+		const { highkey, lowkey } = hlkey.correctYWForStem(s, strategy);
 		highkey.touched = lowkey.touched = true;
 		// when PRIORITIZE_POSKEY_AT_BOTTOM is set, posKeyShouldAtBottom is decided ONLY by whether a stem
 		// has another stem above it.
 		const posKeyShouldAtBottom = strategy.PRIORITIZE_POSKEY_AT_BOTTOM
-			? s.hasGlyphStemAbove ||
+			? (s.hasGlyphStemAbove && !hasGreaterLowerPromixity(glyph.stems, js, dov, P)) ||
 				s.y <= mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 0.5)
 			: atGlyphBottom(s, strategy) &&
 				(s.hasGlyphStemAbove ||
