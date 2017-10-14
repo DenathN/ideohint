@@ -27,12 +27,21 @@ function segmentJoinable(pivot, segment, radical) {
 	}
 	return false;
 }
-
+function expandZ(radical, z, dx, dy, maxticks) {
+	let z1 = { x: z.x + dx, y: z.y + dy },
+		steps = 0;
+	while (radical.includes(z1) && steps < maxticks) {
+		z1.x += dx;
+		z1.y += dy;
+		steps++;
+	}
+	return z1;
+}
 function isVertical(radical, strategy, u, v, mh, ov) {
-	let d1 = minmaxOfSeg(u);
-	let d2 = minmaxOfSeg(v);
-	let p = leftmostZ(u);
-	let q = leftmostZ(v);
+	const d1 = minmaxOfSeg(u);
+	const d2 = minmaxOfSeg(v);
+	const p = leftmostZ(u);
+	const q = leftmostZ(v);
 	const sprop = xclamp(
 		0,
 		(Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min)) / strategy.UPM * 2,
@@ -40,16 +49,21 @@ function isVertical(radical, strategy, u, v, mh, ov) {
 	);
 
 	const slope1 = slopeOf(u),
-		slope2 = slopeOf(v);
-	const slope = (slope1 + slope2) / 2;
-
+		slope2 = slopeOf(v),
+		slope = (slope1 + slope2) / 2;
+	if (slope >= 0 ? slope > strategy.SLOPE_FUZZ * sprop : slope < -strategy.SLOPE_FUZZ_NEG * sprop)
+		return true;
+	if (Math.abs(p.y - q.y) > mh) return true;
+	if ((Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min)) * ov >= Math.abs(p.y - q.y) * 1.25)
+		return false;
+	// do some expansion
+	const p1 = expandZ(radical, p, -1, -slope, strategy.UPM),
+		q1 = expandZ(radical, q, -1, -slope, strategy.UPM),
+		coP = expandZ(radical, rightmostZ(u), 1, slope, strategy.UPM),
+		coQ = expandZ(radical, rightmostZ(v), 1, slope, strategy.UPM);
 	return (
-		(slope >= 0
-			? slope > strategy.SLOPE_FUZZ * sprop
-			: slope < -strategy.SLOPE_FUZZ_NEG * sprop) ||
-		Math.abs(p.y - q.y) > mh ||
-		(Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min)) * ov <
-			Math.abs(p.y - q.y) * (slope1 || slope2 ? 0.9 : 1.1)
+		(coP.x - p1.x) * ov < Math.abs(p.y - q.y) * 1.25 ||
+		(coQ.x - q1.x) * ov < Math.abs(p.y - q.y) * 1.25
 	);
 }
 
