@@ -5,7 +5,11 @@ const minmaxOfSeg = require("./seg").minmaxOfSeg;
 const slopeOf = require("../types/").slopeOf;
 const splitDiagonalStems = require("./splitting").splitDiagonalStems;
 const hlkey = require("./hlkey");
-const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ } = require("../../support/common");
+const {
+	leftmostZ_SS: leftmostZ,
+	rightmostZ_SS: rightmostZ,
+	expandZ
+} = require("../../support/common");
 const { xclamp } = require("../../support/common");
 
 const monoip = require("../../support/monotonic-interpolate");
@@ -27,16 +31,7 @@ function segmentJoinable(pivot, segment, radical) {
 	}
 	return false;
 }
-function expandZ(radical, z, dx, dy, maxticks) {
-	let z1 = { x: z.x + dx, y: z.y + dy },
-		steps = 0;
-	while (radical.includesEdge(z1) && steps < maxticks) {
-		z1.x += dx;
-		z1.y += dy;
-		steps++;
-	}
-	return z1;
-}
+
 function isVertical(radical, strategy, u, v, mh, ov) {
 	const d1 = minmaxOfSeg(u);
 	const d2 = minmaxOfSeg(v);
@@ -57,10 +52,10 @@ function isVertical(radical, strategy, u, v, mh, ov) {
 	if ((Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min)) * ov >= Math.abs(p.y - q.y) * 1.25)
 		return false;
 	// do some expansion
-	const p1 = expandZ(radical, p, -1, -slope, strategy.UPM),
-		q1 = expandZ(radical, q, -1, -slope, strategy.UPM),
-		coP = expandZ(radical, rightmostZ(u), 1, slope, strategy.UPM),
-		coQ = expandZ(radical, rightmostZ(v), 1, slope, strategy.UPM);
+	const p1 = expandZ(radical, p, -1, -slope1, strategy.UPM),
+		q1 = expandZ(radical, q, -1, -slope2, strategy.UPM),
+		coP = expandZ(radical, rightmostZ(u), 1, slope1, strategy.UPM),
+		coQ = expandZ(radical, rightmostZ(v), 1, slope2, strategy.UPM);
 	return (
 		(coP.x - p1.x) * ov < Math.abs(p.y - q.y) * 1.25 ||
 		(coQ.x - q1.x) * ov < Math.abs(p.y - q.y) * 1.25
@@ -261,7 +256,7 @@ function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
 			}
 			highEdge = highEdge.sort(by_xori);
 			lowEdge = lowEdge.sort(by_xori).reverse();
-			let segOverlap = overlapInfo(highEdge, lowEdge, strategy);
+			let segOverlap = overlapInfo(highEdge, lowEdge, radical);
 			let hasEnoughOverlap =
 				segOverlap.len / segOverlap.la >= strategy.COLLISION_MIN_OVERLAP_RATIO ||
 				segOverlap.len / segOverlap.lb >= strategy.COLLISION_MIN_OVERLAP_RATIO;
