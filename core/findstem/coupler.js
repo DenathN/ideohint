@@ -30,7 +30,7 @@ function segmentJoinable(pivot, segment, radical) {
 function expandZ(radical, z, dx, dy, maxticks) {
 	let z1 = { x: z.x + dx, y: z.y + dy },
 		steps = 0;
-	while (radical.includes(z1) && steps < maxticks) {
+	while (radical.includesEdge(z1) && steps < maxticks) {
 		z1.x += dx;
 		z1.y += dy;
 		steps++;

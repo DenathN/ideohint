@@ -15,6 +15,14 @@ Radical.prototype.includes = function(z) {
 	}
 	return true;
 };
+Radical.prototype.includesEdge = function(z) {
+	for (let u = -1; u <= 1; u++)
+		for (let v = -1; v <= 1; v++)
+			if (this.includes({ x: z.x + u, y: z.y + v })) {
+				return true;
+			}
+	return false;
+};
 Radical.prototype.includesSegment = function(z1, z2) {
 	var SEGMENTS = 64;
 	for (var s = 1; s < SEGMENTS; s++) {
