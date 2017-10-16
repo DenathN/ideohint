@@ -2,9 +2,7 @@
 
 const fs = require("fs");
 const readline = require("readline");
-const stream = require("stream");
 const devnull = require("dev-null");
-const yargs = require("yargs");
 const nodeStatic = require("node-static");
 
 const krampus = require("krampus");
@@ -44,8 +42,6 @@ function processPost(request, response, callback) {
 		response.end();
 	}
 }
-
-const charCache = new Map();
 
 function acquireCharacters(hgl, w, callback) {
 	const instream = fs.createReadStream(hgl);

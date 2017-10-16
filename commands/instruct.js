@@ -2,20 +2,13 @@
 
 const fs = require("fs");
 const readline = require("readline");
-const stream = require("stream");
 const devnull = require("dev-null");
-const util = require("util");
-const stripBom = require("strip-bom");
-const oboe = require("oboe");
 const instruct = require("../instructor").instruct;
-const stringifyToStream = require("../support/stringify-to-stream");
 
 const cvtlib = require("../instructor/cvt");
 const paramLib = require("../support/paramfile");
 const strategyLib = require("../support/strategy");
-const { talk, generateCVT, generateFPGM } = require("../instructor/vtttalk");
-
-const hashContours = require("../core/otdParser").hashContours;
+const { talk } = require("../instructor/vtttalk");
 
 exports.command = "instruct";
 exports.describe = "Create instruction file.";
@@ -31,11 +24,6 @@ exports.builder = function(yargs) {
 };
 
 exports.handler = function(argv) {
-	if (argv.help) {
-		yargs.showHelp();
-		return;
-	}
-
 	const InStream = () => (argv._[1] ? fs.createReadStream(argv._[1]) : process.stdin);
 	const OutStream = () =>
 		argv.o ? fs.createWriteStream(argv.o, { encoding: "utf-8" }) : process.stdout;
@@ -53,12 +41,10 @@ function mapInstrut(_) {
 	const rl = readline.createInterface(InStream(), devnull());
 	const outStream = OutStream();
 
-	let n = 1;
 	rl.on("line", function(line) {
 		const l = line.trim();
 		if (!l) return;
 		const data = JSON.parse(l);
-		const decision = data.ideohint_decision;
 		const hgsData = {
 			hash: data.hash,
 			name: data.name,
@@ -68,9 +54,6 @@ function mapInstrut(_) {
 				talk(data.ideohint_decision, strategy, cvtPadding, fpgmPadding, data.contours) || ""
 		};
 		outStream.write(JSON.stringify(hgsData) + "\n");
-
-		if (n % 100 === 0) console.error(`Processed ${n} glyphs.`);
-		n += 1;
 	});
 	rl.on("close", function() {
 		if (process.stdout !== outStream) outStream.end();

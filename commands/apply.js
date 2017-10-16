@@ -2,10 +2,7 @@
 
 var fs = require("fs");
 var readline = require("readline");
-var stream = require("stream");
 var devnull = require("dev-null");
-var util = require("util");
-var stripBom = require("strip-bom");
 var oboe = require("oboe");
 var instruct = require("../instructor").instruct;
 var stringifyToStream = require("../support/stringify-to-stream");
@@ -13,14 +10,6 @@ var cvtlib = require("../instructor/cvt");
 var { talk, generateCVT, generateFPGM } = require("../instructor/vtttalk");
 
 var hashContours = require("../core/otdParser").hashContours;
-
-var crypto = require("crypto");
-function md5(text) {
-	return crypto
-		.createHash("md5")
-		.update(text)
-		.digest("hex");
-}
 
 exports.command = "apply";
 exports.describe = "Apply hints to font dump.";
@@ -35,18 +24,15 @@ exports.builder = function(yargs) {
 		.describe("CVT_PADDING", "Specify CVT Padding.");
 };
 exports.handler = function(argv) {
-	var hgiStream = argv._[2] ? fs.createReadStream(argv._[1], "utf-8") : process.stdin;
-	var rl = readline.createInterface(hgiStream, devnull());
-	var parameterFile = require("../support/paramfile").from(argv);
-	var strategy = require("../support/strategy").from(argv, parameterFile);
+	const hgiStream = argv._[2] ? fs.createReadStream(argv._[1], "utf-8") : process.stdin;
+	const rl = readline.createInterface(hgiStream, devnull());
+	const parameterFile = require("../support/paramfile").from(argv);
+	const strategy = require("../support/strategy").from(argv, parameterFile);
 
 	const cvtPadding = cvtlib.getPadding(argv, parameterFile);
 	const fpgmPadding = cvtlib.getFpgmPadding(argv, parameterFile);
-	var linkCvt = cvtlib.createCvt([], strategy, cvtPadding);
 
-	var activeInstructions = {};
-	var tsi = {};
-	var glyfcor = {};
+	const activeInstructions = {};
 
 	rl.on("line", function(line) {
 		const dataStr = line.trim();
@@ -90,13 +76,7 @@ exports.handler = function(argv) {
 							// Prefer VTTTalk than TTF
 							if (!otd.TSI_23.glyphs) otd.TSI_23.glyphs = {};
 							otd.TSI_23.glyphs[g] = (airef.VTTTalk ||
-								talk(
-									airef.ideohint_decision,
-									strategy,
-									cvtPadding,
-									fpgmPadding,
-									data.contours
-								) ||
+								talk(airef.ideohint_decision, strategy, cvtPadding, fpgmPadding) ||
 								""
 							).replace(/\n/g, "\r"); // vtt uses CR
 							glyph.instructions = [];
@@ -133,7 +113,7 @@ exports.handler = function(argv) {
 				stringifyToStream(otd, outStream, outStream === process.stdout)();
 			})
 			.on("fail", function(e) {
-				console.log(e);
+				console.error(e);
 			});
 	}
 };
