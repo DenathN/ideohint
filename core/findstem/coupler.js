@@ -10,7 +10,7 @@ const {
 	rightmostZ_SS: rightmostZ,
 	expandZ
 } = require("../../support/common");
-const { xclamp } = require("../../support/common");
+const { xclamp, mix, mixz } = require("../../support/common");
 
 const monoip = require("../../support/monotonic-interpolate");
 function toVQ(v, ppem) {
@@ -32,6 +32,15 @@ function segmentJoinable(pivot, segment, radical) {
 	return false;
 }
 
+const PROPORTION = 2;
+const PROBES = 8;
+
+function testExpandRho(rho, p, q, coP, coQ, ov, slope1, slope2, radical, upm) {
+	const left = expandZ(radical, mixz(p, q, rho), -1, -mix(slope1, slope2, rho), upm);
+	const right = expandZ(radical, mixz(coP, coQ, rho), 1, mix(slope1, slope2, rho), upm);
+	return (right.x - left.x) * ov < Math.abs(p.y - q.y) * PROPORTION;
+}
+
 function isVertical(radical, strategy, u, v, mh, ov) {
 	const d1 = minmaxOfSeg(u);
 	const d2 = minmaxOfSeg(v);
@@ -49,17 +58,21 @@ function isVertical(radical, strategy, u, v, mh, ov) {
 	if (slope >= 0 ? slope > strategy.SLOPE_FUZZ * sprop : slope < -strategy.SLOPE_FUZZ_NEG * sprop)
 		return true;
 	if (Math.abs(p.y - q.y) > mh) return true;
-	if ((Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min)) * ov >= Math.abs(p.y - q.y) * 1.25)
+	if (
+		(Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min)) * ov >=
+		Math.abs(p.y - q.y) * PROPORTION
+	)
 		return false;
 	// do some expansion
-	const p1 = expandZ(radical, p, -1, -slope1, strategy.UPM),
-		q1 = expandZ(radical, q, -1, -slope2, strategy.UPM),
-		coP = expandZ(radical, rightmostZ(u), 1, slope1, strategy.UPM),
-		coQ = expandZ(radical, rightmostZ(v), 1, slope2, strategy.UPM);
-	return (
-		(coP.x - p1.x) * ov < Math.abs(p.y - q.y) * 1.25 ||
-		(coQ.x - q1.x) * ov < Math.abs(p.y - q.y) * 1.25
-	);
+	const coP = rightmostZ(u);
+	const coQ = rightmostZ(v);
+	const upm = strategy.UPM;
+	if (testExpandRho(0, p, q, coP, coQ, ov, slope1, slope2, radical, upm)) return true;
+	if (testExpandRho(1, p, q, coP, coQ, ov, slope1, slope2, radical, upm)) return true;
+	for (let rho = 1; rho < PROBES; rho++) {
+		if (testExpandRho(rho / PROBES, p, q, coP, coQ, ov, slope1, slope2, radical, upm))
+			return true;
+	}
 }
 
 function approSlope(z1, z2, strategy) {

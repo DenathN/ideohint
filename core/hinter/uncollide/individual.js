@@ -18,8 +18,7 @@ class Individual {
 		const y = this.gene,
 			A = env.A,
 			C = env.C,
-			n = y.length,
-			avails = env.avails;
+			n = y.length;
 
 		let p = 0;
 		for (let j = 0; j < n; j++) {
@@ -38,6 +37,7 @@ class Individual {
 			avails = env.avails,
 			n = y.length,
 			dov = env.directOverlaps,
+			P = env.P,
 			OVERSEP = env.COEFF_OVERSEP;
 		let p = 0;
 		// top oversep
@@ -55,7 +55,7 @@ class Individual {
 						(avails[j].y0px - avails[j].w0px - avails[k].y0px) -
 					1;
 				if (y[j] - avails[j].properWidth - y[k] <= 0) continue;
-				p += overSeparation * overSeparation * OVERSEP;
+				p += overSeparation * overSeparation * OVERSEP * 1 / ((P[j][k] || 0) + 1);
 			}
 		}
 		return p;
@@ -133,7 +133,7 @@ class Individual {
 
 		let p = 0;
 		// Prop distortion
-		for (let j = 0; j < y.length; j++) {
+		for (let j = 0; j < n; j++) {
 			p += avails[j].ablationCoeff * uppx * Math.abs(y[j] - avails[j].center);
 			if (y[j] > avails[j].softHigh) {
 				p +=
