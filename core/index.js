@@ -4,7 +4,7 @@ const hintForSize = require("../core/hinter");
 const { parseOTD } = require("./otdParser");
 const { xclamp } = require("../support/common");
 
-exports.version = 10037;
+exports.version = 10040;
 
 exports.hintSingleGlyph = function(contours, strategy) {
 	return exports.decideHints(
@@ -71,7 +71,9 @@ class SizeIndependentHints {
 				slope: s.slope,
 				rid: s.rid,
 				atLeft: s.atLeft,
-				atRight: s.atRight
+				atRight: s.atRight,
+				xmin: s.xmin,
+				xmax: s.xmax
 			};
 		});
 	}
