@@ -1,10 +1,6 @@
 "use strict";
 
-const {
-	leftmostZ_S: leftmostZ,
-	rightmostZ_S: rightmostZ,
-	expandZ
-} = require("../../support/common");
+const { leftmostZ_S: leftmostZ, rightmostZ_S: rightmostZ, expandZ } = require("./seg");
 const slopeOf = require("../types/").slopeOf;
 
 function byAt(p, q) {

@@ -15,9 +15,9 @@ Radical.prototype.includes = function(z) {
 	}
 	return true;
 };
-Radical.prototype.includesEdge = function(z) {
-	for (let u = -1; u <= 1; u++)
-		for (let v = -1; v <= 1; v++)
+Radical.prototype.includesEdge = function(z, mu, mv) {
+	for (let u = -mu; u <= mu; u++)
+		for (let v = -mv; v <= mv; v++)
 			if (this.includes({ x: z.x + u, y: z.y + v })) {
 				return true;
 			}

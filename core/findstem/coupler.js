@@ -1,15 +1,10 @@
 "use strict";
 
-const overlapInfo = require("./overlap").overlapInfo;
-const minmaxOfSeg = require("./seg").minmaxOfSeg;
+const { overlapInfo, overlapRatio } = require("./overlap");
 const slopeOf = require("../types/").slopeOf;
 const splitDiagonalStems = require("./splitting").splitDiagonalStems;
 const hlkey = require("./hlkey");
-const {
-	leftmostZ_SS: leftmostZ,
-	rightmostZ_SS: rightmostZ,
-	expandZ
-} = require("../../support/common");
+const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ, expandZ } = require("./seg");
 const { xclamp, mix, mixz } = require("../../support/common");
 
 const monoip = require("../../support/monotonic-interpolate");
@@ -32,25 +27,22 @@ function segmentJoinable(pivot, segment, radical) {
 	return false;
 }
 
-const PROPORTION = 2;
+const PROPORTION = 1.5;
 const PROBES = 8;
 
-function testExpandRho(rho, p, q, coP, coQ, ov, slope1, slope2, radical, upm) {
+function testExpandRho(rho, p, q, coP, coQ, slope1, slope2, radical, upm) {
 	const left = expandZ(radical, mixz(p, q, rho), -1, -mix(slope1, slope2, rho), upm);
 	const right = expandZ(radical, mixz(coP, coQ, rho), 1, mix(slope1, slope2, rho), upm);
-	return (right.x - left.x) * ov < Math.abs(p.y - q.y) * PROPORTION;
+	return right.x - left.x < Math.abs(p.y - q.y) * PROPORTION;
 }
 
-function isVertical(radical, strategy, u, v, mh, ov) {
-	const d1 = minmaxOfSeg(u);
-	const d2 = minmaxOfSeg(v);
+function isVertical(radical, strategy, u, v, mh) {
 	const p = leftmostZ(u);
 	const q = leftmostZ(v);
-	const sprop = xclamp(
-		0,
-		(Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min)) / strategy.UPM * 2,
-		1
-	);
+	const coP = rightmostZ(u);
+	const coQ = rightmostZ(v);
+	const upm = strategy.UPM;
+	const sprop = xclamp(0, (Math.max(coP.x, coQ.x) - Math.min(p.x, q.x)) / strategy.UPM * 2, 1);
 
 	const slope1 = slopeOf(u),
 		slope2 = slopeOf(v),
@@ -58,20 +50,17 @@ function isVertical(radical, strategy, u, v, mh, ov) {
 	if (slope >= 0 ? slope > strategy.SLOPE_FUZZ * sprop : slope < -strategy.SLOPE_FUZZ_NEG * sprop)
 		return true;
 	if (Math.abs(p.y - q.y) > mh) return true;
+
 	if (
-		(Math.max(d1.max, d2.max) - Math.min(d1.min, d2.min)) * ov >=
-		Math.abs(p.y - q.y) * PROPORTION
+		coP.x - p.x >= Math.abs(p.y - q.y) * PROPORTION &&
+		coQ.x - q.x >= Math.abs(p.y - q.y) * PROPORTION
 	)
 		return false;
 	// do some expansion
-	const coP = rightmostZ(u);
-	const coQ = rightmostZ(v);
-	const upm = strategy.UPM;
-	if (testExpandRho(0, p, q, coP, coQ, ov, slope1, slope2, radical, upm)) return true;
-	if (testExpandRho(1, p, q, coP, coQ, ov, slope1, slope2, radical, upm)) return true;
+	if (testExpandRho(0, p, q, coP, coQ, slope1, slope2, radical, upm)) return true;
+	if (testExpandRho(1, p, q, coP, coQ, slope1, slope2, radical, upm)) return true;
 	for (let rho = 1; rho < PROBES; rho++) {
-		if (testExpandRho(rho / PROBES, p, q, coP, coQ, ov, slope1, slope2, radical, upm))
-			return true;
+		if (testExpandRho(rho / PROBES, p, q, coP, coQ, slope1, slope2, radical, upm)) return true;
 	}
 }
 
@@ -199,7 +188,10 @@ function udMatchable(sj, sk, radical, strategy) {
 	return true;
 }
 
-function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
+const MATCH_OPPOSITE = 1;
+const MATCH_SAME_SIDE = 2;
+
+function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strategy) {
 	let candidate = { high: [], low: [] };
 	const maxh =
 		toVQ(strategy.CANONICAL_STEM_WIDTH, strategy.PPEM_MAX) *
@@ -209,8 +201,8 @@ function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
 	} else {
 		candidate.low.push(j);
 	}
-	let rejected = [];
 	used[j] = true;
+	let rejected = [];
 	let succeed = false;
 	let foundMatch = false;
 	let rounds = 0;
@@ -226,36 +218,45 @@ function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
 			} else {
 				expandingU = false;
 			}
-			for (let k = 0; k < segs.length; k++)
-				if (!used[k] && (up[k] !== up[j]) === !!(pass % 2)) {
-					let sameSide, otherSide;
-					if (up[k]) {
-						sameSide = candidate.high;
-						otherSide = candidate.low;
-					} else {
-						sameSide = candidate.low;
-						otherSide = candidate.high;
-					}
-					let matchD = true;
-					let matchU = !sameSide.length;
-					for (let s = 0; s < sameSide.length; s++) {
-						let hj = sameSide[s];
-						if (graph[k][hj] === 1 || graph[hj][k] === 1) matchU = true;
-					}
-					for (let s = 0; s < otherSide.length; s++) {
-						let hj = otherSide[s];
-						if (graph[k][hj] !== 2 && graph[hj][k] !== 2) matchD = false;
-					}
-					if (matchU && matchD) {
-						sameSide.push(k);
-						if (pass % 2) {
-							expandingD = true;
-						} else {
-							expandingU = true;
-						}
-						used[k] = true;
-					}
+			let possibleStems = [];
+			for (let k = 0; k < segs.length; k++) {
+				if (used[k] || (up[k] !== up[j]) !== !!(pass % 2)) continue;
+				let sameSide, otherSide;
+				if (up[k]) {
+					sameSide = candidate.high;
+					otherSide = candidate.low;
+				} else {
+					sameSide = candidate.low;
+					otherSide = candidate.high;
 				}
+				let matchD = true;
+				let matchU = !sameSide.length;
+				for (let s = 0; s < sameSide.length; s++) {
+					let hj = sameSide[s];
+					if (graph[k][hj] === MATCH_SAME_SIDE || graph[hj][k] === MATCH_SAME_SIDE)
+						matchU = true;
+				}
+				for (let s = 0; s < otherSide.length; s++) {
+					let hj = otherSide[s];
+					if (graph[k][hj] !== MATCH_OPPOSITE && graph[hj][k] !== MATCH_OPPOSITE)
+						matchD = false;
+				}
+				if (matchU && matchD) {
+					let oveK = 0;
+					for (let j of otherSide) oveK = Math.max(oveK, ove[j][k]);
+					possibleStems.push({ sid: k, ove: oveK, sameSide, otherSide });
+				}
+			}
+			possibleStems = possibleStems.sort((a, b) => b.ove - a.ove);
+			for (let sk of possibleStems) {
+				sk.sameSide.push(sk.sid);
+				if (pass % 2) {
+					expandingD = true;
+				} else {
+					expandingU = true;
+				}
+				used[sk.sid] = true;
+			}
 		}
 		if (candidate.high.length && candidate.low.length) {
 			foundMatch = true;
@@ -273,17 +274,7 @@ function identifyStem(radical, used, segs, candidates, graph, up, j, strategy) {
 			let hasEnoughOverlap =
 				segOverlap.len / segOverlap.la >= strategy.COLLISION_MIN_OVERLAP_RATIO ||
 				segOverlap.len / segOverlap.lb >= strategy.COLLISION_MIN_OVERLAP_RATIO;
-			if (
-				hasEnoughOverlap &&
-				!isVertical(
-					radical,
-					strategy,
-					highEdge,
-					lowEdge,
-					maxh,
-					Math.max(segOverlap.len / segOverlap.la, segOverlap.len / segOverlap.lb)
-				)
-			) {
+			if (hasEnoughOverlap && !isVertical(radical, strategy, highEdge, lowEdge, maxh)) {
 				succeed = true;
 				candidates.push({
 					high: highEdge,
@@ -324,12 +315,15 @@ function by_xori(a, b) {
 }
 function pairSegmentsForRadical(radical, r, strategy) {
 	let graph = [],
+		ove = [],
 		up = [];
 	let segs = radical.segments.sort(by_yori);
 	for (let j = 0; j < segs.length; j++) {
 		graph[j] = [];
+		ove[j] = [];
 		for (let k = 0; k < segs.length; k++) {
 			graph[j][k] = 0;
+			ove[j][k] = 0;
 		}
 	}
 	for (let j = 0; j < segs.length; j++) {
@@ -341,17 +335,18 @@ function pairSegmentsForRadical(radical, r, strategy) {
 			let upperEdgeK = radical.outline.ccw !== sk[0].x < sk[sk.length - 1].x;
 			if (upperEdgeJ === upperEdgeK) {
 				// Both upper
-				graph[j][k] = uuCouplable(sj, sk, radical, strategy) ? 1 : 0;
+				graph[j][k] = uuCouplable(sj, sk, radical, strategy) ? MATCH_SAME_SIDE : 0;
 			} else {
-				graph[j][k] = udMatchable(sj, sk, radical, strategy) ? 2 : 0;
+				graph[j][k] = udMatchable(sj, sk, radical, strategy) ? MATCH_OPPOSITE : 0;
 			}
+			ove[j][k] = overlapRatio([sj], [sk], Math.min);
 		}
 	}
 	let candidates = [];
 	let used = [];
 	for (let j = 0; j < segs.length; j++)
 		if (!used[j]) {
-			identifyStem(radical, used, segs, candidates, graph, up, j, strategy);
+			identifyStem(radical, used, segs, candidates, graph, ove, up, j, strategy);
 		}
 	return candidates.map(function(s) {
 		return {
@@ -383,7 +378,6 @@ function pairSymmetricStems(stems, strategy) {
 		for (let k = j + 1; k < stems.length; k++)
 			if (stems[j] && stems[k]) {
 				let delta1 = stems[j].belongRadical === stems[k].belongRadical ? 0.002 : 0.005;
-				let delta2 = stems[j].belongRadical === stems[k].belongRadical ? 0.001 : 0.003;
 				if (
 					Math.abs(stems[j].y - stems[j].width / 2 - stems[k].y + stems[k].width / 2) <=
 						strategy.UPM * delta1 &&

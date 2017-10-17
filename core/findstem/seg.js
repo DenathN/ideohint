@@ -1,5 +1,7 @@
 "use strict";
 
+// Util functions to deal with segs
+
 const { adjacent: adjacent } = require("../types/point");
 
 exports.minmaxOfSeg = function(u) {
@@ -23,4 +25,37 @@ exports.segmentsPromixity = function(s1, s2) {
 			if (adjacent(s1[j][1], s2[k][1])) count += 1;
 		}
 	return 2 * count / (s1.length + s2.length);
+};
+
+exports.leftmostZ_S = function(seg) {
+	let m = seg[0];
+	for (let z of seg) if (!m || (z && z.x < m.x)) m = z;
+	return m;
+};
+exports.rightmostZ_S = function(seg) {
+	let m = seg[0];
+	for (let z of seg) if (!m || (z && z.x > m.x)) m = z;
+	return m;
+};
+
+exports.leftmostZ_SS = function(segs) {
+	let m = segs[0][0];
+	for (let seg of segs) for (let z of seg) if (!m || (z && z.x < m.x)) m = z;
+	return m;
+};
+exports.rightmostZ_SS = function(segs) {
+	let m = segs[0][0];
+	for (let seg of segs) for (let z of seg) if (!m || (z && z.x > m.x)) m = z;
+	return m;
+};
+
+exports.expandZ = function expandZ(radical, z, dx, dy, maxticks) {
+	let z1 = { x: z.x + dx, y: z.y + dy },
+		steps = 0;
+	while (radical.includesEdge(z1, 0, 2) && steps < maxticks) {
+		z1.x += dx;
+		z1.y += dy;
+		steps++;
+	}
+	return z1;
 };
