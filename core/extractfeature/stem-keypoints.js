@@ -2,7 +2,6 @@
 
 const hlkey = require("../findstem/hlkey");
 const { mix } = require("../../support/common");
-const { atGlyphBottom } = require("../../support/stem-spatial");
 
 function hasGreaterLowerPromixity(stems, js, dov, P) {
 	var promUp = 0;
@@ -22,16 +21,15 @@ module.exports = function(glyph, strategy, dov, P) {
 		// posKeyShouldAtBottom : a bottom stem?
 		const { highkey, lowkey } = hlkey.correctYWForStem(s, strategy);
 		highkey.touched = lowkey.touched = true;
-		// when PRIORITIZE_POSKEY_AT_BOTTOM is set, posKeyShouldAtBottom is decided ONLY by whether a stem
-		// has another stem above it.
-		const posKeyShouldAtBottom = strategy.PRIORITIZE_POSKEY_AT_BOTTOM
-			? ((s.hasGlyphStemAbove && !hasGreaterLowerPromixity(glyph.stems, js, dov, P)) ||
-					s.y <= mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 0.5)) &&
-				!s.hasGlyphFoldBelow &&
-				!s.hasEntireContourBelow
-			: atGlyphBottom(s, strategy) &&
-				(s.hasGlyphStemAbove ||
-					s.y <= mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 0.1));
+
+		// Identify bottom stems, when it does not have folds or entire contour below it, and
+		// - is below half of the character frame, or
+		// - has a stem above it and not being the top frame of enclosed radical
+		const posKeyShouldAtBottom =
+			((s.hasGlyphStemAbove && !hasGreaterLowerPromixity(glyph.stems, js, dov, P)) ||
+				s.y <= mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 0.5)) &&
+			!s.hasGlyphFoldBelow &&
+			!s.hasEntireContourBelow;
 
 		// get non-key points
 		let highnonkey = [],
