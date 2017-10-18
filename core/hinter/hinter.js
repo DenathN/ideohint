@@ -1,8 +1,7 @@
 "use strict";
 
 const roundings = require("../../support/roundings");
-const { mix, lerp, xlerp, xclamp } = require("../../support/common");
-const monoip = require("../../support/monotonic-interpolate");
+const { lerp, xclamp, toVQ } = require("../../support/common");
 const stemSpat = require("../../support/stem-spatial");
 
 const decideAvails = require("./init/avail");
@@ -11,14 +10,6 @@ const decideWidths = require("./init/decide-widths");
 const Individual = require("./uncollide/individual");
 const uncollide = require("./uncollide");
 const allocateWidth = require("./allocate-width");
-
-function toVQ(v, ppem) {
-	if (v && v instanceof Array) {
-		return monoip(v)(ppem);
-	} else {
-		return v;
-	}
-}
 
 function risefn(x) {
 	return x * x * x * x * x * x;
@@ -158,7 +149,7 @@ class Hinter {
 		return (y + fdy + 1) / 2;
 	}
 
-	cy(y, w0, w, extreme, posKeyAtTop) {
+	cy(y, w0, w, extreme) {
 		const p =
 			(y - w0 - this.strategy.BLUEZONE_BOTTOM_CENTER) /
 			(this.strategy.BLUEZONE_TOP_CENTER - this.strategy.BLUEZONE_BOTTOM_CENTER - w0);
@@ -184,12 +175,12 @@ class Hinter {
 	}
 
 	decideInitHint() {
-		const { avails, strategy, ppem, uppx } = this;
+		const { avails } = this;
 		return avails.map(s => s.center);
 	}
 
 	decideInitHintNT() {
-		const { avails, strategy, ppem, uppx } = this;
+		const { avails, uppx } = this;
 		return avails.map(a =>
 			xclamp(
 				a.low,
@@ -203,7 +194,7 @@ class Hinter {
 	}
 
 	uncollide(y) {
-		const { avails, strategy, ppem, uppx } = this;
+		const { strategy, ppem } = this;
 		const y1 = uncollide(
 			y,
 			this,

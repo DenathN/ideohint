@@ -1,7 +1,6 @@
 "use strict";
 
-const toVQ = require("../../support/vq");
-const { mix } = require("../../support/common");
+const { mix, toVQ } = require("../../support/common");
 
 const GROUP_CVT = gid => "ideohint_CVT_entries" + (gid ? "_" + gid : "");
 const GROUP_FPGM = gid => "ideohint_FPGM_entries" + (gid ? "_" + gid : "");

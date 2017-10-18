@@ -2,33 +2,27 @@
 
 const { overlapInfo, overlapRatio } = require("./overlap");
 const slopeOf = require("../types/").slopeOf;
-const splitDiagonalStems = require("./splitting").splitDiagonalStems;
 const hlkey = require("./hlkey");
 const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ, expandZ } = require("./seg");
-const { xclamp, mix, mixz } = require("../../support/common");
+const { xclamp, mix, mixz, toVQ } = require("../../support/common");
 
-const monoip = require("../../support/monotonic-interpolate");
-function toVQ(v, ppem) {
-	if (v && v instanceof Array) {
-		return monoip(v)(ppem);
-	} else {
-		return v;
-	}
+// substeps
+const findHorizontalSegments = require("./segments");
+const pairSymmetricStems = require("./pair-symmetric-stems");
+const { splitDiagonalStems } = require("./split-diagonal-stems");
+
+function by_yori(a, b) {
+	return a[0].y - b[0].y;
+}
+function by_xori(a, b) {
+	return a[0].x - b[0].x;
 }
 
-function segmentJoinable(pivot, segment, radical) {
-	for (let k = 0; k < pivot.length; k++) {
-		for (let j = 0; j < segment.length; j++) {
-			if (radical.includesSegmentEdge(segment[j], pivot[k], 2, 2, 1, 1)) {
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-const PROPORTION = 1.5;
+const PROPORTION = 1.25;
 const PROBES = 8;
+
+const MATCH_OPPOSITE = 1;
+const MATCH_SAME_SIDE = 2;
 
 function testExpandRho(rho, p, q, coP, coQ, slope1, slope2, radical, upm) {
 	const left = expandZ(radical, mixz(p, q, rho), -1, -mix(slope1, slope2, rho), upm);
@@ -64,114 +58,6 @@ function isVertical(radical, strategy, u, v, mh) {
 	}
 }
 
-function approSlope(z1, z2, strategy) {
-	const slope = (z1.y - z2.y) / (z1.x - z2.x);
-	return slope >= 0 ? slope <= strategy.SLOPE_FUZZ_POS : slope >= -strategy.SLOPE_FUZZ_NEG;
-}
-
-function eqSlopeA(z1, z2) {
-	return z1.y === z2.y && ((z1.on && z2.on) || (!z1.on && !z2.on));
-}
-
-function approSlopeA(z1, z2, strategy) {
-	const slope = (z1.y - z2.y) / (z1.x - z2.x);
-	return (
-		Math.abs(z2.x - z1.x) >= strategy.Y_FUZZ * 2 &&
-		(slope >= 0 ? slope <= strategy.SLOPE_FUZZ : slope >= -strategy.SLOPE_FUZZ_NEG)
-	);
-}
-
-function approSlopeT(z1, z2, strategy) {
-	const slope = (z1.y - z2.y) / (z1.x - z2.x);
-	return slope >= 0 ? slope <= strategy.SLOPE_FUZZ_POST : slope >= -strategy.SLOPE_FUZZ_NEG;
-}
-
-function tryPushSegment(s, ss, approSlopeA, coupled, strategy) {
-	while (s.length > 1) {
-		if (approSlopeA(s[0], s[s.length - 1], strategy)) {
-			for (let z of s) {
-				coupled[z.id] = true;
-			}
-			ss.push(s);
-			return;
-		} else {
-			s = s.shift();
-		}
-	}
-}
-
-function findHSegInContour(r, segments, contour, strategy) {
-	function restart(z) {
-		lastPoint = z;
-		segment = [lastPoint];
-		segment.radical = r;
-	}
-	let coupled = {};
-	let z0 = contour.points[0];
-	let lastPoint = z0;
-	let segment = [lastPoint];
-	for (let [as1, as1t, as2] of [
-		[eqSlopeA, eqSlopeA, eqSlopeA],
-		[approSlope, approSlopeT, approSlopeA]
-	]) {
-		restart(z0);
-		let tores = false;
-		for (let k = 1; k < contour.points.length - 1; k++) {
-			const z = contour.points[k];
-			if (tores || z.interpolated || coupled[lastPoint.id]) {
-				restart(z);
-				tores = false;
-			} else if (!coupled[z.id] && as1t(z, lastPoint, strategy)) {
-				segment.push(z);
-				if (segment.length > 2 && !as1(z, lastPoint, strategy)) {
-					tryPushSegment(segment, segments, as2, coupled, strategy);
-					tores = true;
-				} else {
-					lastPoint = z;
-					tores = false;
-				}
-			} else {
-				tryPushSegment(segment, segments, as2, coupled, strategy);
-				restart(z);
-				tores = false;
-			}
-		}
-		if (!coupled[z0.id] && as1(z0, lastPoint, strategy)) {
-			if (segments[0] && segments[0][0] === z0) {
-				const firstSeg = segment.concat(segments.shift());
-				firstSeg.radical = r;
-				tryPushSegment(firstSeg, segments, as2, coupled, strategy);
-				segment = [z0];
-				segment.radical = r;
-			} else {
-				segment.push(z0);
-			}
-		}
-		tryPushSegment(segment, segments, as2, coupled, strategy);
-	}
-}
-
-// Stemfinding
-function findHorizontalSegments(radicals, strategy) {
-	let segments = [];
-	for (let r = 0; r < radicals.length; r++) {
-		let radicalParts = [radicals[r].outline].concat(radicals[r].holes);
-		for (let j = 0; j < radicalParts.length; j++) {
-			findHSegInContour(r, segments, radicalParts[j], strategy);
-		}
-	}
-
-	segments = segments.sort(function(p, q) {
-		return p[0].x - q[0].x;
-	});
-	// Join segments
-	for (let j = 0; j < segments.length; j++) {
-		if (!segments[j]) continue;
-		let pivotRadical = segments[j].radical;
-		radicals[pivotRadical].segments.push(segments[j]);
-	}
-}
-
 function uuCouplable(sj, sk, radical, strategy) {
 	let slope = (slopeOf([sj]) + slopeOf([sk])) / 2;
 	let ref = leftmostZ([sj]);
@@ -180,6 +66,16 @@ function uuCouplable(sj, sk, radical, strategy) {
 	let delta = Math.abs(focus.x - ref.x) * strategy.SLOPE_FUZZ_P + strategy.Y_FUZZ;
 	return Math.abs(focus.y - desired) <= delta && segmentJoinable(sj, sk, radical);
 }
+function segmentJoinable(pivot, segment, radical) {
+	for (let k = 0; k < pivot.length; k++) {
+		for (let j = 0; j < segment.length; j++) {
+			if (!radical.includesSegmentEdge(segment[j], pivot[k], 2, 2, 1, 1)) continue;
+			return true;
+		}
+	}
+	return false;
+}
+
 function udMatchable(sj, sk, radical, strategy) {
 	if (!radical.includesTetragon(sj, sk, strategy.X_FUZZ)) return false;
 	const slopeJ = slopeOf([sj]);
@@ -187,9 +83,6 @@ function udMatchable(sj, sk, radical, strategy) {
 	if (!!slopeJ !== !!slopeK && Math.abs(slopeJ - slopeK) >= strategy.SLOPE_FUZZ / 2) return false;
 	return true;
 }
-
-const MATCH_OPPOSITE = 1;
-const MATCH_SAME_SIDE = 2;
 
 function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strategy) {
 	let candidate = { high: [], low: [] };
@@ -218,7 +111,8 @@ function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strate
 			} else {
 				expandingU = false;
 			}
-			let possibleStems = [];
+			let maxOve = -1;
+			let sk = null;
 			for (let k = 0; k < segs.length; k++) {
 				if (used[k] || (up[k] !== up[j]) !== !!(pass % 2)) continue;
 				let sameSide, otherSide;
@@ -244,11 +138,12 @@ function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strate
 				if (matchU && matchD) {
 					let oveK = 0;
 					for (let j of otherSide) oveK = Math.max(oveK, ove[j][k]);
-					possibleStems.push({ sid: k, ove: oveK, sameSide, otherSide });
+					if (oveK > maxOve) {
+						sk = { sid: k, ove: oveK, sameSide, otherSide };
+					}
 				}
 			}
-			possibleStems = possibleStems.sort((a, b) => b.ove - a.ove);
-			for (let sk of possibleStems) {
+			if (sk) {
 				sk.sameSide.push(sk.sid);
 				if (pass % 2) {
 					expandingD = true;
@@ -276,6 +171,7 @@ function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strate
 				segOverlap.len / segOverlap.lb >= strategy.COLLISION_MIN_OVERLAP_RATIO;
 			if (hasEnoughOverlap && !isVertical(radical, strategy, highEdge, lowEdge, maxh)) {
 				succeed = true;
+
 				candidates.push({
 					high: highEdge,
 					low: lowEdge
@@ -307,12 +203,6 @@ function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strate
 	}
 }
 
-function by_yori(a, b) {
-	return a[0].y - b[0].y;
-}
-function by_xori(a, b) {
-	return a[0].x - b[0].x;
-}
 function pairSegmentsForRadical(radical, r, strategy) {
 	let graph = [],
 		ove = [],
@@ -339,7 +229,7 @@ function pairSegmentsForRadical(radical, r, strategy) {
 			} else {
 				graph[j][k] = udMatchable(sj, sk, radical, strategy) ? MATCH_OPPOSITE : 0;
 			}
-			ove[j][k] = overlapRatio([sj], [sk], Math.min);
+			ove[j][k] = ove[k][j] = overlapRatio([sj], [sk], Math.min);
 		}
 	}
 	let candidates = [];
@@ -369,31 +259,6 @@ function pairSegments(radicals, strategy) {
 	return stems.sort(function(a, b) {
 		return a.y - b.y;
 	});
-}
-
-// Symmetric stem pairing
-function pairSymmetricStems(stems, strategy) {
-	let res = [];
-	for (let j = 0; j < stems.length; j++) {
-		for (let k = j + 1; k < stems.length; k++)
-			if (stems[j] && stems[k]) {
-				let delta1 = stems[j].belongRadical === stems[k].belongRadical ? 0.002 : 0.005;
-				if (
-					Math.abs(stems[j].y - stems[j].width / 2 - stems[k].y + stems[k].width / 2) <=
-						strategy.UPM * delta1 &&
-					Math.abs(stems[j].width - stems[k].width) <= strategy.UPM * delta1
-				) {
-					stems[j].high = stems[j].high.concat(stems[k].high);
-					stems[j].low = stems[j].low.concat(stems[k].low);
-					stems[k] = null;
-				}
-			}
-	}
-	for (let j = 0; j < stems.length; j++)
-		if (stems[j]) {
-			res.push(stems[j]);
-		}
-	return res;
 }
 
 module.exports = function(radicals, strategy) {

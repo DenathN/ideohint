@@ -1,5 +1,7 @@
 "use strict";
 
+const monoip = require("./monotonic-interpolate");
+
 exports.mix = function(x, y, a) {
 	return x + (y - x) * a;
 };
@@ -18,4 +20,12 @@ exports.xlerp = function(x, x1, x2, x3, y1, y2, y3) {
 };
 exports.xclamp = function(low, x, high) {
 	return x < low ? low : x > high ? high : x;
+};
+
+exports.toVQ = function toVQ(v, ppem) {
+	if (v && v instanceof Array) {
+		return monoip(v)(ppem);
+	} else {
+		return v;
+	}
 };

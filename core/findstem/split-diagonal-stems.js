@@ -3,10 +3,6 @@
 const Point = require("../types/").Point;
 const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ } = require("./seg");
 
-function dup(x) {
-	return JSON.stringify(x);
-}
-
 function shouldSplit(hl, ll, hr, lr, strategy) {
 	if (hl === hr || ll === lr) return false;
 	if (hl.y === hr.y || ll.y === lr.y) return false;
@@ -25,7 +21,7 @@ function shouldSplit(hl, ll, hr, lr, strategy) {
 			Math.abs(ll.y - lr.y) >= strategy.Y_FUZZ_DIAG)
 	);
 }
-function contained(z1, z2, segs, strategy) {
+function contained(z1, z2, segs) {
 	const fuzz = 1;
 	for (let seg of segs)
 		for (let z of seg) {
