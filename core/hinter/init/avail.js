@@ -172,7 +172,7 @@ class Avail {
  * @param {*} stems 
  */
 function adjustAvails(avails, stems) {
-	const { upm, ppem, uppx } = this;
+	const { uppx } = this;
 	const topPx = this.glyphTop / uppx;
 	const bottomPx = this.glyphBottom / uppx;
 	// fix top and bottom stems
@@ -224,7 +224,6 @@ function adjustAvails(avails, stems) {
 }
 
 function decideAvails(stems, tws) {
-	const { upm, ppem, uppx, strategy, tightness } = this;
 	let avails = [];
 	// decide avails
 	for (let j = 0; j < stems.length; j++) {

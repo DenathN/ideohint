@@ -1,11 +1,9 @@
 "use strict";
-const { mix, lerp, xlerp, xclamp } = require("../../support/common");
 
 const Y = 0;
 const W = 1;
 const STRICT = 2;
 const STACKED = 3;
-const ADDPXS = 4;
 
 const BELOW = 1;
 const ABOVE = 2;
@@ -48,27 +46,13 @@ function stemPositionToActions(y, w, stems) {
 				stackrel[k][j] = BELOW;
 				actions[k][STACKED] = true;
 			}
-			if (wj * uppx > sj.width) {
-				if (
-					yj - wj - yk === 1 &&
-					wj > 1 &&
-					wk > 1 &&
-					wk * uppx > sk.width &&
-					wj * uppx + wk * uppx >= sj.width + sk.width + uppx * 0.75 &&
-					(this.atGlyphTop(sj) || this.atGlyphBottom(sk)) &&
-					sj.posKeyAtTop &&
-					!sk.posKeyAtTop
-				) {
-					actions[j][ADDPXS] = (wj * uppx - sj.width) / (2 * uppx);
-				}
-			} else {
-				if (
-					(yj - wj - yk === 1 && sj.posKeyAtTop) ||
-					(twoPixelPack(uppx, yj, wj, yk, wk, sj, sk) &&
-						sj.xmax - sj.xmin < sk.xmax - sk.xmin)
-				) {
-					actions[j][STRICT] = true;
-				}
+			if (wj * uppx > sj.width) continue;
+			if (
+				(yj - wj - yk === 1 && sj.posKeyAtTop) ||
+				(twoPixelPack(uppx, yj, wj, yk, wk, sj, sk) &&
+					sj.xmax - sj.xmin < sk.xmax - sk.xmin)
+			) {
+				actions[j][STRICT] = true;
 			}
 		}
 	}
@@ -91,30 +75,13 @@ function stemPositionToActions(y, w, stems) {
 				stackrel[k][j] = ABOVE;
 				actions[k][STACKED] = true;
 			}
-			if (wj * uppx > sj.width) {
-				// large-blank correction
-				// For |->| |<-| situation, if both rounding are expansive and the impact is above 0.75px
-				// add additional pixel correction into it.
-				if (
-					yk - wk - yj === 1 &&
-					wj > 1 &&
-					wk > 1 &&
-					wk * uppx > sk.width &&
-					wj * uppx + wk * uppx >= sj.width + sk.width + uppx * 0.75 &&
-					(this.atGlyphBottom(sj) || this.atGlyphTop(sk)) &&
-					!sj.posKeyAtTop &&
-					sk.posKeyAtTop
-				) {
-					actions[j][ADDPXS] = (wj * uppx - sj.width) / (2 * uppx);
-				}
-			} else {
-				if (
-					(yk - wk - yj === 1 && !sj.posKeyAtTop) ||
-					(twoPixelPack(uppx, yk, wk, yj, wj, sk, sj) &&
-						sj.xmax - sj.xmin <= sk.xmax - sk.xmin)
-				) {
-					actions[j][STRICT] = true;
-				}
+			if (wj * uppx > sj.width) continue;
+			if (
+				(yk - wk - yj === 1 && !sj.posKeyAtTop) ||
+				(twoPixelPack(uppx, yk, wk, yj, wj, sk, sj) &&
+					sj.xmax - sj.xmin <= sk.xmax - sk.xmin)
+			) {
+				actions[j][STRICT] = true;
 			}
 		}
 	}

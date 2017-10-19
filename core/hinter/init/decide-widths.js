@@ -6,8 +6,8 @@ function gammaCorrect(pixels) {
 }
 
 // decide the proper width of given stem locally
-function calculateWidthOfStem(w, legacyTWS) {
-	if (!legacyTWS) return Math.max(1, Math.round(gammaCorrect(w / this.uppx)));
+function calculateWidthOfStem(w, doCoordinate) {
+	if (!doCoordinate) return Math.max(1, Math.round(gammaCorrect(w / this.uppx)));
 
 	const pixels0 = w / this.uppx;
 	let pixels = w / this.CANONICAL_STEM_WIDTH * this.WIDTH_GEAR_PROPER;
@@ -47,7 +47,10 @@ function decideWidths(stems, priorityMap) {
 	for (let j = 0; j < stems.length; j++) {
 		tws[j] = calculateWidthOfStem.call(this, stems[j].width, doCoordinate);
 		totalWidth += stems[j].width;
-		areaLost += (stems[j].width / uppx - tws[j]) * (stems[j].xmax - stems[j].xmin);
+		const coordinatedOriginalWidth = doCoordinate
+			? stems[j].width / this.CANONICAL_STEM_WIDTH * this.WIDTH_GEAR_PROPER
+			: stems[j].width / uppx;
+		areaLost += (coordinatedOriginalWidth - tws[j]) * (stems[j].xmax - stems[j].xmin);
 	}
 	if (!doCoordinate) return tws;
 	// Coordinate widths

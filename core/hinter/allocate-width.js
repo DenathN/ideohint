@@ -2,13 +2,7 @@
 
 // Width allocator
 
-const { mix, lerp, xlerp, xclamp } = require("../../support/common");
-function spare(y, w, p, q) {
-	return y[p] - y[q] > w[p];
-}
-function veryspare(y, w, p, q) {
-	return y[p] - y[q] > w[p] + 1;
-}
+const { mix, xclamp } = require("../../support/common");
 function edgetouch(s, t) {
 	return (
 		(s.xmin < t.xmin &&
@@ -195,7 +189,6 @@ function allocateWidth(y0, env) {
 		if (env.WIDTH_GEAR_PROPER < 2) continue;
 		for (let psi = 0; psi < 3; psi++) {
 			let applyToLowerOnly = [false, true, true][psi];
-			let minShrinkStrokeLength = [2, 3, 3][psi];
 
 			// push stems down to avoid thin strokes.
 
