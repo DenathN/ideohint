@@ -15,6 +15,20 @@ const { table, distHintedPositions } = require("./vtt/predictor");
 
 const ABRefMethods = [
 	{
+		comment: "DUAL",
+		findItems: elements => {
+			let bottomAnchor = null,
+				topAnchor = null;
+			for (let j = 0; j < elements.length; j++) {
+				if (!bottomAnchor) {
+					bottomAnchor = elements[j];
+				}
+				topAnchor = elements[j];
+			}
+			return { bottomAnchor, bottomStem: bottomAnchor, topAnchor, topStem: topAnchor };
+		}
+	},
+	{
 		comment: "QUAD",
 		findItems: elements => {
 			let bottomAnchor = null,
@@ -45,25 +59,10 @@ const ABRefMethods = [
 			if (topAnchor && topStem && topAnchor.pOrg <= topStem.pOrg) topAnchor = topStem;
 			return { bottomAnchor, bottomStem, topAnchor, topStem };
 		}
-	},
-
-	{
-		comment: "DUAL",
-		findItems: elements => {
-			let bottomAnchor = null,
-				topAnchor = null;
-			for (let j = 0; j < elements.length; j++) {
-				if (!bottomAnchor) {
-					bottomAnchor = elements[j];
-				}
-				topAnchor = elements[j];
-			}
-			return { bottomAnchor, bottomStem: bottomAnchor, topAnchor, topStem: topAnchor };
-		}
 	}
 ];
 
-const rfCombinations = [...product(ABRefMethods.slice(1), [0, 1, 2], [0, 1, 2])];
+const rfCombinations = [...product(ABRefMethods, [0, 1, 2], [0, 1, 2])];
 
 function chooseTBPos0(stemKind, stem, cvtCutin, choices) {
 	let chosen = choices[0];
