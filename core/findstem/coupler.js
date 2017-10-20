@@ -30,20 +30,27 @@ function testExpandRho(rho, p, q, coP, coQ, slope1, slope2, radical, upm) {
 	return right.x - left.x < Math.abs(p.y - q.y) * PROPORTION;
 }
 
-function isVertical(radical, strategy, u, v, mh) {
+function stemShapeIsIncorrect(radical, strategy, u, v, mh) {
 	const p = leftmostZ(u);
 	const q = leftmostZ(v);
 	const coP = rightmostZ(u);
 	const coQ = rightmostZ(v);
 	const upm = strategy.UPM;
-	const sprop = xclamp(0, (Math.max(coP.x, coQ.x) - Math.min(p.x, q.x)) / strategy.UPM * 2, 1);
+	const sprop = xclamp(0, Math.max(coP.x - p.x, coQ.x - q.x) / strategy.UPM * 2, 1);
 
 	const slope1 = slopeOf(u),
 		slope2 = slopeOf(v),
 		slope = (slope1 + slope2) / 2;
-	if (slope >= 0 ? slope > strategy.SLOPE_FUZZ * sprop : slope < -strategy.SLOPE_FUZZ_NEG * sprop)
+	if (
+		slope >= 0
+			? slope1 > strategy.SLOPE_FUZZ * sprop && slope2 > strategy.SLOPE_FUZZ * sprop
+			: slope1 < -strategy.SLOPE_FUZZ_NEG * sprop && slope2 < -strategy.SLOPE_FUZZ_NEG * sprop
+	) {
 		return true;
-	if (Math.abs(p.y - q.y) > mh) return true;
+	}
+	if (Math.abs(p.y - q.y) > mh) {
+		return true;
+	}
 
 	if (
 		coP.x - p.x >= Math.abs(p.y - q.y) * PROPORTION &&
@@ -138,8 +145,10 @@ function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strate
 				if (matchU && matchD) {
 					let oveK = 0;
 					for (let j of otherSide) oveK = Math.max(oveK, ove[j][k]);
+
 					if (oveK > maxOve) {
 						sk = { sid: k, ove: oveK, sameSide, otherSide };
+						maxOve = oveK;
 					}
 				}
 			}
@@ -169,9 +178,12 @@ function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strate
 			let hasEnoughOverlap =
 				segOverlap.len / segOverlap.la >= strategy.COLLISION_MIN_OVERLAP_RATIO ||
 				segOverlap.len / segOverlap.lb >= strategy.COLLISION_MIN_OVERLAP_RATIO;
-			if (hasEnoughOverlap && !isVertical(radical, strategy, highEdge, lowEdge, maxh)) {
-				succeed = true;
 
+			if (
+				hasEnoughOverlap &&
+				!stemShapeIsIncorrect(radical, strategy, highEdge, lowEdge, maxh)
+			) {
+				succeed = true;
 				candidates.push({
 					high: highEdge,
 					low: lowEdge
@@ -225,9 +237,13 @@ function pairSegmentsForRadical(radical, r, strategy) {
 			let upperEdgeK = radical.outline.ccw !== sk[0].x < sk[sk.length - 1].x;
 			if (upperEdgeJ === upperEdgeK) {
 				// Both upper
-				graph[j][k] = uuCouplable(sj, sk, radical, strategy) ? MATCH_SAME_SIDE : 0;
+				graph[j][k] = graph[k][j] = uuCouplable(sj, sk, radical, strategy)
+					? MATCH_SAME_SIDE
+					: 0;
 			} else {
-				graph[j][k] = udMatchable(sj, sk, radical, strategy) ? MATCH_OPPOSITE : 0;
+				graph[j][k] = graph[k][j] = udMatchable(sj, sk, radical, strategy)
+					? MATCH_OPPOSITE
+					: 0;
 			}
 			ove[j][k] = ove[k][j] = overlapRatio([sj], [sk], Math.min);
 		}

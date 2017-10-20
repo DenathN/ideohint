@@ -60,7 +60,7 @@ function decideWidths(stems, priorityMap) {
 	if (areaLost > 0) {
 		let areaLostDecreased = true;
 		let passes = 0;
-		while (areaLostDecreased && areaLost > 0 && passes < 100) {
+		while (areaLostDecreased && passes < 100) {
 			// We will try to increase stroke width if we detected that some pixels are lost.
 			areaLostDecreased = false;
 			passes += 1;
@@ -78,7 +78,7 @@ function decideWidths(stems, priorityMap) {
 	} else {
 		let areaLostDecreased = true;
 		let passes = 0;
-		while (areaLostDecreased && areaLost < 0 && passes < 100) {
+		while (areaLostDecreased && passes < 100) {
 			// We will try to increase stroke width if we detected that some pixels are lost.
 			areaLostDecreased = false;
 			passes += 1;

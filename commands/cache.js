@@ -6,7 +6,7 @@ const devnull = require("dev-null");
 
 const core = require("../core/index");
 
-exports.command = "cache";
+exports.command = "cache <parts..>";
 exports.describe = "Update cache";
 exports.builder = function(yargs) {
 	return yargs
@@ -20,7 +20,7 @@ exports.handler = function(argv) {
 	const OutStream = () =>
 		argv.o ? fs.createWriteStream(argv.o, { encoding: "utf-8" }) : process.stdout;
 
-	readCache({ cache: new Map(), tasks: argv._, OutStream });
+	readCache({ cache: new Map(), tasks: argv.parts, OutStream });
 };
 
 function readCache(_) {
