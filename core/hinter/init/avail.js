@@ -29,12 +29,7 @@ function decideMaxShift(y0, w0, ppem, tightness, strategy) {
 class Avail {
 	constructor(env, stem, tw) {
 		const { upm, ppem, uppx, strategy, tightness } = env;
-		const Y_UPTHIRD = mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 2 / 3);
-		const Y_DOWNTHIRD = mix(
-			strategy.BLUEZONE_BOTTOM_CENTER,
-			strategy.BLUEZONE_TOP_CENTER,
-			1 / 3
-		);
+
 		const y0 = stem.y,
 			w0 = stem.width,
 			w = tw * uppx;
@@ -59,15 +54,13 @@ class Avail {
 			lowlimit = Math.max(
 				lowlimit,
 				env.glyphBottom +
-					Math.max(2, env.WIDTH_GEAR_PROPER + 1) * uppx +
-					env.WIDTH_GEAR_PROPER * uppx
+					Math.max(tw + 2, tw + (tw === 1 ? env.WIDTH_GEAR_MIN : tw) + 1) * uppx
 			);
 			fold = true;
 		} else if (stem.hasGlyphSideFoldBelow && !stem.hasGlyphStemBelow) {
 			lowlimit = Math.max(
 				lowlimit,
-				env.glyphBottom +
-					Math.max(env.WIDTH_GEAR_PROPER + 2, env.WIDTH_GEAR_PROPER * 2) * uppx
+				env.glyphBottom + Math.max(tw + 2, tw + (tw === 1 ? env.WIDTH_GEAR_MIN : tw)) * uppx
 			);
 			fold = true;
 		}

@@ -85,6 +85,15 @@ function stemPositionToActions(y, w, stems) {
 			}
 		}
 	}
+	for (let j = 0; j < stems.length; j++) {
+		if (stems[j].hasGlyphFoldBelow && stems[j].posKeyAtTop) {
+			if (w[j] * uppx < stems[j].width) {
+				actions[j][STRICT] = true;
+			} else {
+				actions[j][STACKED] = true;
+			}
+		}
+	}
 	for (let j = 0; j < stems.length; j++)
 		for (let k = 0; k < j; k++) {
 			for (let m = 0; m < stems.length; m++) {

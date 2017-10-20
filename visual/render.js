@@ -1,4 +1,5 @@
 const roundings = require("../support/roundings");
+const { decideDeltaShift } = require("../instructor/delta");
 const BG_COLOR = "white";
 
 function interpolate(a, b, c) {
@@ -62,17 +63,57 @@ function untouchAll(contours) {
 		}
 }
 
-function BY_PRIORITY_SHORT(p, q) {
-	return q[2] - p[2];
-}
-function BY_PRIORITY_IP(p, q) {
-	return q[3] - p[3];
+function calculateYW(upm, ppem, stem, action) {
+	const uppx = upm / ppem;
+	var h, l;
+	if (stem.posKeyAtTop) {
+		h = stem.posKey;
+		l = stem.advKey;
+	} else {
+		h = stem.advKey;
+		l = stem.posKey;
+	}
+	const keyDX = h.x - l.x;
+	let [y, w, strict, stacked] = action;
+	const h_ytouch = y * uppx;
+	const l_ytouch = (y - w) * uppx - keyDX * stem.slope;
+	if (stem.posKeyAtTop) {
+		const delta = decideDeltaShift(
+			8,
+			-1,
+			strict,
+			stacked,
+			0,
+			h.y - l.y,
+			0,
+			w * uppx,
+			upm,
+			ppem,
+			0,
+			3 / 4
+		);
+		return { h, l, h_ytouch, l_ytouch: h_ytouch - (h.y - l.y) + delta / 8 * uppx };
+	} else {
+		const delta = decideDeltaShift(
+			8,
+			1,
+			strict,
+			stacked,
+			0,
+			h.y - l.y,
+			0,
+			w * uppx,
+			upm,
+			ppem,
+			0,
+			3 / 4
+		);
+		return { h, l, l_ytouch, h_ytouch: l_ytouch + (h.y - l.y) + delta / 8 * uppx };
+	}
 }
 
 function interpretTT(glyphs, strategy, ppem) {
 	const rtg = roundings.Rtg(strategy.UPM, ppem);
-	const roundDown = roundings.Rdtg(strategy.UPM, ppem);
-	const uppx = strategy.UPM / ppem;
 
 	for (var j = 0; j < glyphs.length; j++) {
 		var glyph = glyphs[j].glyph,
@@ -96,46 +137,15 @@ function interpretTT(glyphs, strategy, ppem) {
 		});
 		// Stems
 		actions.y.forEach(function(action, j) {
-			var h, l;
-			const stem = features.stems[j];
-			if (stem.posKeyAtTop) {
-				h = glyph.indexedPoints[stem.posKey.id];
-				l = glyph.indexedPoints[stem.advKey.id];
-			} else {
-				h = glyph.indexedPoints[stem.advKey.id];
-				l = glyph.indexedPoints[stem.posKey.id];
-			}
-			const keyDX = h.x - l.x;
-			const [y, w, strict, stacked, addpxs] = action;
-			const yTopTarget = (h.ytouch = y * uppx);
-			const yBotTarget = (l.ytouch = (y - w) * uppx - keyDX * stem.slope);
-			h.touched = l.touched = true;
-			if (strict || (w === 1 && h.y - l.y <= uppx && !stacked)) return;
-			if (stem.posKeyAtTop) {
-				const dir = w * uppx > h.y - l.y ? 1 / 16 * uppx : -1 / 16 * uppx;
-				while (
-					rtg(yBotTarget) === rtg(l.ytouch) &&
-					(stacked ||
-						(dir > 0
-							? yTopTarget - l.ytouch > h.y - l.y
-							: yTopTarget - l.ytouch < h.y - l.y))
-				) {
-					l.ytouch += dir;
-				}
-				l.ytouch -= addpxs * uppx;
-			} else {
-				const dir = w * uppx > h.y - l.y ? -1 / 16 * uppx : 1 / 16 * uppx;
-				while (
-					rtg(yTopTarget) === rtg(h.ytouch) &&
-					(stacked ||
-						(dir > 0
-							? h.ytouch - yBotTarget < h.y - l.y
-							: h.ytouch - yBotTarget > h.y - l.y))
-				) {
-					h.ytouch += dir;
-				}
-				h.ytouch += addpxs * uppx;
-			}
+			const { h, l, h_ytouch, l_ytouch } = calculateYW(
+				strategy.UPM,
+				ppem,
+				features.stems[j],
+				action
+			);
+			glyph.indexedPoints[h.id].touched = glyph.indexedPoints[l.id].touched = true;
+			glyph.indexedPoints[h.id].ytouch = h_ytouch;
+			glyph.indexedPoints[l.id].ytouch = l_ytouch;
 		});
 		// Alignments
 		glyph.stems.forEach(function(stem) {

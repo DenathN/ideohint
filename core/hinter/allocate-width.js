@@ -32,6 +32,14 @@ function spaceAbove(env, y, w, k, top) {
 	}
 	return space;
 }
+function atValidPosition(top, bot, y, w, avail) {
+	return (
+		y >= avail.lowW &&
+		y <= avail.highW &&
+		y <= top &&
+		y >= bot + w + (avail.hasGlyphFoldBelow ? 2 : 0)
+	);
+}
 
 let ANY = 0;
 let LESS = 1;
@@ -175,10 +183,8 @@ function allocateWidth(y0, env) {
 				(k > 0 && y[k] < y[k - 1]) ||
 				(m < N - 1 && y[m] > y[m + 1]) ||
 				(m > 0 && y[m] < y[m - 1]) ||
-				y[k] < avails[k].lowW ||
-				y[k] > avails[k].highW ||
-				y[m] < avails[m].lowW ||
-				y[m] > avails[m].highW
+				!atValidPosition(pixelTop, pixelBottom, y[k], w[k], avails[k]) ||
+				!atValidPosition(pixelTop, pixelBottom, y[m], w[m], avails[m])
 			) {
 				y = y1;
 				w = w1;
@@ -301,8 +307,7 @@ function allocateWidth(y0, env) {
 						(j > 0 && y[j] < y[j - 1]) ||
 						(k < N - 1 && y[k] > y[k + 1]) ||
 						(k > 0 && y[k] < y[k - 1]) ||
-						y[k] < avails[k].lowW ||
-						y[k] > avails[k].highW
+						!atValidPosition(pixelTop, pixelBottom, y[k], w[k], avails[k])
 					) {
 						y = y1;
 						w = w1;
@@ -422,10 +427,8 @@ function allocateWidth(y0, env) {
 				(k > 0 && y[k] < y[k - 1]) ||
 				(m < N - 1 && y[m] > y[m + 1]) ||
 				(m > 0 && y[m] < y[m - 1]) ||
-				y[k] < avails[k].lowW ||
-				y[k] > avails[k].highW ||
-				y[m] < avails[m].lowW ||
-				y[m] > avails[m].highW
+				!atValidPosition(pixelTop, pixelBottom, y[k], w[k], avails[k]) ||
+				!atValidPosition(pixelTop, pixelBottom, y[m], w[m], avails[m])
 			) {
 				y = y1;
 				w = w1;

@@ -40,7 +40,8 @@ function decideWidths(stems, priorityMap) {
 	const doCoordinate =
 		!strategy.DONT_COORDINATE_WIDTHS &&
 		this.CANONICAL_STEM_WIDTH / upm < 0.004 * ppem &&
-		this.CANONICAL_STEM_WIDTH / upm > 0.0015 * ppem;
+		this.CANONICAL_STEM_WIDTH / upm > 0.0015 * ppem &&
+		this.WIDTH_GEAR_PROPER === 2;
 	let tws = [];
 	let areaLost = 0;
 	let totalWidth = 0;

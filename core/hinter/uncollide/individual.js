@@ -18,15 +18,16 @@ class Individual {
 		const y = this.gene,
 			A = env.A,
 			C = env.C,
-			n = y.length;
+			n = y.length,
+			avails = env.avails;
 
 		let p = 0;
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
 				if (y[j] === y[k]) {
 					p += A[j][k]; // Alignment
-				} else if (y[j] <= y[k] + env.avails[j].properWidth) {
-					p += C[j][k] * (1 + env.avails[j].properWidth - (y[j] - y[k])); // Collide
+				} else if (y[j] <= y[k] + avails[j].properWidth) {
+					p += C[j][k] * (1 + avails[j].properWidth - (y[j] - y[k])); // Collide
 				}
 			}
 		}
@@ -42,11 +43,21 @@ class Individual {
 		let p = 0;
 		// top oversep
 		for (let j = 0; j < n; j++) {
-			if (avails[j].atGlyphTop) continue;
+			if (avails[j].hasGlyphStemAbove) continue;
 			const overSeparation =
 				(env.glyphTopPixels - y[j]) / (env.glyphTopPixels - avails[j].y0px) - 1;
 			p += overSeparation * overSeparation * OVERSEP;
 		}
+		// bottom oversep
+		for (let j = 0; j < n; j++) {
+			if (avails[j].hasGlyphStemBelow) continue;
+			const overSeparation =
+				(y[j] - avails[j].properWidth - env.glyphBottomPixels) /
+					(avails[j].y0px - avails[j].w0px - env.glyphBottomPixels) -
+				1;
+			p += overSeparation * overSeparation * OVERSEP;
+		}
+		// between-stem oversep
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
 				if (!dov[j][k]) continue;
