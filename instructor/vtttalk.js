@@ -63,7 +63,7 @@ const ABRefMethods = [
 	}
 ];
 
-const rfCombinations = [...product(ABRefMethods, [0, 1, 2], [0, 1, 2])];
+const rfCombinations = [...product(ABRefMethods.slice(1), [0, 1, 2], [0, 1, 2])];
 
 function chooseTBPos0(stemKind, stem, cvtCutin, choices) {
 	let chosen = choices[0];
@@ -339,6 +339,7 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 			}
 			const tsParams = tsHintingMethodList[tsMethod];
 			if (!tsParams) continue;
+
 			const { totalDeltaImpact: tdi, parts, hintedPositions } = ec.encodeStem(
 				topStem.stem,
 				topStem.sid,
@@ -352,7 +353,10 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 			tbCombiner.add(parts);
 			topStem.told = true;
 		}
-		$$.talk(tbCombiner.combine());
+		if (tbCombiner.parts.length) {
+			$$.talk(tbCombiner.combine());
+			$$.tdis += 3;
+		}
 
 		$$.tdis += formIntermediateHints.call(
 			$$,

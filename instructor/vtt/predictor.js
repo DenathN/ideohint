@@ -20,12 +20,7 @@ function iphintedPositions(bottomStem, r, topStem, pmin, pmax) {
 
 function distHintedPositions(rp0, r, upm, pmin, pmax) {
 	return table(pmin, pmax, ppem => {
-		const org_dist = r.pOrg - rp0.pOrg;
-		if (org_dist > 0) {
-			return rp0.hintedPositions[ppem] + roundings.rtg(org_dist, upm, ppem);
-		} else {
-			return rp0.hintedPositions[ppem] - roundings.rtg(-org_dist, upm, ppem);
-		}
+		return rp0.hintedPositions[ppem] + roundings.rtgDiff(r.pOrg, rp0.pOrg, upm, ppem);
 	});
 }
 

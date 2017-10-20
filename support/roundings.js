@@ -23,6 +23,24 @@ function rtg(x, upm, ppem) {
 	}
 	return val * (upm / ppem) / 64;
 }
+function rtgDiff(x1, x2, upm, ppem) {
+	const x1_ = toF26D6(x1 / upm * ppem);
+	const x2_ = toF26D6(x2 / upm * ppem);
+	var distance = x1_ - x2_;
+	var val;
+	if (distance > 0) {
+		val = distance + 32;
+		if (val > 0 && distance) {
+			val &= ~63;
+		} else {
+			val = 0;
+		}
+	} else {
+		val = -((32 - distance) & ~63);
+		if (val > 0) val = 0;
+	}
+	return val * (upm / ppem) / 64;
+}
 function rtg1(x, upm, ppem) {
 	if (x >= 0) return Math.max(upm / ppem, rtg(x, upm, ppem));
 	else return -Math.max(upm / ppem, rtg(-x, upm, ppem));
@@ -88,3 +106,4 @@ exports.rtg_raw = rtg_raw;
 exports.Rtg = Rtg;
 exports.Rutg = Rutg;
 exports.Rdtg = Rdtg;
+exports.rtgDiff = rtgDiff;

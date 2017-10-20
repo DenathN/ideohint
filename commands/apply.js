@@ -76,7 +76,13 @@ exports.handler = function(argv) {
 							// Prefer VTTTalk than TTF
 							if (!otd.TSI_23.glyphs) otd.TSI_23.glyphs = {};
 							otd.TSI_23.glyphs[g] = (airef.VTTTalk ||
-								talk(airef.ideohint_decision, strategy, cvtPadding, fpgmPadding) ||
+								talk(
+									airef.ideohint_decision,
+									strategy,
+									cvtPadding,
+									fpgmPadding,
+									glyph.contours
+								) ||
 								""
 							).replace(/\n/g, "\r"); // vtt uses CR
 							glyph.instructions = [];
