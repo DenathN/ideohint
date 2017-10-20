@@ -218,7 +218,7 @@ function interpretTT(glyphs, strategy, ppem) {
 const SUPERSAMPLING = 8;
 const SAMPLING_Y = 4;
 const DPI = 2;
-const GAMMA = 2;
+const GAMMA = 1.25;
 
 function renderTTFCurve(h, zs, m, txp, typ) {
 	if (zs.length < 3) return;
@@ -310,10 +310,10 @@ function RenderPreviewForPPEM(glyphs, strategy, hdc, basex, basey, ppem) {
 	for (var j = 0; j < vpixels; j++) {
 		let aa = hAA.createImageData(hpixels, 1);
 		for (var k = 0; k < hpixels; k++) {
-			(aa.data[k * 4] = 0xff),
-				(aa.data[k * 4 + 1] = 0),
-				(aa.data[k * 4 + 2] = 0),
-				(aa.data[k * 4 + 3] = 0xff);
+			aa.data[k * 4] = 0xff;
+			aa.data[k * 4 + 1] = 0;
+			aa.data[k * 4 + 2] = 0;
+			aa.data[k * 4 + 3] = 0xff;
 			for (var component = 0; component < 3; component++) {
 				let coverage = 0;
 				for (let ssy = 0; ssy < SAMPLING_Y; ssy++)
