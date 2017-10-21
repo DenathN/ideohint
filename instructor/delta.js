@@ -5,8 +5,6 @@ const { xclamp } = require("../support/common");
 
 const ROUNDING_CUTOFF = 1 / 2 - 4 / 64;
 const STRICT_CUTOFF = 1 / 4;
-const HALF_PIXEL_PPEM = 18;
-const MINIMAL_STROKE_WIDTH = 1 / 2 + 1 / 16;
 
 function decideDelta(gear, original, target, upm, ppem) {
 	return Math.round(gear * (target - original) / (upm / ppem));
@@ -16,7 +14,7 @@ function decideDelta(gear, original, target, upm, ppem) {
  * Decide the delta of a link
  * @param {number} gear 
  * @param {number} sign 
- * @param {boolean} isStrict 
+ * @param {boolean} isHard 
  * @param {boolean} isStacked 
  * @param {number} base0 
  * @param {number} dist0 
@@ -29,7 +27,7 @@ function decideDelta(gear, original, target, upm, ppem) {
 function decideDeltaShift(
 	gear,
 	sign,
-	isStrict,
+	isHard,
 	isStacked,
 	base0,
 	dist0,
@@ -53,10 +51,11 @@ function decideDeltaShift(
 		const y2a = y1 + (deltaDesired + delta1) * uppx / gear;
 		const d = Math.abs(base1 - y2a);
 		if (!isStacked && d < (minsw || 0) * uppx) break;
-		if (roundings.rtg(y2 - base1, upm, ppem) !== roundings.rtg(y2a - base1, upm, ppem)) break; // wrong pixel!
-		if (Math.abs(y2a - roundings.rtg(y2, upm, ppem)) > ROUNDING_CUTOFF * uppx) break;
+		if (roundings.rtgDiff(y2, base1, upm, ppem) !== roundings.rtgDiff(y2a, base1, upm, ppem))
+			break; // wrong pixel!
+		// if (Math.abs(y2a - roundings.rtg(y2, upm, ppem)) > ROUNDING_CUTOFF * uppx) break;
 		if (
-			isStrict &&
+			isHard &&
 			!isStacked &&
 			(sign > 0 || Math.abs(y2a - roundings.rtg(y2, upm, ppem)) > STRICT_CUTOFF * uppx)
 		)

@@ -99,7 +99,7 @@ function padSD(actions, stems, directOverlaps, uppx) {
 		) {
 			if (actions[j][W] * uppx < Math.abs(sj.posKey.y - sj.advKey.y)) {
 				actions[j][HARD] = true;
-			} else {
+			} else if (actions[j][W] > 1) {
 				actions[j][STACKED] = true;
 			}
 		}
