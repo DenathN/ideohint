@@ -146,7 +146,7 @@ class AssemblyDeltaEncoder extends VTTTalkDeltaEncoder {
 	encodeDeltaByte(dPPEM, shift) {
 		return dPPEM * 16 + (shift > 0 ? 7 + shift : shift + 8);
 	}
-	encodeDelta(d, tag) {
+	encodeDelta(d) {
 		const dltpg = {
 			DLTP1: [],
 			DLTP2: [],
@@ -219,8 +219,7 @@ class AssemblyDeltaEncoder extends VTTTalkDeltaEncoder {
 	estimateImpact(d) {
 		// impact caused by DLTP[]
 		let impact = 0;
-		// impact caused by SDS[]
-		let sdsImpact = 0;
+
 		// encoding bytes
 		for (let dr of d) {
 			let dq = Math.ceil(Math.abs(dr.delta));
@@ -244,7 +243,7 @@ class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
 		else if (delta > 0) s = divisor * Math.round(delta / divisor);
 		return s / divisor;
 	}
-	encodeIntDelta(d, fnid, shift, bpa, tag) {
+	encodeIntDelta(d, fnid, shift, bpa) {
 		let dataBytes = [];
 		let curByte = 0;
 		let bits = 0;
@@ -285,7 +284,7 @@ class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
 			const initArgs = [...dataBytes].reverse();
 			return z => new VTTCall([...initArgs, z, ((pmin - SDB) << 3) | dataBytes.length, fnid]);
 		} else {
-			return z => new VTTCall();
+			return () => new VTTCall();
 		}
 	}
 	encodeIntDeltaInternal(d, fnid, gear, shift, bpa, lv, tag) {
@@ -350,7 +349,7 @@ class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
 }
 
 // Stem encoder
-function standardAdvance(zpos, zadv, strategy) {
+function standardAdvance(zpos, zadv) {
 	return `YNoRound(${zadv}) YDist(${zpos},${zadv})`;
 }
 
@@ -418,8 +417,7 @@ class VTTECompiler {
 
 		for (let ppem = 0; ppem < sd.length; ppem++) {
 			if (!sd[ppem] || !sd[ppem].y || !sd[ppem].y[sid]) continue;
-			const [ytouch, wtouch, isStrict, isStacked, addpxs] = sd[ppem].y[sid];
-			const uppx = upm / ppem;
+			const [, wtouch, isHard, isStacked, addpxs] = sd[ppem].y[sid];
 			const wdst = wtouch * (upm / ppem);
 
 			if (s.posKeyAtTop) {
@@ -427,7 +425,7 @@ class VTTECompiler {
 					const rawDelta = decideDeltaShift(
 						ROUNDING_SEGMENTS,
 						-1,
-						isStrict,
+						isHard,
 						isStacked,
 						0,
 						adg.wsrc,
@@ -440,7 +438,7 @@ class VTTECompiler {
 					);
 					const advDelta = clampAdvDelta(
 						-1,
-						isStrict || isStacked,
+						isHard || isStacked,
 						adg.wsrc <= wsrc,
 						rawDelta
 					);
@@ -451,7 +449,7 @@ class VTTECompiler {
 					const rawDelta = decideDeltaShift(
 						ROUNDING_SEGMENTS,
 						1,
-						isStrict,
+						isHard,
 						isStacked,
 						0,
 						adg.wsrc,
@@ -464,7 +462,7 @@ class VTTECompiler {
 					);
 					const advDelta = clampAdvDelta(
 						1,
-						isStrict || isStacked,
+						isHard || isStacked,
 						adg.wsrc <= wsrc,
 						rawDelta
 					);
@@ -491,7 +489,6 @@ class VTTECompiler {
 
 		let deltaPos = [];
 		let hintedPositions = [];
-		let totalDeltaImpact = 0;
 
 		for (let ppem = 0; ppem < sd.length; ppem++) {
 			const pos0 = pos0s ? pos0s[ppem] : s.posKey.y;
@@ -499,8 +496,7 @@ class VTTECompiler {
 				hintedPositions[ppem] = roundings.rtg(pos0, upm, ppem);
 				continue;
 			}
-			const [ytouch, wtouch, isStrict, isStacked, addpxs] = sd[ppem].y[sid];
-			const uppx = upm / ppem;
+			const [ytouch, wtouch] = sd[ppem].y[sid];
 			const psrc = roundings.rtg(pos0, upm, ppem);
 
 			if (s.posKeyAtTop) {

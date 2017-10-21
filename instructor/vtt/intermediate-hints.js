@@ -27,9 +27,11 @@ module.exports = function(boundary, sd, elements) {
 
 	if (ipAnchorZs.length) {
 		this.talk(`YIPAnchor(${bottomStem.ipz},${ipAnchorZs.join(",")},${topStem.ipz})`);
+		tdis += 3;
 	}
 	if (ipZs.length) {
 		this.talk(`YInterpolate(${bottomAnchor.ipz},${ipZs.join(",")},${topAnchor.ipz})`);
+		tdis += 3;
 	}
 
 	const combiner = new StemInstructionCombiner(fpgmPadding);

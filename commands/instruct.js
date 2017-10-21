@@ -3,12 +3,11 @@
 const fs = require("fs");
 const readline = require("readline");
 const devnull = require("dev-null");
-const instruct = require("../instructor").instruct;
 
 const cvtlib = require("../instructor/cvt");
 const paramLib = require("../support/paramfile");
 const strategyLib = require("../support/strategy");
-const { talk } = require("../instructor/vtttalk");
+const { instruct, vtt: { talk } } = require("../instructor");
 
 exports.command = "instruct";
 exports.describe = "Create instruction file.";

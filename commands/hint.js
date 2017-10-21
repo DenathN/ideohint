@@ -9,6 +9,8 @@ const strategyLib = require("../support/strategy");
 const core = require("../core/index");
 const { progress } = require("./support/progress");
 
+const postprocess = require("../core/postprocess");
+
 exports.command = "hint";
 exports.describe = "Hint a glyph list file (hgl).";
 exports.builder = function(yargs) {
@@ -95,11 +97,14 @@ function doHints(_) {
 	const { taskName, strategy, pendings, outStream, cache } = _;
 	progress(taskName, pendings, data => {
 		if (cache.has(data.hash)) {
-			outStream.write(JSON.stringify(cache.get(data.hash)) + "\n");
+			const cached = cache.get(data.hash);
+			if (cached.ideohint_version !== "*") postprocess(cached.ideohint_decision);
+			outStream.write(JSON.stringify(cached) + "\n");
 		} else {
 			const contours = data.contours;
 			if (!contours) return;
 			data.ideohint_decision = core.hintSingleGlyph(contours, strategy);
+			postprocess(data.ideohint_decision);
 			data.ideohint_version = core.version;
 			outStream.write(JSON.stringify(data) + "\n");
 		}

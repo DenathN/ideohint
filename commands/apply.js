@@ -1,15 +1,14 @@
 "use strict";
 
-var fs = require("fs");
-var readline = require("readline");
-var devnull = require("dev-null");
-var oboe = require("oboe");
-var instruct = require("../instructor").instruct;
-var stringifyToStream = require("../support/stringify-to-stream");
-var cvtlib = require("../instructor/cvt");
-var { talk, generateCVT, generateFPGM } = require("../instructor/vtttalk");
+const fs = require("fs");
+const readline = require("readline");
+const devnull = require("dev-null");
+const oboe = require("oboe");
+const { instruct, vtt: { talk, generateCVT, generateFPGM } } = require("../instructor");
+const stringifyToStream = require("../support/stringify-to-stream");
+const cvtlib = require("../instructor/cvt");
 
-var hashContours = require("../core/otdParser").hashContours;
+const hashContours = require("../core/otdParser").hashContours;
 
 exports.command = "apply";
 exports.describe = "Apply hints to font dump.";
