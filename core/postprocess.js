@@ -123,3 +123,4 @@ module.exports = function(data) {
 		padSD(sd[ppem].y, si.stems, si.directOverlaps, si.upm / ppem);
 	}
 };
+module.exports.for = padSD;

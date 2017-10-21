@@ -1,9 +1,12 @@
+/* eslint-env worker */
+"use strict";
+
 const core = require("../core");
-const { lerp, xlerp, xclamp } = require("../support/common");
+const postprocess = require("../core/postprocess");
 
 onmessage = function(message) {
-	const { input, ppemMin, ppemMax, strategy } = message.data;
-	const glyphs = input.map(function(passage, j) {
+	const { input, strategy } = message.data;
+	const glyphs = input.map(function(passage) {
 		if (passage) {
 			const glyph = core.parseOTD(passage);
 			return {
@@ -15,8 +18,16 @@ onmessage = function(message) {
 	});
 	console.log(glyphs);
 	for (let g of glyphs) {
-		let d = 0xffff;
 		g.hints = core.decideHints(g.features, strategy).sd;
+		for (let ppem = 0; ppem < g.hints.length; ppem++) {
+			if (!g.hints[ppem]) continue;
+			postprocess.for(
+				g.hints[ppem].y,
+				g.features.stems,
+				g.features.directOverlaps,
+				strategy.UPM / ppem
+			);
+		}
 	}
 	postMessage(glyphs);
 };
