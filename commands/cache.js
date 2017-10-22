@@ -41,14 +41,7 @@ function readCache(_) {
 			data.ideohint_version !== core.version
 		)
 			return;
-		{
-			let hasFoldStem = false;
-			for (let stem of data.ideohint_decision.si.stems) {
-				if (stem.hasGlyphFoldBelow && !stem.hasGlyphStemBelow) hasFoldStem = true;
-				if (stem.hasGlyphSideFoldBelow && !stem.hasGlyphStemBelow) hasFoldStem = true;
-			}
-			if (hasFoldStem) return;
-		}
+
 		if (!data.ideohint_version) data.ideohint_version = core.version;
 		cache.set(data.hash, data);
 	});
