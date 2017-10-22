@@ -54,13 +54,14 @@ class Avail {
 			lowlimit = Math.max(
 				lowlimit,
 				env.glyphBottom +
-					Math.max(tw + 2, tw + (tw === 1 ? env.WIDTH_GEAR_MIN : tw) + 1) * uppx
+					Math.max(tw + 2, tw + (tw === 1 ? env.WIDTH_GEAR_PROPER : tw) + 1) * uppx
 			);
 			fold = true;
 		} else if (stem.hasGlyphSideFoldBelow && !stem.hasGlyphStemBelow) {
 			lowlimit = Math.max(
 				lowlimit,
-				env.glyphBottom + Math.max(tw + 2, tw + (tw === 1 ? env.WIDTH_GEAR_MIN : tw)) * uppx
+				env.glyphBottom +
+					Math.max(tw + 2, tw + (tw === 1 ? env.WIDTH_GEAR_PROPER : tw)) * uppx
 			);
 			fold = true;
 		}
