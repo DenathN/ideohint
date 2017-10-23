@@ -23,6 +23,22 @@ function twoPixelPack(uppx, yj, wj, yk, wk, sj, sk) {
 				wk * uppx + wj * uppx < widthOf(sk) + widthOf(sj) - 0.5 * uppx))
 	);
 }
+
+function getMinmax(stems, k, a, sign) {
+	const sk = stems[k];
+	let couple = null;
+	if (sk.rid) {
+		for (let m = 0; m < stems.length; m++)
+			if (stems[m].rid === sk.rid && a[k][Y] - a[k][W] * sign === a[m][Y] - a[m][W] * sign) {
+				couple = stems[m];
+			}
+	}
+	if (couple) {
+		return [Math.min(sk.xmin, couple.xmin), Math.max(sk.xmax, couple.xmax)];
+	} else {
+		return [sk.xmin, sk.xmax];
+	}
+}
 function padSD(actions, stems, directOverlaps, uppx) {
 	let stackrel = [];
 	for (let j = 0; j < stems.length; j++) {
@@ -40,12 +56,14 @@ function padSD(actions, stems, directOverlaps, uppx) {
 			const sk = stems[k],
 				yk = actions[k][Y],
 				wk = actions[k][W];
+			const [skmin, skmax] = getMinmax(stems, k, actions, 0);
+			const [sjmin, sjmax] = getMinmax(stems, j, actions, 1);
 			if (
 				yj - wj === yk &&
 				wk * uppx * 2 >= widthOf(sk) &&
-				sj.xmax >= sk.xmax - wk / 2 * uppx &&
-				sj.xmin <= sk.xmin + wk / 2 * uppx &&
-				!(sj.xmax <= sk.xmax && sj.xmin >= sk.xmin) &&
+				sjmax >= skmax - wk / 2 * uppx &&
+				sjmin <= skmin + wk / 2 * uppx &&
+				!(sjmax <= skmax && sjmin >= skmin) &&
 				!(sj.rid === sk.rid && sj.rid)
 			) {
 				stackrel[k][j] = BELOW;
@@ -54,8 +72,7 @@ function padSD(actions, stems, directOverlaps, uppx) {
 			if (wj * uppx > widthOf(sj)) continue;
 			if (
 				(yj - wj - yk === 1 && sj.posKeyAtTop) ||
-				(twoPixelPack(uppx, yj, wj, yk, wk, sj, sk) &&
-					sj.xmax - sj.xmin < sk.xmax - sk.xmin)
+				(twoPixelPack(uppx, yj, wj, yk, wk, sj, sk) && sjmax - sjmin < skmax - skmin)
 			) {
 				actions[j][HARD] = true;
 			}
@@ -69,12 +86,15 @@ function padSD(actions, stems, directOverlaps, uppx) {
 			const sk = stems[k],
 				yk = actions[k][Y],
 				wk = actions[k][W];
+
+			const [skmin, skmax] = getMinmax(stems, k, actions, 1);
+			const [sjmin, sjmax] = getMinmax(stems, j, actions, 0);
 			if (
 				yk - wk === yj &&
 				wk * uppx * 2 >= widthOf(sk) &&
-				sj.xmax >= sk.xmax - wk / 2 * uppx &&
-				sj.xmin <= sk.xmin + wk / 2 * uppx &&
-				!(sk.xmax >= sj.xmax && sk.xmin <= sj.xmin) &&
+				sjmax >= skmax - wk / 2 * uppx &&
+				sjmin <= skmin + wk / 2 * uppx &&
+				!(skmax >= sjmax && skmin <= sjmin) &&
 				!(sj.rid === sk.rid && sj.rid)
 			) {
 				stackrel[k][j] = ABOVE;
@@ -83,8 +103,7 @@ function padSD(actions, stems, directOverlaps, uppx) {
 			if (wj * uppx > widthOf(sj)) continue;
 			if (
 				(yk - wk - yj === 1 && !sj.posKeyAtTop) ||
-				(twoPixelPack(uppx, yk, wk, yj, wj, sk, sj) &&
-					sj.xmax - sj.xmin <= sk.xmax - sk.xmin)
+				(twoPixelPack(uppx, yk, wk, yj, wj, sk, sj) && sjmax - sjmin <= skmax - skmin)
 			) {
 				actions[j][HARD] = true;
 			}

@@ -1,8 +1,9 @@
 "use strict";
+const { xclamp } = require("../../../support/common");
 
 function gammaCorrect(pixels) {
 	let intpxs = Math.floor(pixels);
-	return intpxs + Math.pow(pixels - intpxs, 2.2);
+	return intpxs + Math.pow(pixels - intpxs, 2);
 }
 
 // decide the proper width of given stem locally
@@ -43,53 +44,59 @@ function decideWidths(stems, priorityMap) {
 		this.CANONICAL_STEM_WIDTH / upm > 0.0015 * ppem &&
 		this.WIDTH_GEAR_PROPER === 2;
 	let tws = [];
-	let areaLost = 0;
-	let totalWidth = 0;
 	for (let j = 0; j < stems.length; j++) {
 		tws[j] = calculateWidthOfStem.call(this, stems[j].width, doCoordinate);
-		totalWidth += stems[j].width;
-		const coordinatedOriginalWidth = doCoordinate
-			? stems[j].width / this.CANONICAL_STEM_WIDTH * this.WIDTH_GEAR_PROPER
-			: stems[j].width / uppx;
-		areaLost += (coordinatedOriginalWidth - tws[j]) * (stems[j].xmax - stems[j].xmin);
 	}
-	if (!doCoordinate) return tws;
-	// Coordinate widths
-	let averageWidth = totalWidth / stems.length;
-	let coordinateWidth = calculateWidthOfStem.call(this, averageWidth, true);
-	if (areaLost > 0) {
-		let areaLostDecreased = true;
-		let passes = 0;
-		while (areaLostDecreased && passes < 100) {
-			// We will try to increase stroke width if we detected that some pixels are lost.
-			areaLostDecreased = false;
-			passes += 1;
-			for (let m = 0; m < priorityMap.length; m++) {
-				let j = priorityMap[m];
-				let len = stems[j].xmax - stems[j].xmin;
-				if (tws[j] < this.WIDTH_GEAR_PROPER && areaLost > len / 2) {
-					tws[j] += 1;
-					areaLost -= len;
-					areaLostDecreased = true;
-					break;
+
+	for (let pass = 0; pass < doCoordinate ? 16 : 0; pass++) {
+		let areaLost = 0;
+		let totalWidth = 0;
+		for (let j = 0; j < stems.length; j++) {
+			tws[j] = Math.round(
+				gammaCorrect(xclamp(Math.max(tws[j] - 1 / 2, 0), stems[j].width, tws[j] + 1 / 2))
+			);
+			const coordinatedOriginalWidth = doCoordinate
+				? stems[j].width / this.CANONICAL_STEM_WIDTH * this.WIDTH_GEAR_PROPER
+				: stems[j].width / uppx;
+			areaLost += (coordinatedOriginalWidth - tws[j]) * (stems[j].xmax - stems[j].xmin);
+		}
+		// Coordinate widths
+		let averageWidth = totalWidth / stems.length;
+		let coordinateWidth = calculateWidthOfStem.call(this, averageWidth, true);
+		if (areaLost > 0) {
+			let areaLostDecreased = true;
+			let passes = 0;
+			while (areaLostDecreased && passes < 100) {
+				// We will try to increase stroke width if we detected that some pixels are lost.
+				areaLostDecreased = false;
+				passes += 1;
+				for (let m = 0; m < priorityMap.length; m++) {
+					let j = priorityMap[m];
+					let len = stems[j].xmax - stems[j].xmin;
+					if (tws[j] < this.WIDTH_GEAR_PROPER && areaLost > len / 2) {
+						tws[j] += 1;
+						areaLost -= len;
+						areaLostDecreased = true;
+						break;
+					}
 				}
 			}
-		}
-	} else {
-		let areaLostDecreased = true;
-		let passes = 0;
-		while (areaLostDecreased && passes < 100) {
-			// We will try to increase stroke width if we detected that some pixels are lost.
-			areaLostDecreased = false;
-			passes += 1;
-			for (let m = priorityMap.length - 1; m >= 0; m--) {
-				let j = priorityMap[m];
-				let len = stems[j].xmax - stems[j].xmin;
-				if (tws[j] > coordinateWidth && areaLost < -len / 2) {
-					areaLost += len;
-					tws[j] -= 1;
-					areaLostDecreased = true;
-					break;
+		} else {
+			let areaLostDecreased = true;
+			let passes = 0;
+			while (areaLostDecreased && passes < 100) {
+				// We will try to increase stroke width if we detected that some pixels are lost.
+				areaLostDecreased = false;
+				passes += 1;
+				for (let m = priorityMap.length - 1; m >= 0; m--) {
+					let j = priorityMap[m];
+					let len = stems[j].xmax - stems[j].xmin;
+					if (tws[j] > coordinateWidth && areaLost < -len / 2) {
+						areaLost += len;
+						tws[j] -= 1;
+						areaLostDecreased = true;
+						break;
+					}
 				}
 			}
 		}

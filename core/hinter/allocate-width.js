@@ -33,25 +33,20 @@ function spaceAbove(env, y, w, k, top) {
 	return space;
 }
 function atValidPosition(top, bot, y, w, avail) {
-	return (
-		y >= avail.lowW &&
-		y <= avail.highW &&
-		y <= top &&
-		y >= bot + w + (avail.hasGlyphFoldBelow ? 2 : 0)
-	);
+	return y >= avail.lowW && y <= avail.highW && y <= top && y >= w + avail.lowLimitW;
 }
 
-let ANY = 0;
-let LESS = 1;
-let SUFF = 2;
+const ANY = 0;
+const LESS = 1;
+const SUFF = 2;
 
 function allocateWidth(y0, env) {
-	let N = y0.length;
+	const N = y0.length;
 	let allocated = new Array(N),
 		y = new Array(N),
 		w = new Array(N),
 		properWidths = new Array(N);
-	let avails = env.avails,
+	const avails = env.avails,
 		strictOverlaps = env.strictOverlaps,
 		strictTriplets = env.strictTriplets;
 	for (let j = 0; j < y0.length; j++) {
@@ -69,16 +64,12 @@ function allocateWidth(y0, env) {
 		let wx = Math.min(wr, w[j] + sb - 1);
 		if (wx <= 1) return;
 		if (
-			(sb + w[j] >= wr + 1 &&
-				y[j] - wr >= pixelBottom + (avails[j].hasGlyphFoldBelow ? 2 : 1)) ||
-			(avails[j].atGlyphBottom && y[j] - wr >= pixelBottom)
+			(sb + w[j] >= wr + 1 || (avails[j].atGlyphBottom && y[j] - wr >= pixelBottom)) &&
+			y[j] - wr >= avails[j].lowLimitW
 		) {
 			w[j] = wr;
 			allocated[j] = true;
-		} else if (
-			y[j] - wx >= pixelBottom + (avails[j].hasGlyphFoldBelow ? 2 : 1) ||
-			(avails[j].atGlyphBottom && y[j] - wx >= pixelBottom)
-		) {
+		} else if (y[j] - wx >= avails[j].lowLimitW) {
 			w[j] = wx;
 			if (w >= wr) allocated[j] = true;
 		}
@@ -102,6 +93,7 @@ function allocateWidth(y0, env) {
 			if ((avails[j].atGlyphTop || avails[j].atGlyphBottom) && !allocated[j]) {
 				allocateDown(j);
 			}
+		// Allocate middle stems
 		for (let subpass = 0; subpass < env.strategy.WIDTH_ALLOCATION_PASSES; subpass++) {
 			for (let j = 0; j < N; j++)
 				if (!allocated[j]) {
@@ -109,7 +101,6 @@ function allocateWidth(y0, env) {
 				}
 		}
 	}
-
 	// Avoid thin strokes
 	for (let pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) {
 		// small size
@@ -200,7 +191,13 @@ function allocateWidth(y0, env) {
 
 			for (let j = N - 1; j >= 0; j--) {
 				if (!(applyToLowerOnly || !avails[j].hasGlyphStemAbove)) continue;
-				if (w[j] >= (!avails[j].hasGlyphStemAbove ? properWidths[j] : 2)) continue;
+				if (
+					w[j] >=
+					(!avails[j].hasGlyphStemAbove || env.WIDTH_GEAR_PROPER <= 2
+						? properWidths[j]
+						: 2)
+				)
+					continue;
 				let able = true;
 				// We search for strokes below,
 				for (let k = 0; k < j; k++) {
@@ -221,7 +218,13 @@ function allocateWidth(y0, env) {
 				w[j] += 1;
 			}
 			for (let j = N - 1; j >= 0; j--) {
-				if (w[j] >= (!avails[j].hasGlyphFoldBelow ? properWidths[j] : 2)) continue;
+				if (
+					w[j] >=
+					(!avails[j].hasGlyphFoldBelow || env.WIDTH_GEAR_PROPER <= 2
+						? properWidths[j]
+						: 2)
+				)
+					continue;
 				if (y[j] >= avails[j].highP) continue;
 				if (!avails[j].hasGlyphStemAbove && y[j] >= pixelTop - 2) continue;
 
@@ -286,6 +289,7 @@ function allocateWidth(y0, env) {
 					} else if (
 						w[j] === 3 &&
 						w[k] === 1 &&
+						w[k] < properWidths[k] &&
 						w[j] >= properWidths[j] &&
 						y[j] - y[k] === w[j] + 1
 					) {
@@ -294,6 +298,7 @@ function allocateWidth(y0, env) {
 					} else if (
 						w[j] === 1 &&
 						w[k] === 3 &&
+						w[j] < properWidths[j] &&
 						w[k] >= properWidths[k] &&
 						y[j] - y[k] === w[j] + 1
 					) {
@@ -407,7 +412,7 @@ function allocateWidth(y0, env) {
 				(w[m] -= 1), (w[j] += 1), (y[m] -= 1), (y[k] -= 1);
 			} else if (
 				avails[j].atGlyphTop &&
-				w[j] <= properWidths[j] - 1 &&
+				w[j] < properWidths[j] &&
 				w[k] >= properWidths[k] &&
 				properWidths[k] > 1
 			) {
@@ -437,7 +442,7 @@ function allocateWidth(y0, env) {
 
 		// Edge touch balancing
 		for (let j = 0; j < N; j++) {
-			if (w[j] <= 1 && y[j] > pixelBottom + 2) {
+			if (w[j] <= 1 && w[j] < properWidths[j] && y[j] > pixelBottom + 2) {
 				let able = true;
 				for (let k = 0; k < j; k++)
 					if (strictOverlaps[j][k] && !edgetouch(avails[j], avails[k])) {

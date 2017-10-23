@@ -54,15 +54,12 @@ class Avail {
 			lowlimit = Math.max(
 				lowlimit,
 				env.glyphBottom +
-					Math.max(tw + 2, tw + (tw === 1 ? env.WIDTH_GEAR_PROPER : tw) + 1) * uppx
+					Math.max(tw + 2, tw * 2 + 1 + (tw === 1 && env.WIDTH_GEAR_PROPER > 1 ? 1 : 0)) *
+						uppx
 			);
 			fold = true;
 		} else if (stem.hasGlyphSideFoldBelow && !stem.hasGlyphStemBelow) {
-			lowlimit = Math.max(
-				lowlimit,
-				env.glyphBottom +
-					Math.max(tw + 2, tw + (tw === 1 ? env.WIDTH_GEAR_PROPER : tw)) * uppx
-			);
+			lowlimit = Math.max(lowlimit, env.glyphBottom + Math.max(tw + 2, tw * 2) * uppx);
 			fold = true;
 		}
 
@@ -121,6 +118,7 @@ class Avail {
 		this.low = Math.round(low / uppx);
 		this.high = Math.round(high / uppx);
 		// limit of the stroke's y, when width allocating, in pixels
+		this.lowLimitW = Math.round((lowlimitW - w) / uppx);
 		this.lowW = Math.round(lowW / uppx);
 		this.highW = Math.round(highW / uppx);
 		// limit of the stroke's y, when width allocating's pushing pass, in pixels

@@ -218,7 +218,7 @@ function interpretTT(glyphs, strategy, ppem) {
 const SUPERSAMPLING = 8;
 const SAMPLING_Y = 4;
 const DPI = 2;
-const GAMMA = 1.25;
+const GAMMA = 1.5;
 
 function renderTTFCurve(h, zs, m, txp, typ) {
 	if (zs.length < 3) return;

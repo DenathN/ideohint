@@ -51,6 +51,7 @@ class Individual {
 		// bottom oversep
 		for (let j = 0; j < n; j++) {
 			if (avails[j].hasGlyphStemBelow) continue;
+			if (avails[j].hasGlyphFoldBelow) continue;
 			const overSeparation =
 				(y[j] - avails[j].properWidth - env.glyphBottomPixels) /
 					(avails[j].y0px - avails[j].w0px - env.glyphBottomPixels) -
