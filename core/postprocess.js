@@ -83,9 +83,7 @@ function padSD(actions, stems, directOverlaps, uppx) {
 				(yj - wj - yk === 1 &&
 					sj.posKeyAtTop &&
 					(!coK || (coK && actions[coKID][Y] === yk))) ||
-				(twoPixelPack(uppx, yj, wj, yk, wk, sj, sk) &&
-					sjmax - sjmin < skmax - skmin &&
-					wj >= wk)
+				(twoPixelPack(uppx, yj, wj, yk, wk, sj, sk) && sjmax - sjmin < skmax - skmin)
 			) {
 				actions[j][HARD] = true;
 			}
@@ -120,9 +118,7 @@ function padSD(actions, stems, directOverlaps, uppx) {
 				(yk - wk - yj === 1 &&
 					!sj.posKeyAtTop &&
 					(!coK || (coK && actions[coKID][Y] === yk))) ||
-				(twoPixelPack(uppx, yk, wk, yj, wj, sk, sj) &&
-					sjmax - sjmin <= skmax - skmin &&
-					wj >= wk)
+				(twoPixelPack(uppx, yk, wk, yj, wj, sk, sj) && sjmax - sjmin <= skmax - skmin)
 			) {
 				actions[j][HARD] = true;
 			}

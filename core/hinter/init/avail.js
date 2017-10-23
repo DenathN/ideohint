@@ -29,7 +29,8 @@ function decideMaxShift(y0, w0, ppem, tightness, strategy) {
 class Avail {
 	constructor(env, stem, tw) {
 		const { upm, ppem, uppx, strategy, tightness } = env;
-
+		const halfway0 = (env.BLUEZONE_TOP_CENTER + env.BLUEZONE_BOTTOM_CENTER) / 2;
+		const halfway = (env.glyphBottom + env.glyphTop) / 2;
 		const y0 = stem.y,
 			w0 = stem.width,
 			w = tw * uppx;
@@ -78,6 +79,12 @@ class Avail {
 
 		if (stem.hasEntireContourAbove) {
 			highlimit = Math.min(env.glyphTop - 2 * uppx, highlimit);
+		}
+		if (y0 < halfway0) {
+			highlimit = xclamp(lowlimit, Math.ceil(halfway / uppx) * uppx, highlimit);
+		}
+		if (y0 - w0 > halfway0) {
+			lowlimit = xclamp(lowlimit, Math.floor(halfway / uppx) * uppx + w, highlimit);
 		}
 
 		const center0 = env.cy(

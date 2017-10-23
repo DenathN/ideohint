@@ -20,25 +20,26 @@ class Individual {
 			C = env.C,
 			n = y.length,
 			avails = env.avails;
-
-		let p = 0;
+		let nCol = 0;
+		let pA = 0,
+			pC = 0;
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
 				if (y[j] === y[k]) {
-					p += A[j][k]; // Alignment
+					pA += A[j][k]; // Alignment
 				} else if (y[j] <= y[k] + avails[j].properWidth) {
-					p += C[j][k] * (1 + avails[j].properWidth - (y[j] - y[k])); // Collide
+					pC += C[j][k] * (1 + avails[j].properWidth - (y[j] - y[k])); // Collide
+					if (C[j][k]) nCol += avails[j].plength + avails[k].plength;
 				}
 			}
 		}
-		return p;
+		return pA + pC * nCol * nCol;
 	}
 	_getOverseparationP(env) {
 		const y = this.gene,
 			avails = env.avails,
 			n = y.length,
 			dov = env.directOverlaps,
-			P = env.P,
 			OVERSEP = env.COEFF_OVERSEP;
 		let p = 0;
 		// top oversep
@@ -62,12 +63,12 @@ class Individual {
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
 				if (!dov[j][k]) continue;
-				const overSeparation =
-					(y[j] - avails[j].properWidth - y[k]) /
-						(avails[j].y0px - avails[j].w0px - avails[k].y0px) -
-					1;
+				const d = y[j] - avails[j].properWidth / 2 - y[k] + avails[k].properWidth / 2;
+				const d0 =
+					avails[j].y0px - avails[j].w0px / 2 - avails[k].y0px + avails[k].w0px / 2;
+				const overSeparation = (d - d0) / d0;
 				if (y[j] - avails[j].properWidth - y[k] <= 0) continue;
-				p += overSeparation * overSeparation * OVERSEP * 1 / ((P[j][k] || 0) + 1);
+				p += overSeparation * overSeparation * OVERSEP;
 			}
 		}
 		return p;

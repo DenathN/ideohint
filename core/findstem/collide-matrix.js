@@ -1,7 +1,7 @@
 "use strict";
 
-var slopeOf = require("../types/").slopeOf;
-var segmentsPromixity = require("./seg").segmentsPromixity;
+let slopeOf = require("../types/").slopeOf;
+let segmentsPromixity = require("./seg").segmentsPromixity;
 
 function atRadicalTop(stem, strategy) {
 	return (
@@ -77,28 +77,32 @@ module.exports = function calculateCollisionMatrices(
 	// A : Alignment operator
 	// C : Collision operator
 	// S : Swap operator
-	var A = [],
+	let A = [],
 		C = [],
 		S = [],
 		P = [],
 		n = stems.length;
-	for (var j = 0; j < n; j++) {
+	for (let j = 0; j < n; j++) {
 		A[j] = [];
 		C[j] = [];
 		S[j] = [];
 		P[j] = [];
-		for (var k = 0; k < n; k++) {
+		for (let k = 0; k < n; k++) {
 			A[j][k] = C[j][k] = S[j][k] = P[j][k] = 0;
 		}
 	}
-	var slopes = stems.map(function(s) {
+	let slopes = stems.map(function(s) {
 		return (slopeOf(s.high) + slopeOf(s.low)) / 2;
 	});
-	for (var j = 0; j < n; j++) {
-		for (var k = 0; k < j; k++) {
+	for (let j = 0; j < n; j++) {
+		const jrtop = atRadicalTop(stems[j], strategy);
+		const jrbot = atRadicalBottom(stems[j], strategy);
+		for (let k = 0; k < j; k++) {
+			const krtop = atRadicalTop(stems[k], strategy);
+			const krbot = atRadicalBottom(stems[k], strategy);
 			// Overlap weight
-			var ovr = overlapLengths[j][k];
-			var isSideTouch =
+			let ovr = overlapLengths[j][k];
+			let isSideTouch =
 				(stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax) ||
 				(stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax);
 			// For side touches witn low overlap, drop it.
@@ -106,24 +110,24 @@ module.exports = function calculateCollisionMatrices(
 				ovr = 0;
 			}
 
-			var slopesCoeff =
+			let slopesCoeff =
 				!pbs[j][k] && stems[j].belongRadical !== stems[k].belongRadical
 					? Math.max(0.25, 1 - Math.abs(slopes[j] - slopes[k]) * 10)
 					: 1;
 
-			var structuralPromixity =
+			let structuralPromixity =
 				segmentsPromixity(stems[j].low, stems[k].high) +
 				segmentsPromixity(stems[j].high, stems[k].low) +
 				segmentsPromixity(stems[j].low, stems[k].low) +
 				segmentsPromixity(stems[j].high, stems[k].high);
-			var spatialPromixity = structuralPromixity;
+			let spatialPromixity = structuralPromixity;
 
 			// PBS
 			if (
 				(pbs[j][k] ||
 					ecbs[j][k] ||
-					atGlyphTop(stems[j], strategy) ||
-					atGlyphBottom(stems[k], strategy)) &&
+					!stems[j].hasGlyphStemAbove ||
+					!stems[k].hasGlyphStemBelow) &&
 				spatialPromixity < strategy.COEFF_PBS_MIN_PROMIX
 			) {
 				spatialPromixity = strategy.COEFF_PBS_MIN_PROMIX;
@@ -144,14 +148,14 @@ module.exports = function calculateCollisionMatrices(
 				spatialPromixity *= strategy.COEFF_TOP_BOT_PROMIX;
 			}
 
-			var promixityCoeff =
+			let promixityCoeff =
 				1 +
 				(spatialPromixity > 2
 					? strategy.COEFF_C_MULTIPLIER / strategy.COEFF_A_MULTIPLIER
 					: 1) *
 					spatialPromixity;
 			// Alignment coefficients
-			var coeffA = 1;
+			let coeffA = 1;
 			if (pbs[j][k]) {
 				// ECBS is not considered here
 				coeffA = strategy.COEFF_A_FEATURE_LOSS;
@@ -174,18 +178,16 @@ module.exports = function calculateCollisionMatrices(
 					coeffA = strategy.COEFF_A_SAME_RADICAL;
 				}
 			} else if (
-				((atRadicalBottom(stems[j], strategy) && atRadicalBottom(stems[k], strategy)) ||
-					(atRadicalTop(stems[j], strategy) && atRadicalTop(stems[k], strategy))) &&
-				stems[j].xmin >= stems[k].xmin &&
-				stems[j].xmax <= stems[k].xmax
+				(jrbot && krbot && !jrtop && !krtop) ||
+				(jrtop && krtop && !jrbot && !krbot)
 			) {
 				coeffA = strategy.COEFF_A_SHAPE_LOST_XR;
-			} else if (atRadicalBottom(stems[j], strategy) && atRadicalTop(stems[k], strategy)) {
+			} else if (jrbot && krtop) {
 				coeffA = strategy.COEFF_A_RADICAL_MERGE;
 			}
 
 			// Collision coefficients
-			var coeffC = 1;
+			let coeffC = 1;
 			if (stems[j].belongRadical === stems[k].belongRadical) {
 				coeffC = strategy.COEFF_C_SAME_RADICAL;
 				if (
@@ -197,7 +199,7 @@ module.exports = function calculateCollisionMatrices(
 				}
 			}
 			if (pbs[j][k]) coeffC *= strategy.COEFF_C_FEATURE_LOSS / 2;
-			var symmetryCoeff = 1;
+			let symmetryCoeff = 1;
 			if (Math.abs(stems[j].xmin - stems[k].xmin) <= strategy.BLUEZONE_WIDTH) {
 				symmetryCoeff += 2;
 			}
@@ -222,42 +224,40 @@ module.exports = function calculateCollisionMatrices(
 			P[j][k] = Math.round(structuralPromixity + (pbs[j][k] ? 1 : 0));
 		}
 	}
-	for (var j = 0; j < n; j++) {
-		var isBottomMost = true;
-		for (var k = 0; k < j; k++) {
+	for (let j = 0; j < n; j++) {
+		let isBottomMost = true;
+		for (let k = 0; k < j; k++) {
 			if (C[j][k] > 0) isBottomMost = false;
 		}
-		if (isBottomMost) {
-			for (var k = j + 1; k < n; k++) {
-				var isSideTouch =
-					(stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax) ||
-					(stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax);
-				var mindiff = Math.abs(stems[j].xmax - stems[k].xmin);
-				var maxdiff = Math.abs(stems[j].xmin - stems[k].xmax);
-				var unbalance =
-					mindiff + maxdiff <= 0 ? 0 : Math.abs(mindiff - maxdiff) / (mindiff + maxdiff);
-				if (!isSideTouch && unbalance >= strategy.TBST_LIMIT)
-					A[k][j] *= strategy.COEFF_A_FEATURE_LOSS;
-			}
+		if (!isBottomMost) continue;
+		for (let k = j + 1; k < n; k++) {
+			const isSideTouch =
+				(stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax) ||
+				(stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax);
+			const mindiff = Math.abs(stems[j].xmax - stems[k].xmin);
+			const maxdiff = Math.abs(stems[j].xmin - stems[k].xmax);
+			const unbalance =
+				mindiff + maxdiff <= 0 ? 0 : Math.abs(mindiff - maxdiff) / (mindiff + maxdiff);
+			if (!isSideTouch && unbalance >= strategy.TBST_LIMIT)
+				A[k][j] *= strategy.COEFF_A_FEATURE_LOSS;
 		}
 	}
-	for (var j = 0; j < n; j++) {
-		var isTopMost = true;
-		for (var k = j + 1; k < n; k++) {
+	for (let j = 0; j < n; j++) {
+		let isTopMost = true;
+		for (let k = j + 1; k < n; k++) {
 			if (C[k][j] > 0) isTopMost = false;
 		}
-		if (isTopMost) {
-			for (var k = 0; k < j; k++) {
-				var isSideTouch =
-					(stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax) ||
-					(stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax);
-				var mindiff = Math.abs(stems[j].xmax - stems[k].xmin);
-				var maxdiff = Math.abs(stems[j].xmin - stems[k].xmax);
-				var unbalance =
-					mindiff + maxdiff <= 0 ? 0 : Math.abs(mindiff - maxdiff) / (mindiff + maxdiff);
-				if (!isSideTouch && unbalance >= strategy.TBST_LIMIT)
-					A[j][k] *= strategy.COEFF_A_FEATURE_LOSS;
-			}
+		if (!isTopMost) continue;
+		for (let k = 0; k < j; k++) {
+			const isSideTouch =
+				(stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax) ||
+				(stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax);
+			const mindiff = Math.abs(stems[j].xmax - stems[k].xmin);
+			const maxdiff = Math.abs(stems[j].xmin - stems[k].xmax);
+			const unbalance =
+				mindiff + maxdiff <= 0 ? 0 : Math.abs(mindiff - maxdiff) / (mindiff + maxdiff);
+			if (!isSideTouch && unbalance >= strategy.TBST_LIMIT)
+				A[j][k] *= strategy.COEFF_A_FEATURE_LOSS;
 		}
 	}
 	return {

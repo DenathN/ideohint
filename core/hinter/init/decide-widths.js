@@ -52,7 +52,7 @@ function decideWidths(stems, priorityMap) {
 	}
 	const coordinateWidth = calculateWidthOfStem.call(this, totalWidth / stems.length, true);
 
-	for (let pass = 0; pass < doCoordinate ? 3 : 0; pass++) {
+	if (doCoordinate) {
 		let areaLost = 0;
 		for (let j = 0; j < stems.length; j++) {
 			const coordinatedOriginalWidth = doCoordinate
@@ -64,7 +64,7 @@ function decideWidths(stems, priorityMap) {
 		if (areaLost > 0) {
 			let areaLostDecreased = true;
 			let passes = 0;
-			while (areaLostDecreased && passes < 100) {
+			while (areaLost >= 0 && areaLostDecreased && passes < 100) {
 				// We will try to increase stroke width if we detected that some pixels are lost.
 				areaLostDecreased = false;
 				passes += 1;
@@ -82,14 +82,14 @@ function decideWidths(stems, priorityMap) {
 		} else {
 			let areaLostDecreased = true;
 			let passes = 0;
-			while (areaLostDecreased && passes < 100) {
+			while (areaLost <= 0 && areaLostDecreased && passes < 100) {
 				// We will try to increase stroke width if we detected that some pixels are lost.
 				areaLostDecreased = false;
 				passes += 1;
 				for (let m = priorityMap.length - 1; m >= 0; m--) {
 					let j = priorityMap[m];
 					let len = stems[j].xmax - stems[j].xmin;
-					if (tws[j] > coordinateWidth && areaLost < -len / 2) {
+					if (tws[j] > coordinateWidth && areaLost < -len) {
 						areaLost += len;
 						tws[j] -= 1;
 						areaLostDecreased = true;

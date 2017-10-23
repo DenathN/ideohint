@@ -44,7 +44,7 @@ class HintingStrategy {
 		this.STEADY_STAGES_X = 4;
 		this.STEADY_STAGES_MAX = 20;
 		this.CANONICAL_STEM_WIDTH_LIMIT_X = 1.375;
-		this.COEFF_A_MULTIPLIER = 10;
+		this.COEFF_A_MULTIPLIER = 1;
 		this.COEFF_A_SAME_RADICAL = 4;
 		this.COEFF_A_SHAPE_LOST = 25;
 		this.COEFF_A_SHAPE_LOST_XX = 250;
@@ -55,7 +55,7 @@ class HintingStrategy {
 		this.COEFF_A_FEATURE_LOSS_XR = 30;
 		this.COEFF_A_RADICAL_MERGE = 1;
 		this.COEFF_OVERSEP = 10000;
-		this.COEFF_C_MULTIPLIER = 100;
+		this.COEFF_C_MULTIPLIER = 10;
 		this.COEFF_C_SHAPE_LOST_XX = 250;
 		this.COEFF_C_FEATURE_LOSS = 12;
 		this.COEFF_C_SAME_RADICAL = 6;

@@ -348,8 +348,8 @@ function analyzePBS(u, v, radical, strategy) {
 					!v.hasGlyphPointBelow ||
 					point.xExtrema ||
 					point.yExtrema) &&
-				point.y > v.y + blueFuzz &&
-				point.y < u.y - u.width - blueFuzz &&
+				point.y > v.y - blueFuzz &&
+				point.y < u.y - u.width + blueFuzz &&
 				point.x > v.xmin + blueFuzz &&
 				point.x < v.xmax - blueFuzz &&
 				point.x > u.xmin + blueFuzz &&
