@@ -49,6 +49,7 @@ function allocateWidth(y0, env) {
 	const avails = env.avails,
 		strictOverlaps = env.strictOverlaps,
 		strictTriplets = env.strictTriplets;
+	const onePixelMatter = env.ppem <= 20;
 	for (let j = 0; j < y0.length; j++) {
 		properWidths[j] = Math.round(avails[j].properWidth);
 		y[j] = Math.round(y0[j]);
@@ -184,16 +185,16 @@ function allocateWidth(y0, env) {
 
 		// large size
 		if (env.WIDTH_GEAR_PROPER < 2) continue;
+
+		/// Thin stroke avoidance
 		for (let psi = 0; psi < 3; psi++) {
 			let applyToLowerOnly = [false, true, true][psi];
-
 			// push stems down to avoid thin strokes.
-
 			for (let j = N - 1; j >= 0; j--) {
 				if (!(applyToLowerOnly || !avails[j].hasGlyphStemAbove)) continue;
 				if (
 					w[j] >=
-					(!avails[j].hasGlyphStemAbove || env.WIDTH_GEAR_PROPER <= 2
+					(!avails[j].hasGlyphStemAbove || env.WIDTH_GEAR_PROPER <= 2 || !onePixelMatter
 						? properWidths[j]
 						: 2)
 				)
@@ -220,7 +221,7 @@ function allocateWidth(y0, env) {
 			for (let j = N - 1; j >= 0; j--) {
 				if (
 					w[j] >=
-					(!avails[j].hasGlyphFoldBelow || env.WIDTH_GEAR_PROPER <= 2
+					(!avails[j].hasGlyphFoldBelow || env.WIDTH_GEAR_PROPER <= 2 || !onePixelMatter
 						? properWidths[j]
 						: 2)
 				)
