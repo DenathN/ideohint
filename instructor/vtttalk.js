@@ -62,7 +62,9 @@ const ABRefMethods = [
 	}
 ];
 
-const rfCombinations = [...product(ABRefMethods, [0, 1, 2], [0, 1, 2])];
+// 20171025: *** QUAD being unrealiable ***
+// 20171025: USE DUAL ONLY
+const rfCombinations = [...product([ABRefMethods[0]], [0, 1, 2], [0, 1, 2])];
 
 function chooseTBPos0(stemKind, stem, cvtCutin, choices) {
 	let chosen = choices[0];
@@ -208,6 +210,8 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 					hintedPositions: $.hintedPositions.top,
 					cvtID: $.cvt.cvtTopDId,
 					cvtTopBotDistId: $.cvt.cvtTopBotDistId,
+					topBotRefDist:
+						$.strategy.BLUEZONE_TOP_CENTER - $.strategy.BLUEZONE_BOTTOM_CENTER,
 					deltas: $.compileAnchor(z.id, $.hintedPositions.topD, $.hintedPositions.top)
 				})
 			);
@@ -217,6 +221,8 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 					hintedPositions: $.hintedPositions.top,
 					cvtID: $.cvt.cvtTopId,
 					cvtTopBotDistId: $.cvt.cvtTopBotDistId,
+					topBotRefDist:
+						$.strategy.BLUEZONE_TOP_CENTER - $.strategy.BLUEZONE_BOTTOM_CENTER,
 					deltas: $.compileAnchor(z.id, $.hintedPositions.top0, $.hintedPositions.top)
 				})
 			);
@@ -249,16 +255,16 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 
 		/// Reference items
 		// Bottom anchor reference
-		let refBottomZ = -1;
+		let refBottom = null;
 		if (!bottomAnchor.told && bottomAnchor.kind !== HE.KEY_ITEM_STEM) {
 			// BKT must have a talk()
-			$$.talk(bottomAnchor.talk());
+			$$.talk(bottomAnchor.talk($));
 			bottomAnchor.told = true;
-			refBottomZ = bottomAnchor.ipz;
+			refBottom = bottomAnchor;
 		}
 		// Top anchor reference
 		if (!topAnchor.told && topAnchor.kind !== HE.KEY_ITEM_STEM) {
-			$$.talk(topAnchor.talk(refBottomZ));
+			$$.talk(topAnchor.talk($, refBottom));
 			topAnchor.told = true;
 		}
 		let tbCombiner = new StemInstructionCombiner($$.fpgmPadding);
@@ -286,13 +292,16 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 					}
 				])
 			);
+
+			// **** PREDICTION BEING UNRELIABLE ****
+
 			// YDist to bottomAnchor knot
-			if (bottomAnchor.told) {
-				bsHintingMethodList.push({
-					posInstr: `/* !!IDH!! StemDef ${topStem.sid} BOTTOM Dist */\nYDist(${bottomAnchor.ipz},${bottomStem.ipz})`,
-					pos0s: distHintedPositions(bottomAnchor, bottomStem, $$.upm, $$.pmin, $$.pmax)
-				});
-			}
+			// if (bottomAnchor.told) {
+			// 	bsHintingMethodList.push({
+			// 		posInstr: `/* !!IDH!! StemDef ${topStem.sid} BOTTOM Dist */\nYDist(${bottomAnchor.ipz},${bottomStem.ipz})`,
+			// 		pos0s: distHintedPositions(bottomAnchor, bottomStem, $$.upm, $$.pmin, $$.pmax)
+			// 	});
+			// }
 			const bsParams = bsHintingMethodList[bsMethod];
 			if (!bsParams) continue;
 			const { totalDeltaImpact: tdi, parts, hintedPositions } = ec.encodeStem(
@@ -329,13 +338,16 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 					}
 				])
 			);
-			// YDist to bottomAnchor knot
-			if (topAnchor.told) {
-				tsHintingMethodList.push({
-					posInstr: `/* !!IDH!! StemDef ${topStem.sid} TOP Dist */\nYDist(${topAnchor.ipz},${topStem.ipz})`,
-					pos0s: distHintedPositions(topAnchor, topStem, $$.upm, $$.pmin, $$.pmax)
-				});
-			}
+
+			// **** PREDICTION BEING UNRELIABLE ****
+
+			// YDist to topAnchor knot
+			// if (topAnchor.told) {
+			// 	tsHintingMethodList.push({
+			// 		posInstr: `/* !!IDH!! StemDef ${topStem.sid} TOP Dist */\nYDist(${topAnchor.ipz},${topStem.ipz})`,
+			// 		pos0s: distHintedPositions(topAnchor, topStem, $$.upm, $$.pmin, $$.pmax)
+			// 	});
+			// }
 			const tsParams = tsHintingMethodList[tsMethod];
 			if (!tsParams) continue;
 

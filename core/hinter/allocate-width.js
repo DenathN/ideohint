@@ -192,12 +192,7 @@ function allocateWidth(y0, env) {
 			// push stems down to avoid thin strokes.
 			for (let j = N - 1; j >= 0; j--) {
 				if (!(applyToLowerOnly || !avails[j].hasGlyphStemAbove)) continue;
-				if (
-					w[j] >=
-					(!avails[j].hasGlyphStemAbove || env.WIDTH_GEAR_PROPER <= 2 || !onePixelMatter
-						? properWidths[j]
-						: 2)
-				)
+				if (w[j] >= (!avails[j].hasGlyphStemAbove || onePixelMatter ? properWidths[j] : 2))
 					continue;
 				let able = true;
 				// We search for strokes below,
@@ -219,12 +214,7 @@ function allocateWidth(y0, env) {
 				w[j] += 1;
 			}
 			for (let j = N - 1; j >= 0; j--) {
-				if (
-					w[j] >=
-					(!avails[j].hasGlyphFoldBelow || env.WIDTH_GEAR_PROPER <= 2 || !onePixelMatter
-						? properWidths[j]
-						: 2)
-				)
+				if (w[j] >= (!avails[j].hasGlyphFoldBelow || onePixelMatter ? properWidths[j] : 2))
 					continue;
 				if (y[j] >= avails[j].highP) continue;
 				if (!avails[j].hasGlyphStemAbove && y[j] >= pixelTop - 2) continue;
@@ -290,7 +280,6 @@ function allocateWidth(y0, env) {
 					} else if (
 						w[j] === 3 &&
 						w[k] === 1 &&
-						w[k] < properWidths[k] &&
 						w[j] >= properWidths[j] &&
 						y[j] - y[k] === w[j] + 1
 					) {
@@ -299,7 +288,6 @@ function allocateWidth(y0, env) {
 					} else if (
 						w[j] === 1 &&
 						w[k] === 3 &&
-						w[j] < properWidths[j] &&
 						w[k] >= properWidths[k] &&
 						y[j] - y[k] === w[j] + 1
 					) {

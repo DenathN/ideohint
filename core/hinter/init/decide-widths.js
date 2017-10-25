@@ -45,9 +45,11 @@ function decideWidths(stems, priorityMap) {
 	let tws = [];
 	let areaLost = 0;
 	let totalWidth = 0;
+	let totalLength = 0;
 	for (let j = 0; j < stems.length; j++) {
 		tws[j] = calculateWidthOfStem.call(this, stems[j].width, doCoordinate);
 		totalWidth += stems[j].width;
+		totalLength += stems[j].xmax - stems[j].xmin;
 		const coordinatedOriginalWidth = doCoordinate
 			? stems[j].width / this.CANONICAL_STEM_WIDTH * this.WIDTH_GEAR_PROPER
 			: stems[j].width / uppx;
@@ -55,8 +57,7 @@ function decideWidths(stems, priorityMap) {
 	}
 	if (!doCoordinate) return tws;
 	// Coordinate widths
-	let averageWidth = totalWidth / stems.length;
-	let coordinateWidth = calculateWidthOfStem.call(this, averageWidth, true);
+	const coordinateWidth = calculateWidthOfStem.call(this, totalWidth / totalLength, true);
 	if (areaLost > 0) {
 		let areaLostDecreased = true;
 		let passes = 0;

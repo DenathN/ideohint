@@ -44,11 +44,14 @@ class TopAnchorHintingElement extends HintingElement {
 	get kind() {
 		return KEY_ITEM_TOP;
 	}
-	talk(z) {
-		if (z >= 0) {
+	talk($, bottomAnchor) {
+		const isValidLink =
+			bottomAnchor &&
+			Math.abs(this.pOrg - bottomAnchor.pOrg - this.topBotRefDist) < $.cvtCutin / 2;
+		if (isValidLink) {
 			return `
 /* !!IDH!! Top Anchor Kind Linked */
-YLink(${z},${this.ipz},${this.cvtTopBotDistId})
+YLink(${bottomAnchor.ipz},${this.ipz},${this.cvtTopBotDistId})
 `;
 		} else {
 			return `
