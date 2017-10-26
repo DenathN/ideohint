@@ -192,15 +192,17 @@ function allocateWidth(y0, env) {
 			// push stems down to avoid thin strokes.
 			for (let j = N - 1; j >= 0; j--) {
 				if (!(applyToLowerOnly || !avails[j].hasGlyphStemAbove)) continue;
-				if (w[j] >= (!avails[j].hasGlyphStemAbove || onePixelMatter ? properWidths[j] : 2))
-					continue;
+				if (w[j] >= (!avails[j].hasGlyphStemAbove ? properWidths[j] : 2)) continue;
 				let able = true;
 				// We search for strokes below,
 				for (let k = 0; k < j; k++) {
 					if (
 						strictOverlaps[j][k] &&
 						y[j] - w[j] - y[k] <= 1 &&
-						(y[k] <= avails[k].lowP || y[k] <= pixelBottom + w[k] || w[k] < 2)
+						(onePixelMatter || // shifting strokes modifies glyph too much
+						y[k] <= avails[k].lowP || // the stroke is low enough
+						y[k] <= pixelBottom + w[k] || // or it is thin enough
+							w[k] < 2)
 					) {
 						able = false;
 					}
@@ -214,8 +216,7 @@ function allocateWidth(y0, env) {
 				w[j] += 1;
 			}
 			for (let j = N - 1; j >= 0; j--) {
-				if (w[j] >= (!avails[j].hasGlyphFoldBelow || onePixelMatter ? properWidths[j] : 2))
-					continue;
+				if (w[j] >= (!avails[j].hasGlyphFoldBelow ? properWidths[j] : 2)) continue;
 				if (y[j] >= avails[j].highP) continue;
 				if (!avails[j].hasGlyphStemAbove && y[j] >= pixelTop - 2) continue;
 
@@ -226,7 +227,8 @@ function allocateWidth(y0, env) {
 						strictOverlaps[k][j] &&
 						y[k] - w[k] - y[j] <= 1 && // there is no stem below satisifies:
 						// with one pixel space, and prevent upward adjustment, if
-						(!cover(avails[j], avails[k]) || // it is not dominated with stroke J
+						(onePixelMatter || // shifting strokes modifies glyph too much
+						!cover(avails[j], avails[k]) || // it is not dominated with stroke J
 						w[k] < properWidths[k] || // or it is thin enough
 							w[k] < 2) // or it is thin enough
 					) {
