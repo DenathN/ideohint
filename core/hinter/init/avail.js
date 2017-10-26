@@ -80,6 +80,10 @@ class Avail {
 		if (stem.hasEntireContourAbove) {
 			highlimit = Math.min(env.glyphTop - 2 * uppx, highlimit);
 		}
+		const lowlimitW = Math.max(env.glyphBottom + w, tw > 1 ? lowlimit - uppx : lowlimit);
+		const lowlimitP = lowlimit;
+		const highlimitP = highlimit;
+
 		if (y0 < halfway0) {
 			highlimit = xclamp(lowlimit, Math.ceil(halfway / uppx) * uppx, highlimit);
 		}
@@ -95,19 +99,18 @@ class Avail {
 			stem.posKeyAtTop
 		);
 		const [maxShiftD, maxShiftU] = decideMaxShift(y0, w0, ppem, tightness, strategy);
-		const lowlimitW = Math.max(env.glyphBottom + w, tw > 1 ? lowlimit - uppx : lowlimit);
 		const lowW = xclamp(
 			lowlimitW,
 			env.round(center0 - Math.max(1, maxShiftD) * uppx),
-			highlimit
+			highlimitP
 		);
 		const highW = xclamp(
 			lowlimitW,
 			env.round(center0 + Math.max(1, maxShiftU) * uppx),
-			highlimit
+			highlimitP
 		);
-		const lowP = xclamp(lowlimit, env.round(center0 - maxShiftD / 2 * uppx), highlimit);
-		const highP = xclamp(lowlimit, env.round(center0 + maxShiftU / 2 * uppx), highlimit);
+		const lowP = xclamp(lowlimitP, env.round(center0 - maxShiftD / 2 * uppx), highlimitP);
+		const highP = xclamp(lowlimitP, env.round(center0 + maxShiftU / 2 * uppx), highlimitP);
 		const low = xclamp(lowlimit, env.round(center0 - maxShiftD * uppx), highlimit);
 		const high = xclamp(lowlimit, env.round(center0 + maxShiftU * uppx), highlimit);
 		const center = xclamp(low, center0, high);

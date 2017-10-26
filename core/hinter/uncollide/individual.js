@@ -38,7 +38,6 @@ class Individual {
 	_getOverseparationP(env) {
 		const y = this.gene,
 			avails = env.avails,
-			P = env.P,
 			n = y.length,
 			dov = env.directOverlaps,
 			OVERSEP = env.COEFF_OVERSEP;
@@ -64,15 +63,15 @@ class Individual {
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
 				if (!dov[j][k]) continue;
-				const d = y[j] - avails[j].properWidth - y[k];
+				const wj =
+					avails[j].properWidth <= 1 && env.WIDTH_GEAR_PROPER > 1 && !env.onePixelMatter
+						? env.WIDTH_GEAR_PROPER
+						: avails[j].properWidth;
+				const d = y[j] - wj - y[k];
 				const d0 = avails[j].y0px - avails[j].w0px - avails[k].y0px;
+				if (d0 <= 0) continue;
 				const overSeparation = (d - d0) / d0;
-				if (y[j] - avails[j].properWidth - y[k] <= 0) continue;
-				if (overSeparation > 0) {
-					p += overSeparation * overSeparation * OVERSEP / (1 + P[j][k] / 2);
-				} else {
-					p += overSeparation * overSeparation * OVERSEP * P[j][k];
-				}
+				p += overSeparation * overSeparation * OVERSEP;
 			}
 		}
 		return p;

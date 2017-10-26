@@ -18,16 +18,11 @@ function hint(gd, ppem, strg, doSimpleHinting) {
 	let sp = null;
 	const spInit = hinter.decideInitHint();
 	const spNT = hinter.decideInitHintNT();
-	if (doSimpleHinting) {
-		const idvInit = hinter.createIndividual(spInit);
-		const idvNT = hinter.createIndividual(spNT);
-		sp = idvNT.fitness > idvInit.fitness ? spNT : spInit;
-	} else {
-		const idvNT = hinter.createIndividual(spNT);
-		const spUncol = hinter.uncollide(spInit);
-		const idvUncol = hinter.createIndividual(spUncol);
-		sp = idvNT.fitness >= idvUncol.fitness ? spNT : spUncol;
-	}
+
+	const idvNT = hinter.createIndividual(spNT);
+	const spUncol = hinter.uncollide(spInit);
+	const idvUncol = hinter.createIndividual(spUncol);
+	sp = idvNT.fitness >= idvUncol.fitness ? spNT : spUncol;
 
 	// width pass
 	const { y, w } = hinter.allocateWidth(sp);

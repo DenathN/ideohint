@@ -81,14 +81,16 @@ module.exports = function calculateCollisionMatrices(
 		C = [],
 		S = [],
 		P = [],
+		Q = [],
 		n = stems.length;
 	for (let j = 0; j < n; j++) {
 		A[j] = [];
 		C[j] = [];
 		S[j] = [];
 		P[j] = [];
+		Q[j] = [];
 		for (let k = 0; k < n; k++) {
-			A[j][k] = C[j][k] = S[j][k] = P[j][k] = 0;
+			A[j][k] = C[j][k] = S[j][k] = P[j][k] = Q[j][k] = 0;
 		}
 	}
 	let slopes = stems.map(function(s) {
@@ -222,6 +224,7 @@ module.exports = function calculateCollisionMatrices(
 			}
 			S[j][k] = Math.round(strategy.COEFF_S);
 			P[j][k] = Math.round(structuralPromixity + (pbs[j][k] ? 1 : 0));
+			Q[j][k] = spatialPromixity;
 		}
 	}
 	for (let j = 0; j < n; j++) {
@@ -264,6 +267,7 @@ module.exports = function calculateCollisionMatrices(
 		alignment: A,
 		collision: C,
 		promixity: P,
+		spatialPromixity: Q,
 		swap: S
 	};
 };

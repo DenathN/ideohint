@@ -23,11 +23,14 @@ class Hinter {
 		this.ppem = ppem;
 		this.prepareParameters();
 
+		this.onePixelMatter = ppem <= 16;
+
 		//// GLYPH SPECIFIC
 		this.A = fdefs.collisionMatrices.alignment;
 		this.C = fdefs.collisionMatrices.collision;
 		this.S = fdefs.collisionMatrices.swap;
 		this.P = fdefs.collisionMatrices.promixity;
+		this.Q = fdefs.collisionMatrices.spatialPromixity;
 
 		this.directOverlaps = fdefs.directOverlaps;
 		this.strictOverlaps = fdefs.strictOverlaps;

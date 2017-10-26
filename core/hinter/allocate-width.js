@@ -49,7 +49,7 @@ function allocateWidth(y0, env) {
 	const avails = env.avails,
 		strictOverlaps = env.strictOverlaps,
 		strictTriplets = env.strictTriplets;
-	const onePixelMatter = env.ppem <= 16;
+	const onePixelMatter = env.onePixelMatter;
 	for (let j = 0; j < y0.length; j++) {
 		properWidths[j] = Math.round(avails[j].properWidth);
 		y[j] = Math.round(y0[j]);
