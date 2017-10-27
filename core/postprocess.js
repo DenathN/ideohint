@@ -1,5 +1,7 @@
 "use strict";
 
+const roundings = require("../support/roundings");
+
 const Y = 0;
 const W = 1;
 const HARD = 2;
@@ -45,13 +47,16 @@ function getMinmax(stems, k, a, sign) {
 		return [sk.xmin, sk.xmax, couple, 0];
 	}
 }
-function padSD(actions, stems, directOverlaps, uppx) {
+function padSD(actions, stems, directOverlaps, uppx, bottom) {
 	let stackrel = [];
 	for (let j = 0; j < stems.length; j++) {
 		actions[j][HARD] = false;
 		actions[j][STACKED] = false;
 		actions[j][ADDPXS] = 0;
 		stackrel[j] = [];
+	}
+	for (let j = 0; j < stems.length; j++) {
+		actions[j][W] = Math.min(actions[j][W], actions[j][Y] - bottom);
 	}
 	// downward strictness/stackness detection
 	for (let j = 0; j < stems.length; j++) {
@@ -124,12 +129,14 @@ function padSD(actions, stems, directOverlaps, uppx) {
 			}
 		}
 	}
+	// fold strokes
 	for (let j = 0; j < stems.length; j++) {
 		const sj = stems[j];
 		if (
 			!sj.hasGlyphStemBelow &&
 			(sj.hasGlyphFoldBelow || sj.hasGlyphSideFoldBelow) &&
-			sj.posKeyAtTop
+			sj.posKeyAtTop &&
+			actions[j][Y] <= bottom + Math.max(4, actions[j][W] * 3)
 		) {
 			if (actions[j][W] * uppx < Math.abs(sj.posKey.y - sj.advKey.y)) {
 				actions[j][HARD] = true;
@@ -154,7 +161,13 @@ module.exports = function(data) {
 	const { si, sd, pmin, pmax } = data;
 	for (let ppem = pmin; ppem <= pmax; ppem++) {
 		if (!sd[ppem]) continue;
-		padSD(sd[ppem].y, si.stems, si.directOverlaps, si.upm / ppem);
+		padSD(
+			sd[ppem].y,
+			si.stems,
+			si.directOverlaps,
+			si.upm / ppem,
+			Math.round(roundings.rtg(si.blue.bottomPos, si.upm, ppem) / (si.upm / ppem))
+		);
 	}
 };
 module.exports.for = padSD;

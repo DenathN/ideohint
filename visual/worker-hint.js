@@ -3,6 +3,7 @@
 
 const core = require("../core");
 const postprocess = require("../core/postprocess");
+const roundings = require("../support/roundings");
 
 onmessage = function(message) {
 	const { input, strategy } = message.data;
@@ -16,7 +17,7 @@ onmessage = function(message) {
 			};
 		}
 	});
-	console.log(glyphs);
+
 	for (let g of glyphs) {
 		g.hints = core.decideHints(g.features, strategy).sd;
 		for (let ppem = 0; ppem < g.hints.length; ppem++) {
@@ -25,7 +26,11 @@ onmessage = function(message) {
 				g.hints[ppem].y,
 				g.features.stems,
 				g.features.directOverlaps,
-				strategy.UPM / ppem
+				strategy.UPM / ppem,
+				Math.round(
+					roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, strategy.UPM, ppem) /
+						(strategy.UPM / ppem)
+				)
 			);
 		}
 	}

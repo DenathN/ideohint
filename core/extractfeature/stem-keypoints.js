@@ -28,8 +28,7 @@ module.exports = function(glyph, strategy, dov, P) {
 		const posKeyShouldAtBottom =
 			((s.hasGlyphStemAbove && !hasGreaterLowerPromixity(glyph.stems, js, dov, P)) ||
 				s.y <= mix(strategy.BLUEZONE_BOTTOM_CENTER, strategy.BLUEZONE_TOP_CENTER, 0.5)) &&
-			!s.hasGlyphFoldBelow &&
-			!s.hasEntireContourBelow;
+			!(!s.hasGlyphStemBelow && (s.hasGlyphFoldBelow || s.hasEntireContourBelow));
 
 		// get non-key points
 		let highnonkey = [],

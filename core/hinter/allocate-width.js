@@ -444,22 +444,6 @@ function allocateWidth(y0, env) {
 				}
 			}
 		}
-
-		for (let j = 0; j < N; j++) {
-			w[j] = Math.min(w[j], y[j] - pixelBottom);
-			if (w[j] > 1 && !avails[j].atGlyphBottom && y[j] - w[j] === pixelBottom) {
-				w[j] -= 1;
-			}
-			// For bottommost stems with a folds below, reduce stroke width when it compresses the thing below.
-			if (
-				avails[j].hasFoldBelow &&
-				y[j] < avails[j].low &&
-				w[j] === properWidths[j] &&
-				w[j] > 1
-			) {
-				w[j] -= 1;
-			}
-		}
 	}
 
 	// Triplet whitespace balancing

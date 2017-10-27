@@ -4,12 +4,23 @@ const DIAG_BIAS_PIXELS = 1 / 6;
 const DIAG_BIAS_PIXELS_NEG = 1 / 3;
 class Individual {
 	constructor(y, env, unbalanced) {
-		this.gene = y;
-		this.unbalanced = unbalanced;
-		this.collidePotential =
-			this.getCollidePotential(env) + this.getSevereDistortionPotential(env);
-		this.ablationPotential = this.getAblationPotential(env);
-		this.fitness = this.getFitness();
+		if (y) {
+			this.gene = y;
+			this.unbalanced = unbalanced;
+			this.collidePotential =
+				this.getCollidePotential(env) + this.getSevereDistortionPotential(env);
+			this.ablationPotential = this.getAblationPotential(env);
+			this.fitness = this.getFitness();
+		}
+	}
+	clone() {
+		let idv = new Individual();
+		idv.gene = [...this.gene];
+		idv.unbalanced = this.unbalanced;
+		idv.collidePotential = this.collidePotential;
+		idv.ablationPotential = this.ablationPotential;
+		idv.fitness = this.fitness;
+		return idv;
 	}
 	getFitness() {
 		return 1 / (1 + Math.max(0, this.collidePotential * 8 + this.ablationPotential / 16));
@@ -35,47 +46,11 @@ class Individual {
 		}
 		return pA + pC * nCol * nCol;
 	}
-	_getOverseparationP(env) {
-		const y = this.gene,
-			avails = env.avails,
-			n = y.length,
-			dov = env.directOverlaps,
-			OVERSEP = env.COEFF_OVERSEP;
-		let p = 0;
-		// top oversep
-		for (let j = 0; j < n; j++) {
-			if (avails[j].hasGlyphStemAbove) continue;
-			const overSeparation =
-				(env.glyphTopPixels - y[j]) / (env.glyphTopPixels - avails[j].y0px) - 1;
-			p += overSeparation * overSeparation * OVERSEP;
-		}
-		// bottom oversep
-		for (let j = 0; j < n; j++) {
-			if (avails[j].hasGlyphStemBelow) continue;
-			if (avails[j].hasGlyphFoldBelow) continue;
-			const overSeparation =
-				(y[j] - avails[j].properWidth - env.glyphBottomPixels) /
-					(avails[j].y0px - avails[j].w0px - env.glyphBottomPixels) -
-				1;
-			p += overSeparation * overSeparation * OVERSEP;
-		}
-		// between-stem oversep
-		for (let j = 0; j < n; j++) {
-			for (let k = 0; k < j; k++) {
-				if (!dov[j][k]) continue;
-				const wj =
-					avails[j].properWidth <= 1 && env.WIDTH_GEAR_PROPER > 1 && !env.onePixelMatter
-						? env.WIDTH_GEAR_PROPER
-						: avails[j].properWidth;
-				const d = y[j] - wj - y[k];
-				const d0 = avails[j].y0px - avails[j].w0px - avails[k].y0px;
-				if (d0 <= 0) continue;
-				const overSeparation = (d - d0) / d0;
-				p += overSeparation * overSeparation * OVERSEP;
-			}
-		}
-		return p;
+
+	getSevereDistortionPotential(env) {
+		return this._getDiagonalBreakP(env) + this._getSwapAndSymBreakP(env);
 	}
+
 	_getDiagonalBreakP(env) {
 		const y = this.gene,
 			avails = env.avails,
@@ -132,39 +107,20 @@ class Individual {
 		}
 		return p;
 	}
-	getSevereDistortionPotential(env) {
-		return (
-			this._getOverseparationP(env) +
-			this._getDiagonalBreakP(env) +
-			this._getSwapAndSymBreakP(env)
-		);
-	}
+
 	getAblationPotential(env) {
+		return this._getOverseparationP(env) * env.COEFF_OVERSEP + this._getTripletBreakP(env);
+	}
+
+	_getTripletBreakP(env) {
 		if (env.noAblation) return 0;
+
 		const y = this.gene,
 			avails = env.avails,
 			triplets = env.triplets,
-			uppx = env.uppx,
-			n = y.length;
+			uppx = env.uppx;
 
 		let p = 0;
-		// Prop distortion
-		for (let j = 0; j < n; j++) {
-			p += avails[j].ablationCoeff * uppx * Math.abs(y[j] - avails[j].center);
-			if (y[j] > avails[j].softHigh) {
-				p +=
-					env.strategy.COEFF_PORPORTION_DISTORTION *
-					uppx *
-					Math.min(1, y[j] - avails[j].softHigh);
-			}
-			if (y[j] < avails[j].softLow) {
-				p +=
-					env.strategy.COEFF_PORPORTION_DISTORTION *
-					uppx *
-					Math.min(1, avails[j].softHigh - y[j]);
-			}
-		}
-
 		// Triplet distortion
 		const finelimit = uppx / 8;
 		const dlimit = uppx / 3;
@@ -191,6 +147,57 @@ class Individual {
 			}
 			if (d < finelimit && d > -finelimit && spacejk !== spacekw) {
 				p += (env.C[j][k] + env.C[k][w]) * env.strategy.COEFF_DISTORT / 3;
+			}
+		}
+		return p;
+	}
+	_measureDistort(d, d0, pCompress, pSeparation) {
+		if (d0 <= 0 || d < 0) return 0;
+		if (d < d0) {
+			const overCompression = d0 / (d + 1) - d / (d + 1);
+			return overCompression * overCompression * pCompress;
+		} else {
+			const overSeparation = d / (d0 + 1) - d0 / (d0 + 1);
+			return overSeparation * overSeparation * pSeparation;
+		}
+	}
+	_getOverseparationP(env) {
+		const y = this.gene,
+			avails = env.avails,
+			n = y.length,
+			P = env.P;
+		let p = 0;
+		// top oversep
+		for (let j = 0; j < n; j++) {
+			if (avails[j].hasGlyphStemAbove) continue;
+			if (env.glyphTopPixels - y[j] < 1) continue;
+
+			p += this._measureDistort(
+				env.glyphTopPixels - y[j],
+				env.glyphTopPixels - avails[j].y0px,
+				1,
+				1
+			);
+		}
+		// bottom oversep
+		for (let j = 0; j < n; j++) {
+			if (avails[j].hasGlyphStemBelow) continue;
+			if (avails[j].hasGlyphFoldBelow) continue;
+
+			if (y[j] - avails[j].properWidth - env.glyphBottomPixels < 1) continue;
+			p += this._measureDistort(
+				y[j] - avails[j].properWidth - env.glyphBottomPixels,
+				avails[j].y0px - avails[j].w0px - env.glyphBottomPixels,
+				1,
+				1
+			);
+		}
+		// between-stem oversep
+		for (let j = 0; j < n; j++) {
+			for (let k = 0; k < j; k++) {
+				const d = y[j] - avails[j].properWidth - y[k];
+				const d0 = avails[j].y0px - avails[j].w0px - avails[k].y0px;
+				p += this._measureDistort(d, d0, P[j][k] + 1, 1);
 			}
 		}
 		return p;

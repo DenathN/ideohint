@@ -1,10 +1,12 @@
+"use strict";
+
 const { findStems } = require("../core/findstem");
 const { extractFeature } = require("../core/extractfeature");
 const hintForSize = require("../core/hinter");
 const { parseOTD } = require("./otdParser");
-const { xclamp } = require("../support/common");
+const roundings = require("../support/roundings");
 
-exports.version = 10061;
+exports.version = 10070;
 
 exports.hintSingleGlyph = function(contours, strategy) {
 	return exports.decideHints(
@@ -84,27 +86,50 @@ class SizeIndependentHints {
 	}
 }
 
-exports.decideHints = function(featData, strategy) {
-	let sd = [];
-	let d = 0xffff;
-	for (let j = 0; j < featData.stems.length; j++) {
-		for (let k = 0; k < j; k++) {
-			if (!featData.directOverlaps[j][k]) continue;
-			let d1 = featData.stems[j].y - featData.stems[j].width - featData.stems[k].y;
-			if (d1 < d) d = d1;
-		}
-	}
-	if (d < 1) d = 1;
-	const cutoff = xclamp(
-		strategy.PPEM_MIT,
-		Math.round(strategy.UPM * strategy.SPARE_PIXLS / d),
-		strategy.PPEM_MAX
-	);
+function topbotOf(strategy, upm, ppem) {
+	const uppx = upm / ppem;
+	const b = Math.round(roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem) / uppx);
+	const t =
+		b +
+		Math.round(
+			roundings.rtg(
+				strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER,
+				upm,
+				ppem
+			) / uppx
+		);
+	return [b, t];
+}
 
+exports.decideHints = function(featData, strategy) {
+	const upm = strategy.UPM;
+	let sd = [];
+
+	let initialY = null;
 	for (let ppem = strategy.PPEM_MAX; ppem >= strategy.PPEM_MIN; ppem--) {
-		const doSimpleHinting = strategy.FULLHINT ? false : ppem > cutoff;
-		const actions = hintForSize(featData, ppem, strategy, doSimpleHinting);
+		const actions = hintForSize(featData, ppem, strategy, initialY);
 		sd[ppem] = actions;
+
+		// update initialY
+		const [bottomThis, topThis] = topbotOf(strategy, upm, ppem);
+		const [bottomThat, topThat] = topbotOf(strategy, upm, ppem - 1);
+		const scale = (ppem - 1) / ppem;
+
+		initialY = actions.y.map(function(a) {
+			const y = a[0];
+			const w = a[1];
+			const w1 = Math.round(w * scale);
+			const spaceBelow = y - w - bottomThis,
+				spaceAbove = topThis - y;
+			const spaceBelow1 =
+				(topThat - bottomThat - w1) * spaceBelow / (spaceBelow + spaceAbove);
+
+			if (spaceBelow > 1 / 2) {
+				return Math.min(topThat, bottomThat + Math.max(1, Math.round(spaceBelow1)) + w1);
+			} else {
+				return Math.min(topThat, bottomThat + Math.max(0, Math.round(spaceBelow1)) + w1);
+			}
+		});
 	}
 
 	return {

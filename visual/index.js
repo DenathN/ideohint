@@ -15,7 +15,7 @@ const render = (function() {
 		if (!input || !input.length) return;
 		worker = new Worker("./worker-hint.packed.js");
 		worker.onmessage = function(message) {
-			worker = null;
+			// worker = null;
 			console.log(message.data);
 			Renderer.renderPreview(canvas, message.data, config.strategy);
 		};
@@ -41,6 +41,8 @@ var strategyControlTypes = {
 	CHEBYSHEV_5: "VQ",
 	CANONICAL_STEM_WIDTH: "VQ",
 	CANONICAL_STEM_WIDTH_DENSE: "VQ",
+	TOP_UNIFY_FORCE: "VQ",
+	TOP_UNIFY_FORCE_DIAG: "VQ",
 	BOTTOM_UNIFY_FORCE: "VQ",
 	BOTTOM_UNIFY_FORCE_DIAG: "VQ"
 };
@@ -60,6 +62,8 @@ var strategyControlGroups = [
 		"BOTTOM_CUT_DIAGL",
 		"TOP_CUT_DIAG_DIST",
 		"BOTTOM_CUT_DIAG_DIST",
+		"TOP_UNIFY_FORCE",
+		"TOP_UNIFY_FORCE_DIAG",
 		"BOTTOM_UNIFY_FORCE",
 		"BOTTOM_UNIFY_FORCE_DIAG"
 	],

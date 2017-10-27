@@ -1,14 +1,8 @@
 "use strict";
-const { xclamp } = require("../../../support/common");
-
-function gammaCorrect(pixels) {
-	let intpxs = Math.floor(pixels);
-	return intpxs + Math.pow(pixels - intpxs, 2);
-}
 
 // decide the proper width of given stem locally
 function calculateWidthOfStem(w, doCoordinate) {
-	if (!doCoordinate) return Math.max(1, Math.round(gammaCorrect(w / this.uppx)));
+	if (!doCoordinate) return Math.max(1, Math.round(w / this.uppx));
 
 	const pixels0 = w / this.uppx;
 	let pixels = w / this.CANONICAL_STEM_WIDTH * this.WIDTH_GEAR_PROPER;

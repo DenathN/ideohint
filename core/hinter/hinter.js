@@ -7,6 +7,7 @@ const stemSpat = require("../../support/stem-spatial");
 const decideAvails = require("./init/avail");
 const decideWidths = require("./init/decide-widths");
 
+const balance = require("./uncollide/balance");
 const Individual = require("./uncollide/individual");
 const uncollide = require("./uncollide");
 const allocateWidth = require("./allocate-width");
@@ -32,6 +33,7 @@ class Hinter {
 		this.P = fdefs.collisionMatrices.promixity;
 		this.Q = fdefs.collisionMatrices.spatialPromixity;
 
+		this.overlaps = fdefs.overlaps;
 		this.directOverlaps = fdefs.directOverlaps;
 		this.strictOverlaps = fdefs.strictOverlaps;
 
@@ -43,11 +45,15 @@ class Hinter {
 		//// CALCULATED
 		this.tightness = this.getTightness(fdefs);
 		this.nStems = fdefs.stems.length;
-		const tws = this.decideWidths(fdefs.stems, fdefs.dominancePriority);
-		this.avails = decideAvails.call(this, fdefs.stems, tws);
+		this.stems = fdefs.stems;
+		this.updateAvails(this.decideWidths(fdefs.stems, fdefs.dominancePriority));
 		this.symmetry = decideSymmetry.call(this);
-
 		this.xExpansion = 1 + Math.round(toVQ(strategy.X_EXPAND, ppem)) / 100;
+	}
+	updateAvails(tws) {
+		this.avails = decideAvails.call(this, this.stems, tws);
+		this._idvCache = new Map();
+		this._balanceCache = new Map();
 	}
 	prepareParameters() {
 		const { strategy, ppem } = this;
@@ -57,8 +63,12 @@ class Hinter {
 			this.round(strategy.BLUEZONE_BOTTOM_CENTER) +
 			this.round(strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER);
 		this.glyphBottom = this.round(strategy.BLUEZONE_BOTTOM_CENTER);
+		this.glyphTop0 = strategy.BLUEZONE_TOP_CENTER;
+		this.glyphBottom0 = strategy.BLUEZONE_BOTTOM_CENTER;
 		this.glyphTopPixels = Math.round(this.glyphTop / this.uppx);
 		this.glyphBottomPixels = Math.round(this.glyphBottom / this.uppx);
+		this.TOP_UNIFY_FORCE = toVQ(strategy.TOP_UNIFY_FORCE, ppem) / 100;
+		this.TOP_UNIFY_FORCE_DIAG = toVQ(strategy.TOP_UNIFY_FORCE_DIAG, ppem) / 100;
 		this.BOTTOM_UNIFY_FORCE = toVQ(strategy.BOTTOM_UNIFY_FORCE, ppem) / 100;
 		this.BOTTOM_UNIFY_FORCE_DIAG = toVQ(strategy.BOTTOM_UNIFY_FORCE_DIAG, ppem) / 100;
 
@@ -161,80 +171,90 @@ class Hinter {
 		);
 	}
 
-	shouldTwopass() {
-		let d = 0xffff;
-		for (let j = 0; j < this.nStems; j++)
-			for (let k = 0; k < j; k++) {
-				if (this.directOverlaps[j][k]) {
-					let d1 =
-						this.avails[j].y0 -
-						this.avails[j].properWidth * this.uppx -
-						this.avails[k].y0;
-					if (d1 < d) d = d1;
-				}
-			}
-		if (d < 1) d = 1;
-		return d <= 1.5 * this.uppx;
-	}
-
 	decideInitHint() {
 		const { avails } = this;
 		return avails.map(s => s.center);
 	}
 
-	decideInitHintNT() {
+	decideInitHintNT(y0) {
 		const { avails, uppx } = this;
-		return avails.map(a =>
-			xclamp(
-				a.low,
-				Math.round(
-					lerp(a.y0, this.stats.ymin, this.stats.ymax, this.glyphBottom, this.glyphTop) /
-						uppx
-				),
-				a.high
-			)
-		);
+		const hinter = this;
+		const pass1 =
+			y0 ||
+			avails.map(function(a) {
+				return xclamp(
+					a.low,
+					Math.round(
+						lerp(
+							a.y0,
+							hinter.glyphBottom0,
+							hinter.glyphTop0,
+							hinter.glyphBottom,
+							hinter.glyphTop
+						) / uppx
+					),
+					a.high
+				);
+			});
+		if (pass1.length > 1 && pass1[0] < pass1[pass1.length - 1]) {
+			return avails.map(a =>
+				xclamp(
+					a.low,
+					Math.round(
+						lerp(
+							a.y0,
+							avails[0].y0,
+							avails[avails.length - 1].y0,
+							pass1[0],
+							pass1[pass1.length - 1]
+						)
+					),
+					a.high
+				)
+			);
+		} else {
+			return pass1;
+		}
 	}
 
 	uncollide(y) {
 		const { strategy, ppem } = this;
-		const y1 = uncollide(
-			y,
-			this,
-			xclamp(
-				2,
-				Math.round(this.nStems / strategy.STEADY_STAGES_X * this.nStems / ppem),
-				strategy.STEADY_STAGES_MAX
-			), // stages
-			strategy.POPULATION_LIMIT * Math.max(1, this.nStems), // population
-			true
+		const stages = xclamp(
+			2,
+			Math.round(this.nStems / strategy.STEADY_STAGES_X * this.nStems / ppem),
+			strategy.STEADY_STAGES_MAX
 		);
-		if (this.shouldTwopass()) {
-			const idvPass1 = this.createIndividual(y1);
-			const y2 = uncollide(
-				y1,
-				this,
-				xclamp(
-					2,
-					Math.round(this.nStems / strategy.STEADY_STAGES_X * this.nStems / ppem),
-					strategy.STEADY_STAGES_MAX
-				), // stages
-				strategy.POPULATION_LIMIT * Math.max(1, this.nStems), // population
-				false
-			);
-			const idvPass2 = this.createIndividual(y2);
-			if (idvPass1.fitness < idvPass2.fitness) {
-				return y2;
-			} else {
-				return y1;
-			}
+		const population = strategy.POPULATION_LIMIT * Math.max(1, this.nStems);
+		const y1 = uncollide(y, this, stages, population, true);
+
+		const idvPass1 = this.createIndividual(y1);
+		const y2 = uncollide(y1, this, stages, population, false);
+		const idvPass2 = this.createIndividual(y2);
+		if (idvPass1.fitness < idvPass2.fitness) {
+			return y2;
 		} else {
 			return y1;
 		}
 	}
-
-	createIndividual(y) {
-		return new Individual(y, this);
+	balance(y) {
+		const cacheKey = "" + y;
+		if (this._balanceCache && this._balanceCache.has(cacheKey)) {
+			return [...this._balanceCache.get(cacheKey)];
+		} else {
+			const y1 = balance(y, this);
+			this._balanceCache.set(cacheKey, y1);
+			return y1;
+		}
+	}
+	createIndividual(y, unbalanced) {
+		const cacheKey = "" + y;
+		if (this._idvCache && this._idvCache.has(cacheKey)) {
+			return this._idvCache.get(cacheKey).clone();
+		} else {
+			const idv = new Individual(y, this, unbalanced);
+			this._idvCache.set(cacheKey, idv);
+			return idv;
+		}
 	}
 
 	allocateWidth(y) {

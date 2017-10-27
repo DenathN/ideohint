@@ -204,12 +204,24 @@ function adjustAvails(avails, stems) {
 			const bot = avail.high - avail.properWidth;
 			const force =
 				stem.diagHigh || stem.diagLow
-					? stem.hasLRSpur ? 0 : this.BOTTOM_UNIFY_FORCE_DIAG
-					: this.BOTTOM_UNIFY_FORCE;
+					? this.BOTTOM_UNIFY_FORCE_DIAG
+					: stem.hasLRSpur && !this.onePixelMatter ? 0 : this.BOTTOM_UNIFY_FORCE;
 			const bot1 =
 				topPx - (topPx - bot) * (topPx - bottomPx - force) / (topPx - bottomPx - force * 2);
-			avail.high = bot1 + avail.properWidth;
+			avail.high = Math.round(bot1 + avail.properWidth);
 			if (avail.high < avail.low) avail.high = avail.low;
+		}
+		if (this.atGlyphTop(stem) && !this.atGlyphBottomMost(stem)) {
+			// Push topmost stroke down to unify top features.
+			// This unifies top features to make the text more "aligned".
+			const top = avail.low;
+			const force =
+				stem.diagHigh || stem.diagLow ? this.TOP_UNIFY_FORCE_DIAG : this.TOP_UNIFY_FORCE;
+			const top1 =
+				bottomPx +
+				(top - bottomPx) * (topPx - bottomPx - force) / (topPx - bottomPx - force * 2);
+			avail.low = Math.round(top1);
+			if (avail.low > avail.high) avail.low = avail.high;
 		}
 	}
 
