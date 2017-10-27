@@ -3,8 +3,7 @@
 const roundings = require("../support/roundings");
 const { xclamp } = require("../support/common");
 
-const ROUNDING_CUTOFF = 1 / 2 - 4 / 64;
-const STRICT_CUTOFF = 1 / 4;
+const STRICT_CUTOFF = 1 / 8;
 
 function decideDelta(gear, original, target, upm, ppem) {
 	return Math.round(gear * (target - original) / (upm / ppem));
