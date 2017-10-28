@@ -19,10 +19,7 @@ function twoPixelPack(uppx, yj, wj, yk, wk, sj, sk) {
 	return (
 		sj.posKeyAtTop &&
 		!sk.posKeyAtTop &&
-		((yj - wj - yk <= 2.05 &&
-			wk * uppx + wj * uppx < widthOf(sk) + widthOf(sj) - 0.25 * uppx) ||
-			(yj - wj - yk <= 3.05 &&
-				wk * uppx + wj * uppx < widthOf(sk) + widthOf(sj) - 0.5 * uppx))
+		(yj - wj - yk <= 2.05 && wk * uppx + wj * uppx < widthOf(sk) + widthOf(sj) - 0.25 * uppx)
 	);
 }
 
