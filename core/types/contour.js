@@ -65,24 +65,28 @@ Contour.prototype.orient = function() {
 		this.ccw = p2.x > p1.x;
 	}
 	// Adjacency
-	var pt = this.points[0];
-	for (var j = 0; j < this.points.length - 1; j++)
-		if (this.points[j].on) {
-			setHidden(this.points[j], "prev", pt);
-			setHidden(pt, "next", this.points[j]);
+	{
+		let pt = this.points[0];
+		for (let j = 0; j < this.points.length - 1; j++)
+			if (this.points[j].on) {
+				setHidden(this.points[j], "prev", pt);
+				setHidden(pt, "next", this.points[j]);
+				pt = this.points[j];
+			}
+		setHidden(this.points[0], "prev", pt);
+		setHidden(pt, "next", this.points[0]);
+	}
+	// Direct adjancy
+	{
+		let pt = this.points[0];
+		for (let j = 0; j < this.points.length - 1; j++) {
+			setHidden(this.points[j], "prevZ", pt);
+			setHidden(pt, "nextZ", this.points[j]);
 			pt = this.points[j];
 		}
-	setHidden(this.points[0], "prev", pt);
-	setHidden(pt, "next", this.points[0]);
-	// Direct adjancy
-	var pt = this.points[0];
-	for (var j = 0; j < this.points.length - 1; j++) {
-		setHidden(this.points[j], "prevZ", pt);
-		setHidden(pt, "nextZ", this.points[j]);
-		pt = this.points[j];
+		setHidden(this.points[0], "prevZ", pt);
+		setHidden(pt, "nextZ", this.points[0]);
 	}
-	setHidden(this.points[0], "prevZ", pt);
-	setHidden(pt, "nextZ", this.points[0]);
 };
 var inPoly = function(point, vs) {
 	// ray-casting algorithm based on

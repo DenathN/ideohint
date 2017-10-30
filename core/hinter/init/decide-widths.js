@@ -2,6 +2,7 @@
 
 // decide the proper width of given stem locally
 function calculateWidthOfStem(w, doCoordinate) {
+	if (this.WIDTH_GEAR_PROPER <= 1) return 1;
 	if (!doCoordinate) return Math.max(1, Math.round(w / this.uppx));
 
 	const pixels0 = w / this.uppx;
@@ -32,10 +33,7 @@ function calculateWidthOfStem(w, doCoordinate) {
 // Decide proper widths of stems globally
 function decideWidths(stems, priorityMap) {
 	const { strategy, upm, ppem, uppx } = this;
-	const doCoordinate =
-		!strategy.DONT_COORDINATE_WIDTHS &&
-		this.CANONICAL_STEM_WIDTH / upm < 0.004 * ppem &&
-		this.CANONICAL_STEM_WIDTH / upm > 0.0015 * ppem;
+	const doCoordinate = !strategy.DONT_COORDINATE_WIDTHS;
 	let tws = [];
 	let areaLost = 0;
 	let totalArea = 0;

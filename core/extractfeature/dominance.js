@@ -3,8 +3,8 @@
 var toposort = require("toposort");
 
 function priof(s) {
-	if (!s.hasGlyphStemBelow) return 2;
-	if (!s.hasGlyphStemAbove) return 1;
+	//if (!s.hasGlyphStemBelow) return 2;
+	//if (!s.hasGlyphStemAbove) return 1;
 	return 0;
 }
 function dominate(sj, sk) {

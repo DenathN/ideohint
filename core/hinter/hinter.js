@@ -24,7 +24,7 @@ class Hinter {
 		this.ppem = ppem;
 		this.prepareParameters();
 
-		this.onePixelMatter = ppem <= 16;
+		this.onePixelMatter = ppem <= 18;
 
 		//// GLYPH SPECIFIC
 		this.A = fdefs.collisionMatrices.alignment;
@@ -36,6 +36,7 @@ class Hinter {
 		this.overlaps = fdefs.overlaps;
 		this.directOverlaps = fdefs.directOverlaps;
 		this.strictOverlaps = fdefs.strictOverlaps;
+		this.stemOverlapLengths = fdefs.stemOverlapLengths;
 
 		this.triplets = fdefs.triplets;
 		this.strictTriplets = fdefs.strictTriplets;
@@ -85,10 +86,11 @@ class Hinter {
 
 		// FeatDP
 		this.STEM_SIDE_MIN_RISE = Math.min(strategy.STEM_SIDE_MIN_RISE, this.uppx);
-		this.STEM_SIDE_MIN_DIST_RISE = Math.min(strategy.STEM_SIDE_MIN_DIST_RISE);
+		this.STEM_SIDE_MIN_DIST_RISE = Math.min(strategy.STEM_SIDE_MIN_DIST_RISE, this.uppx);
 		this.STEM_CENTER_MIN_RISE = Math.min(strategy.STEM_CENTER_MIN_RISE, this.uppx);
+
 		this.STEM_SIDE_MIN_DESCENT = Math.min(strategy.STEM_SIDE_MIN_DESCENT, this.uppx);
-		this.STEM_SIDE_MIN_DIST_DESCENT = Math.min(strategy.STEM_SIDE_MIN_DIST_DESCENT);
+		this.STEM_SIDE_MIN_DIST_DESCENT = Math.min(strategy.STEM_SIDE_MIN_DIST_DESCENT, this.uppx);
 		this.STEM_CENTER_MIN_DESCENT = Math.min(strategy.STEM_CENTER_MIN_DESCENT, this.uppx);
 
 		this.TOP_CUT = Math.round(toVQ(strategy.TOP_CUT, ppem)) * this.uppx;
@@ -179,23 +181,20 @@ class Hinter {
 	decideInitHintNT(y0) {
 		const { avails, uppx } = this;
 		const hinter = this;
-		const pass1 =
-			y0 ||
-			avails.map(function(a) {
-				return xclamp(
-					a.low,
-					Math.round(
-						lerp(
-							a.y0,
-							hinter.glyphBottom0,
-							hinter.glyphTop0,
-							hinter.glyphBottom,
-							hinter.glyphTop
-						) / uppx
-					),
-					a.high
-				);
-			});
+		const pass1 = avails.map(function(a, j) {
+			let initY = y0
+				? y0[j]
+				: 1 /
+					uppx *
+					lerp(
+						a.y0,
+						hinter.glyphBottom0,
+						hinter.glyphTop0,
+						hinter.glyphBottom,
+						hinter.glyphTop
+					);
+			return xclamp(a.low, Math.round(initY), a.high);
+		});
 		if (pass1.length > 1 && pass1[0] < pass1[pass1.length - 1]) {
 			return avails.map(a =>
 				xclamp(

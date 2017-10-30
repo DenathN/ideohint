@@ -104,6 +104,7 @@ module.exports = function calculateCollisionMatrices(
 			const krbot = atRadicalBottom(stems[k], strategy);
 			// Overlap weight
 			let ovr = overlapLengths[j][k];
+			let strong = overlapRatios[j][k] > 0.8 || overlapRatios[k][j] > 0.8;
 			let isSideTouch =
 				(stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax) ||
 				(stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax);
@@ -150,12 +151,7 @@ module.exports = function calculateCollisionMatrices(
 				spatialPromixity *= strategy.COEFF_TOP_BOT_PROMIX;
 			}
 
-			let promixityCoeff =
-				1 +
-				(spatialPromixity > 2
-					? strategy.COEFF_C_MULTIPLIER / strategy.COEFF_A_MULTIPLIER
-					: 1) *
-					spatialPromixity;
+			let promixityCoeff = 1 + (spatialPromixity > 2 ? 10 : 1) * spatialPromixity;
 			// Alignment coefficients
 			let coeffA = 1;
 			if (pbs[j][k]) {
@@ -179,28 +175,26 @@ module.exports = function calculateCollisionMatrices(
 				} else {
 					coeffA = strategy.COEFF_A_SAME_RADICAL;
 				}
-			} else if (
-				(jrbot && krbot && !jrtop && !krtop) ||
-				(jrtop && krtop && !jrbot && !krbot)
-			) {
-				coeffA = strategy.COEFF_A_SHAPE_LOST_XR;
 			} else if (jrbot && krtop) {
 				coeffA = strategy.COEFF_A_RADICAL_MERGE;
+			} else if (jrbot || krtop) {
+				coeffA = strategy.COEFF_A_SHAPE_LOST_XR;
 			}
 
 			// Collision coefficients
 			let coeffC = 1;
-			if (stems[j].belongRadical === stems[k].belongRadical) {
-				coeffC = strategy.COEFF_C_SAME_RADICAL;
-				if (
-					!stems[j].hasSameRadicalStemAbove &&
-					!stems[k].hasSameRadicalStemBelow &&
-					ecbs[j][k]
-				) {
-					coeffC = strategy.COEFF_C_SHAPE_LOST_XX;
-				}
+			if (
+				stems[j].belongRadical === stems[k].belongRadical &&
+				!stems[j].hasSameRadicalStemAbove &&
+				!stems[k].hasSameRadicalStemBelow &&
+				ecbs[j][k]
+			) {
+				coeffC *= strategy.COEFF_C_SHAPE_LOST_XX;
 			}
 			if (pbs[j][k]) coeffC *= strategy.COEFF_C_FEATURE_LOSS / 2;
+			if (strong && (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow)) {
+				coeffC *= strategy.COEFF_C_SHAPE_LOST_XX * Math.pow(ovr, 3);
+			}
 			let symmetryCoeff = 1;
 			if (Math.abs(stems[j].xmin - stems[k].xmin) <= strategy.BLUEZONE_WIDTH) {
 				symmetryCoeff += 2;
@@ -214,9 +208,10 @@ module.exports = function calculateCollisionMatrices(
 			if (!isFinite(A[j][k])) A[j][k] = 0;
 			C[j][k] = Math.round(
 				strategy.COEFF_C_MULTIPLIER *
-					(1 + ovr * coeffC * symmetryCoeff) *
-					slopesCoeff *
-					promixityCoeff
+					Math.pow(ovr, 2) *
+					coeffC *
+					symmetryCoeff *
+					slopesCoeff
 			);
 			if (!ovr) C[j][k] = 0;
 			if (stems[j].rid && stems[j].rid === stems[k].rid) {

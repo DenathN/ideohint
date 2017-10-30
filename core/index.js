@@ -6,7 +6,7 @@ const hintForSize = require("../core/hinter");
 const { parseOTD } = require("./otdParser");
 const roundings = require("../support/roundings");
 
-exports.version = 10071;
+exports.version = 10072;
 
 exports.hintSingleGlyph = function(contours, strategy) {
 	return exports.decideHints(
@@ -121,13 +121,28 @@ exports.decideHints = function(featData, strategy) {
 			const w1 = Math.round(w * scale);
 			const spaceBelow = y - w - bottomThis,
 				spaceAbove = topThis - y;
-			const spaceBelow1 =
-				(topThat - bottomThat - w1) * spaceBelow / (spaceBelow + spaceAbove);
-
-			if (spaceBelow > 1 / 2) {
-				return Math.min(topThat, bottomThat + Math.max(1, Math.round(spaceBelow1)) + w1);
+			if (spaceBelow < spaceAbove) {
+				const spaceBelow1 =
+					(topThat - bottomThat - w1) * spaceBelow / (spaceBelow + spaceAbove);
+				if (spaceBelow > 1 / 2) {
+					return Math.min(
+						topThat,
+						bottomThat + Math.max(1, Math.round(spaceBelow1)) + w1
+					);
+				} else {
+					return Math.min(
+						topThat,
+						bottomThat + Math.max(0, Math.round(spaceBelow1)) + w1
+					);
+				}
 			} else {
-				return Math.min(topThat, bottomThat + Math.max(0, Math.round(spaceBelow1)) + w1);
+				const spaceAbove1 =
+					(topThat - bottomThat - w1) * spaceAbove / (spaceBelow + spaceAbove);
+				if (spaceAbove > 1 / 2) {
+					return Math.min(topThat, topThat - Math.max(1, Math.round(spaceAbove1)));
+				} else {
+					return Math.min(topThat, topThat - Math.max(0, Math.round(spaceAbove1)));
+				}
 			}
 		});
 	}

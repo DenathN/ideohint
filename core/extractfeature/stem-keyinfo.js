@@ -20,6 +20,9 @@ class HintStem {
 		this.rid = s.rid || 0;
 		this.slope = s.slope;
 
+		this.turnsBelow = s.turnsBelow || 0;
+		this.turnsAbove = s.turnsAbove || 0;
+
 		this.hasLRSpur = !!s.hasLRSpur;
 		this.hasGlyphStemAbove = !!s.hasGlyphStemAbove;
 		this.hasSameRadicalStemAbove = !!s.hasSameRadicalStemAbove;

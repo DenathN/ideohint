@@ -42,6 +42,7 @@ class Avail {
 			w +
 			Math.max(
 				0,
+				!stem.hasGlyphStemBelow ? Math.min(3, stem.turnsBelow) * uppx : 0,
 				stem.diagLow
 					? env.BOTTOM_CUT_DIAGL
 					: stem.diagHigh
@@ -63,12 +64,14 @@ class Avail {
 			lowlimit = Math.max(lowlimit, env.glyphBottom + Math.max(tw + 2, tw * 2) * uppx);
 			fold = true;
 		}
+		lowlimit = Math.min(lowlimit, uppx * Math.ceil(y0 / uppx));
 
 		// The top limit of a stem ('s upper edge)
 		let highlimit =
 			env.glyphTop -
 			Math.max(
 				0,
+				!stem.hasGlyphStemAbove ? xclamp(0, stem.turnsAbove - 1, 3) * uppx : 0,
 				// cut part
 				stem.diagHigh
 					? env.TOP_CUT_DIAGH
@@ -80,6 +83,8 @@ class Avail {
 		if (stem.hasEntireContourAbove) {
 			highlimit = Math.min(env.glyphTop - 2 * uppx, highlimit);
 		}
+		highlimit = Math.max(highlimit, uppx * Math.floor((y0 - w0) / uppx));
+
 		const lowlimitW = Math.max(env.glyphBottom + w, tw > 1 ? lowlimit - uppx : lowlimit);
 		const lowlimitP = lowlimit;
 		const highlimitP = highlimit;

@@ -176,8 +176,8 @@ function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strate
 			lowEdge = lowEdge.sort(by_xori).reverse();
 			let segOverlap = overlapInfo(highEdge, lowEdge, radical);
 			let hasEnoughOverlap =
-				segOverlap.len / segOverlap.la >= strategy.COLLISION_MIN_OVERLAP_RATIO ||
-				segOverlap.len / segOverlap.lb >= strategy.COLLISION_MIN_OVERLAP_RATIO;
+				segOverlap.len / segOverlap.la >= strategy.STROKE_SEGMENTS_MIN_OVERLAP &&
+				segOverlap.len / segOverlap.lb >= strategy.STROKE_SEGMENTS_MIN_OVERLAP;
 
 			if (
 				hasEnoughOverlap &&

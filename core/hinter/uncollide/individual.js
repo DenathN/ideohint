@@ -30,7 +30,8 @@ class Individual {
 			A = env.A,
 			C = env.C,
 			n = y.length,
-			avails = env.avails;
+			avails = env.avails,
+			sol = env.stemOverlapLengths;
 		let nCol = 0;
 		let pA = 0,
 			pC = 0;
@@ -40,7 +41,7 @@ class Individual {
 					pA += A[j][k]; // Alignment
 				} else if (y[j] <= y[k] + avails[j].properWidth) {
 					pC += C[j][k] * (1 + avails[j].properWidth - (y[j] - y[k])); // Collide
-					if (C[j][k]) nCol += avails[j].plength + avails[k].plength;
+					if (C[j][k]) nCol += sol[j][k] * 2;
 				}
 			}
 		}
@@ -167,32 +168,6 @@ class Individual {
 			n = y.length,
 			P = env.P;
 		let p = 0;
-		// top oversep
-		for (let j = 0; j < n; j++) {
-			if (avails[j].hasGlyphStemAbove) continue;
-			if (env.glyphTopPixels - y[j] < 1) continue;
-
-			p += this._measureDistort(
-				env.glyphTopPixels - y[j],
-				env.glyphTopPixels - avails[j].y0px,
-				1,
-				1
-			);
-		}
-		// bottom oversep
-		for (let j = 0; j < n; j++) {
-			if (avails[j].hasGlyphStemBelow) continue;
-			if (avails[j].hasGlyphFoldBelow) continue;
-
-			if (y[j] - avails[j].properWidth - env.glyphBottomPixels < 1) continue;
-			p += this._measureDistort(
-				y[j] - avails[j].properWidth - env.glyphBottomPixels,
-				avails[j].y0px - avails[j].w0px - env.glyphBottomPixels,
-				1,
-				1
-			);
-		}
-		// between-stem oversep
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
 				const d = y[j] - avails[j].properWidth - y[k];

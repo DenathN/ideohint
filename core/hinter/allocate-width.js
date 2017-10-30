@@ -102,8 +102,8 @@ function allocateWidth(y0, env) {
 				}
 		}
 	}
-	// Avoid thin strokes
-	for (let pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) {
+	function balancePass() {}
+	function balanceSmallSize() {
 		// small size
 		for (let [j, k, m] of strictTriplets) {
 			let y1 = y.slice(0),
@@ -182,255 +182,233 @@ function allocateWidth(y0, env) {
 				w = w1;
 			}
 		}
-
-		// large size
-		if (env.WIDTH_GEAR_PROPER < 2) continue;
-
-		/// Thin stroke avoidance
-		for (let psi = 0; psi < 3; psi++) {
-			let applyToLowerOnly = [false, true, true][psi];
-			// push stems down to avoid thin strokes.
-			for (let j = N - 1; j >= 0; j--) {
-				if (!(applyToLowerOnly || !avails[j].hasGlyphStemAbove)) continue;
-				if (w[j] >= (!avails[j].hasGlyphStemAbove ? properWidths[j] : 2)) continue;
-				let able = true;
-				// We search for strokes below,
-				for (let k = 0; k < j; k++) {
-					if (
-						strictOverlaps[j][k] &&
-						y[j] - w[j] - y[k] <= 1 &&
-						(onePixelMatter || // shifting strokes modifies glyph too much
-						y[k] <= avails[k].lowP || // the stroke is low enough
-						y[k] <= pixelBottom + w[k] || // or it is thin enough
-							w[k] < 2)
-					) {
-						able = false;
-					}
+	}
+	function avaoidThinStoke(applyToLowerOnly) {
+		// push stems down to avoid thin strokes.
+		for (let j = N - 1; j >= 0; j--) {
+			if (!(applyToLowerOnly || !avails[j].hasGlyphStemAbove)) continue;
+			if (w[j] >= (!avails[j].hasGlyphStemAbove ? properWidths[j] : 2)) continue;
+			let able = true;
+			// We search for strokes below,
+			for (let k = 0; k < j; k++) {
+				if (
+					strictOverlaps[j][k] &&
+					y[j] - w[j] - y[k] <= 1 &&
+					(onePixelMatter || // shifting strokes modifies glyph too much
+					y[k] <= avails[k].lowP || // the stroke is low enough
+					y[k] <= pixelBottom + w[k] || // or it is thin enough
+						w[k] < 2)
+				) {
+					able = false;
 				}
-				if (!able) continue;
-				for (let k = 0; k < j; k++)
-					if (strictOverlaps[j][k] && y[j] - w[j] - y[k] <= 1) {
-						y[k] -= 1;
-						w[k] -= 1;
-					}
-				w[j] += 1;
 			}
-			for (let j = N - 1; j >= 0; j--) {
-				if (w[j] >= (!avails[j].hasGlyphFoldBelow ? properWidths[j] : 2)) continue;
-				if (y[j] >= avails[j].highP) continue;
-				if (!avails[j].hasGlyphStemAbove && y[j] >= pixelTop - 2) continue;
-
-				let able = true;
-				// We search for strokes above,
-				for (let k = j + 1; k < N; k++) {
-					if (
-						strictOverlaps[k][j] &&
-						y[k] - w[k] - y[j] <= 1 && // there is no stem below satisifies:
-						// with one pixel space, and prevent upward adjustment, if
-						(onePixelMatter || // shifting strokes modifies glyph too much
-						!cover(avails[j], avails[k]) || // it is not dominated with stroke J
-						w[k] < properWidths[k] || // or it is thin enough
-							w[k] < 2) // or it is thin enough
-					) {
-						able = false;
-					}
+			if (!able) continue;
+			for (let k = 0; k < j; k++)
+				if (strictOverlaps[j][k] && y[j] - w[j] - y[k] <= 1) {
+					y[k] -= 1;
+					w[k] -= 1;
 				}
-				if (!able) continue;
-				for (let k = j + 1; k < N; k++)
-					if (strictOverlaps[k][j] && y[k] - w[k] - y[j] <= 1) {
-						w[k] -= 1;
-					}
-				y[j] += 1;
-				w[j] += 1;
-			}
+			w[j] += 1;
 		}
+		for (let j = N - 1; j >= 0; j--) {
+			if (w[j] >= (!avails[j].hasGlyphFoldBelow ? properWidths[j] : 2)) continue;
+			if (y[j] >= avails[j].highP) continue;
+			if (!avails[j].hasGlyphStemAbove && y[j] >= pixelTop - 2) continue;
+
+			let able = true;
+			// We search for strokes above,
+			for (let k = j + 1; k < N; k++) {
+				if (
+					strictOverlaps[k][j] &&
+					y[k] - w[k] - y[j] <= 1 && // there is no stem below satisifies:
+					// with one pixel space, and prevent upward adjustment, if
+					(onePixelMatter || // shifting strokes modifies glyph too much
+					!cover(avails[j], avails[k]) || // it is not dominated with stroke J
+					w[k] < properWidths[k] || // or it is thin enough
+						w[k] < 2) // or it is thin enough
+				) {
+					able = false;
+				}
+			}
+			if (!able) continue;
+			for (let k = j + 1; k < N; k++)
+				if (strictOverlaps[k][j] && y[k] - w[k] - y[j] <= 1) {
+					w[k] -= 1;
+				}
+			y[j] += 1;
+			w[j] += 1;
+		}
+	}
+	function doubletBalance(j, k, pass) {
 		// Doublet balancing
-		for (let j = N - 1; j >= 0; j--)
-			for (let k = j - 1; k >= 0; k--)
-				if (strictOverlaps[j][k]) {
-					let y1 = y.slice(0),
-						w1 = w.slice(0);
-					// [1][2] -> [1] 1 [1]
-					if (
-						w[j] === 1 &&
-						w[k] === 2 &&
-						w[k] >= properWidths[k] &&
-						y[j] - y[k] === w[j]
-					) {
-						(w[k] -= 1), (y[k] -= 1);
-					} else if (
-						w[j] === 2 &&
-						w[k] === 1 &&
-						w[j] >= properWidths[j] &&
-						y[j] - y[k] === w[j]
-					) {
-						// [2][1] -> [1] 1 [1]
-						w[j] -= 1;
-					} else if (
-						w[j] === 2 &&
-						w[k] === 2 &&
-						w[k] >= properWidths[k] &&
-						y[j] - y[k] === w[j]
-					) {
-						// [2][2] -> [1] 1 [2]
-						if (pass % 2) {
-							w[j] -= 1;
-						} else {
-							w[k] -= 1;
-							y[k] -= 1;
-						}
-					} else if (
-						w[j] === 3 &&
-						w[k] === 1 &&
-						w[j] >= properWidths[j] &&
-						y[j] - y[k] === w[j] + 1
-					) {
-						// [3] 1 [1] -> [2] 1 [2]
-						(w[j] -= 1), (w[k] += 1), (y[k] += 1);
-					} else if (
-						w[j] === 1 &&
-						w[k] === 3 &&
-						w[k] >= properWidths[k] &&
-						y[j] - y[k] === w[j] + 1
-					) {
-						// [1] 1 [3] -> [2] 1 [2]
-						(w[j] += 1), (w[k] -= 1), (y[k] -= 1);
-					}
-					if (
-						spaceBelow(env, y, w, j, pixelBottom - 2) < 1 ||
-						spaceAbove(env, y, w, k, pixelTop + 2) < 1 ||
-						(j < N - 1 && y[j] > y[j + 1]) ||
-						(j > 0 && y[j] < y[j - 1]) ||
-						(k < N - 1 && y[k] > y[k + 1]) ||
-						(k > 0 && y[k] < y[k - 1]) ||
-						!atValidPosition(pixelTop, pixelBottom, y[k], w[k], avails[k])
-					) {
-						y = y1;
-						w = w1;
-					}
-				}
-
-		// Triplet balancing
-		for (let [j, k, m] of strictTriplets) {
-			let y1 = y.slice(0),
-				w1 = w.slice(0);
-			if (
-				tripletSatisifiesPattern(j, k, m, 1, 1, 2, ANY, ANY, ANY) &&
-				y[j] - w[j] - y[k] < 1 &&
-				y[k] - w[k] - y[m] >= 1
-			) {
-				(y[k] -= 1), (y[m] -= 1), (w[m] -= 1);
-			} else if (
-				tripletSatisifiesPattern(j, k, m, 2, 1, 1, ANY, ANY, ANY) &&
-				y[j] - w[j] - y[k] >= 1 &&
-				y[k] - w[k] - w[m] < 1
-			) {
-				// [2] 1 [1] 0 [1] -> [1] 1 [1] 1 [1]
+		let y1 = y.slice(0),
+			w1 = w.slice(0);
+		// [1][2] -> [1] 1 [1]
+		if (w[j] === 1 && w[k] === 2 && w[k] >= properWidths[k] && y[j] - y[k] === w[j]) {
+			(w[k] -= 1), (y[k] -= 1);
+		} else if (w[j] === 2 && w[k] === 1 && w[j] >= properWidths[j] && y[j] - y[k] === w[j]) {
+			// [2][1] -> [1] 1 [1]
+			w[j] -= 1;
+		} else if (w[j] === 2 && w[k] === 2 && w[k] >= properWidths[k] && y[j] - y[k] === w[j]) {
+			// [2][2] -> [1] 1 [2]
+			if (pass % 2) {
 				w[j] -= 1;
-				y[k] += 1;
-			} else if (
-				tripletSatisifiesPattern(j, k, m, 3, 3, 2, SUFF, SUFF, LESS) &&
-				y[j] - w[j] - y[k] >= 2
-			) {
-				// [3] 2 [3] 1 [2] -> [3] 1 [3] 1 [3]
-				(y[k] += 1), (y[m] += 1), (w[m] += 1);
-			} else if (
-				tripletSatisifiesPattern(j, k, m, 2, 3, 3, LESS, SUFF, SUFF) &&
-				y[j] - w[j] - y[k] >= 2
-			) {
-				// [2] 2 [3] 1 [3] -> [3] 1 [3] 1 [3]
-				w[j] += 1;
-			} else if (
-				tripletSatisifiesPattern(j, k, m, 3, 3, 2, SUFF, SUFF, LESS) &&
-				y[k] - w[k] - y[m] >= 2
-			) {
-				// [3] 1 [3] 2 [2] -> [3] 1 [3] 1 [3]
-				(y[m] += 1), (w[m] += 1);
-			} else if (
-				tripletSatisifiesPattern(j, k, m, 2, 3, 3, LESS, SUFF, SUFF) &&
-				y[k] - w[k] - y[m] >= 2
-			) {
-				// [2] 1 [3] 2 [3] -> [3] 1 [3] 1 [3]
-				(w[j] += 1), (y[k] -= 1);
-			} else if (tripletSatisifiesPattern(j, k, m, 3, 1, 3, SUFF, LESS, SUFF)) {
-				// [3] 1 [1] 1 [3] -> [2] 1 [2] 1 [3] or [3] 1 [2] 1 [2]
-				if (env.P[j][k] > env.P[k][m]) {
-					(w[j] -= 1), (y[k] += 1), (w[k] += 1);
-				} else {
-					(w[k] += 1), (y[m] -= 1), (w[m] -= 1);
-				}
-			} else if (tripletSatisifiesPattern(j, k, m, 3, 2, 1, SUFF, ANY, LESS)) {
-				// [3] 1 [2] 1 [1] -> [2] 1 [2] 1 [2]
-				(w[j] -= 1), (y[k] += 1), (y[m] += 1), (w[m] += 1);
-			} else if (tripletSatisifiesPattern(j, k, m, 1, 3, 2, LESS, SUFF, ANY)) {
-				// [1] 1 [3] 1 [2] -> [2] 1 [2] 1 [2]
-				(w[j] += 1), (y[k] -= 1), (w[k] -= 1);
-			} else if (tripletSatisifiesPattern(j, k, m, 1, 3, 3, LESS, SUFF, ANY)) {
-				// [1] 1 [3] 1 [3] -> [2] 1 [2] 1 [3]
-				(w[j] += 1), (y[k] -= 1), (w[k] -= 1);
-			} else if (tripletSatisifiesPattern(j, k, m, 2, 1, 3, ANY, LESS, SUFF)) {
-				// [2] 1 [1] 1 [3] -> [2] 1 [2] 1 [2]
-				(w[k] += 1), (w[m] -= 1), (y[m] -= 1);
-			} else if (tripletSatisifiesPattern(j, k, m, 2, 3, 1, ANY, SUFF, LESS)) {
-				// [2] 1 [3] 1 [1] -> [2] 1 [2] 1 [2]
-				(w[k] -= 1), (w[m] += 1), (y[m] += 1);
-			} else if (tripletSatisifiesPattern(j, k, m, 3, 3, 1, ANY, SUFF, LESS)) {
-				// [3] 1 [3] 1 [1] -> [2] 1 [2] 1 [2]
-				(w[k] -= 1), (w[m] += 1), (y[m] += 1);
-			} else if (tripletSatisifiesPattern(j, k, m, 3, 1, 2, SUFF, LESS, ANY)) {
-				// [3] 1 [1] 1 [2] -> [2] 1 [2] 1 [2]
-				(w[j] -= 1), (y[k] += 1), (w[k] += 1);
-			} else if (tripletSatisifiesPattern(j, k, m, 1, 2, 3, LESS, ANY, SUFF)) {
-				// [1] 1 [2] 1 [3] -> [2] 1 [2] 1 [2]
-				(w[j] += 1), (w[m] -= 1), (y[k] -= 1), (y[m] -= 1);
-			} else if (
-				tripletSatisifiesPattern(j, k, m, 1, 2, 2, LESS, SUFF, SUFF) &&
-				y[k] - w[k] - y[m] > 1
-			) {
-				// [1] 1 [2] 2 [2] -> [2] 1 [2] 1 [2]
-				(w[j] += 1), (y[k] -= 1);
-			} else if (
-				tripletSatisifiesPattern(j, k, m, 2, 2, 1, SUFF, ANY, LESS) &&
-				y[j] - w[j] - y[k] > 1
-			) {
-				// [2] 2 [2] 1 [1] -> [2] 1 [2] 1 [2]
-				(y[k] += 1), (y[m] += 1), (w[m] += 1);
-			} else if (
-				avails[j].atGlyphTop &&
-				tripletSatisifiesPattern(j, k, m, 1, 1, 2, LESS, ANY, SUFF)
-			) {
-				// [1T] 1 [1] 1 [2] -> [2] 1 [1] 1 [1]
-				(w[m] -= 1), (w[j] += 1), (y[m] -= 1), (y[k] -= 1);
-			} else if (
-				avails[j].atGlyphTop &&
-				w[j] < properWidths[j] &&
-				w[k] >= properWidths[k] &&
-				properWidths[k] > 1
-			) {
-				// [1T] 1 [2] 1 [*] -> [2] 1 [1] 1 [*]
-				(w[k] -= 1), (y[k] -= 1), (w[j] += 1);
+			} else {
+				w[k] -= 1;
+				y[k] -= 1;
 			}
+		} else if (
+			w[j] === 3 &&
+			w[k] === 1 &&
+			w[j] >= properWidths[j] &&
+			y[j] - y[k] === w[j] + 1
+		) {
+			// [3] 1 [1] -> [2] 1 [2]
+			(w[j] -= 1), (w[k] += 1), (y[k] += 1);
+		} else if (
+			w[j] === 1 &&
+			w[k] === 3 &&
+			w[k] >= properWidths[k] &&
+			y[j] - y[k] === w[j] + 1
+		) {
+			// [1] 1 [3] -> [2] 1 [2]
+			(w[j] += 1), (w[k] -= 1), (y[k] -= 1);
+		}
+		if (
+			spaceBelow(env, y, w, j, pixelBottom - 2) < 1 ||
+			spaceAbove(env, y, w, k, pixelTop + 2) < 1 ||
+			(j < N - 1 && y[j] > y[j + 1]) ||
+			(j > 0 && y[j] < y[j - 1]) ||
+			(k < N - 1 && y[k] > y[k + 1]) ||
+			(k > 0 && y[k] < y[k - 1]) ||
+			!atValidPosition(pixelTop, pixelBottom, y[k], w[k], avails[k])
+		) {
+			y = y1;
+			w = w1;
+		}
+	}
+	function tripletBalance(j, k, m) {
+		// Triplet balancing
 
-			// rollback when no space
-			if (
-				spaceBelow(env, y, w, j, pixelBottom - 1) < 1 ||
-				spaceAbove(env, y, w, k, pixelTop + 1) < 1 ||
-				spaceAbove(env, y, w, m, pixelTop + 1) < 1 ||
-				spaceBelow(env, y, w, k, pixelBottom - 1) < 1 ||
-				(j < N - 1 && y[j] > y[j + 1]) ||
-				(j > 0 && y[j] < y[j - 1]) ||
-				(k < N - 1 && y[k] > y[k + 1]) ||
-				(k > 0 && y[k] < y[k - 1]) ||
-				(m < N - 1 && y[m] > y[m + 1]) ||
-				(m > 0 && y[m] < y[m - 1]) ||
-				!atValidPosition(pixelTop, pixelBottom, y[k], w[k], avails[k]) ||
-				!atValidPosition(pixelTop, pixelBottom, y[m], w[m], avails[m])
-			) {
-				y = y1;
-				w = w1;
+		let y1 = y.slice(0),
+			w1 = w.slice(0);
+		if (
+			tripletSatisifiesPattern(j, k, m, 1, 1, 2, ANY, ANY, ANY) &&
+			y[j] - w[j] - y[k] < 1 &&
+			y[k] - w[k] - y[m] >= 1
+		) {
+			(y[k] -= 1), (y[m] -= 1), (w[m] -= 1);
+		} else if (
+			tripletSatisifiesPattern(j, k, m, 2, 1, 1, ANY, ANY, ANY) &&
+			y[j] - w[j] - y[k] >= 1 &&
+			y[k] - w[k] - w[m] < 1
+		) {
+			// [2] 1 [1] 0 [1] -> [1] 1 [1] 1 [1]
+			w[j] -= 1;
+			y[k] += 1;
+		} else if (
+			tripletSatisifiesPattern(j, k, m, 3, 3, 2, SUFF, SUFF, LESS) &&
+			y[j] - w[j] - y[k] >= 2
+		) {
+			// [3] 2 [3] 1 [2] -> [3] 1 [3] 1 [3]
+			(y[k] += 1), (y[m] += 1), (w[m] += 1);
+		} else if (
+			tripletSatisifiesPattern(j, k, m, 2, 3, 3, LESS, SUFF, SUFF) &&
+			y[j] - w[j] - y[k] >= 2
+		) {
+			// [2] 2 [3] 1 [3] -> [3] 1 [3] 1 [3]
+			w[j] += 1;
+		} else if (
+			tripletSatisifiesPattern(j, k, m, 3, 3, 2, SUFF, SUFF, LESS) &&
+			y[k] - w[k] - y[m] >= 2
+		) {
+			// [3] 1 [3] 2 [2] -> [3] 1 [3] 1 [3]
+			(y[m] += 1), (w[m] += 1);
+		} else if (
+			tripletSatisifiesPattern(j, k, m, 2, 3, 3, LESS, SUFF, SUFF) &&
+			y[k] - w[k] - y[m] >= 2
+		) {
+			// [2] 1 [3] 2 [3] -> [3] 1 [3] 1 [3]
+			(w[j] += 1), (y[k] -= 1);
+		} else if (tripletSatisifiesPattern(j, k, m, 3, 1, 3, SUFF, LESS, SUFF)) {
+			// [3] 1 [1] 1 [3] -> [2] 1 [2] 1 [3] or [3] 1 [2] 1 [2]
+			if (env.P[j][k] > env.P[k][m]) {
+				(w[j] -= 1), (y[k] += 1), (w[k] += 1);
+			} else {
+				(w[k] += 1), (y[m] -= 1), (w[m] -= 1);
 			}
+		} else if (tripletSatisifiesPattern(j, k, m, 3, 2, 1, SUFF, ANY, LESS)) {
+			// [3] 1 [2] 1 [1] -> [2] 1 [2] 1 [2]
+			(w[j] -= 1), (y[k] += 1), (y[m] += 1), (w[m] += 1);
+		} else if (tripletSatisifiesPattern(j, k, m, 1, 3, 2, LESS, SUFF, ANY)) {
+			// [1] 1 [3] 1 [2] -> [2] 1 [2] 1 [2]
+			(w[j] += 1), (y[k] -= 1), (w[k] -= 1);
+		} else if (tripletSatisifiesPattern(j, k, m, 1, 3, 3, LESS, SUFF, ANY)) {
+			// [1] 1 [3] 1 [3] -> [2] 1 [2] 1 [3]
+			(w[j] += 1), (y[k] -= 1), (w[k] -= 1);
+		} else if (tripletSatisifiesPattern(j, k, m, 2, 1, 3, ANY, LESS, SUFF)) {
+			// [2] 1 [1] 1 [3] -> [2] 1 [2] 1 [2]
+			(w[k] += 1), (w[m] -= 1), (y[m] -= 1);
+		} else if (tripletSatisifiesPattern(j, k, m, 2, 3, 1, ANY, SUFF, LESS)) {
+			// [2] 1 [3] 1 [1] -> [2] 1 [2] 1 [2]
+			(w[k] -= 1), (w[m] += 1), (y[m] += 1);
+		} else if (tripletSatisifiesPattern(j, k, m, 3, 3, 1, ANY, SUFF, LESS)) {
+			// [3] 1 [3] 1 [1] -> [2] 1 [2] 1 [2]
+			(w[k] -= 1), (w[m] += 1), (y[m] += 1);
+		} else if (tripletSatisifiesPattern(j, k, m, 3, 1, 2, SUFF, LESS, ANY)) {
+			// [3] 1 [1] 1 [2] -> [2] 1 [2] 1 [2]
+			(w[j] -= 1), (y[k] += 1), (w[k] += 1);
+		} else if (tripletSatisifiesPattern(j, k, m, 1, 2, 3, LESS, ANY, SUFF)) {
+			// [1] 1 [2] 1 [3] -> [2] 1 [2] 1 [2]
+			(w[j] += 1), (w[m] -= 1), (y[k] -= 1), (y[m] -= 1);
+		} else if (
+			tripletSatisifiesPattern(j, k, m, 1, 2, 2, LESS, SUFF, SUFF) &&
+			y[k] - w[k] - y[m] > 1
+		) {
+			// [1] 1 [2] 2 [2] -> [2] 1 [2] 1 [2]
+			(w[j] += 1), (y[k] -= 1);
+		} else if (
+			tripletSatisifiesPattern(j, k, m, 2, 2, 1, SUFF, ANY, LESS) &&
+			y[j] - w[j] - y[k] > 1
+		) {
+			// [2] 2 [2] 1 [1] -> [2] 1 [2] 1 [2]
+			(y[k] += 1), (y[m] += 1), (w[m] += 1);
+		} else if (
+			avails[j].atGlyphTop &&
+			tripletSatisifiesPattern(j, k, m, 1, 1, 2, LESS, ANY, SUFF)
+		) {
+			// [1T] 1 [1] 1 [2] -> [2] 1 [1] 1 [1]
+			(w[m] -= 1), (w[j] += 1), (y[m] -= 1), (y[k] -= 1);
+		} else if (
+			avails[j].atGlyphTop &&
+			w[j] < properWidths[j] &&
+			w[k] >= properWidths[k] &&
+			properWidths[k] > 1
+		) {
+			// [1T] 1 [2] 1 [*] -> [2] 1 [1] 1 [*]
+			(w[k] -= 1), (y[k] -= 1), (w[j] += 1);
 		}
 
+		// rollback when no space
+		if (
+			spaceBelow(env, y, w, j, pixelBottom - 1) < 1 ||
+			spaceAbove(env, y, w, k, pixelTop + 1) < 1 ||
+			spaceAbove(env, y, w, m, pixelTop + 1) < 1 ||
+			spaceBelow(env, y, w, k, pixelBottom - 1) < 1 ||
+			(j < N - 1 && y[j] > y[j + 1]) ||
+			(j > 0 && y[j] < y[j - 1]) ||
+			(k < N - 1 && y[k] > y[k + 1]) ||
+			(k > 0 && y[k] < y[k - 1]) ||
+			(m < N - 1 && y[m] > y[m + 1]) ||
+			(m > 0 && y[m] < y[m - 1]) ||
+			!atValidPosition(pixelTop, pixelBottom, y[k], w[k], avails[k]) ||
+			!atValidPosition(pixelTop, pixelBottom, y[m], w[m], avails[m])
+		) {
+			y = y1;
+			w = w1;
+		}
+	}
+	function edgeTouchBalance() {
 		// Edge touch balancing
 		for (let j = 0; j < N; j++) {
 			if (w[j] <= 1 && w[j] < properWidths[j] && y[j] > pixelBottom + 2) {
@@ -443,6 +421,28 @@ function allocateWidth(y0, env) {
 					w[j] += 1;
 				}
 			}
+		}
+	}
+	// Advanced balancer
+	for (let pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) {
+		balanceSmallSize();
+		// large size
+		if (env.WIDTH_GEAR_PROPER > 1) {
+			if (!onePixelMatter) {
+				avaoidThinStoke(false);
+				avaoidThinStoke(true);
+				avaoidThinStoke(true);
+			}
+			for (let j = N - 1; j >= 0; j--) {
+				for (let k = j - 1; k >= 0; k--) {
+					if (!strictOverlaps[j][k]) continue;
+					doubletBalance(j, k, pass);
+				}
+			}
+			for (let [j, k, m] of strictTriplets) {
+				tripletBalance(j, k, m);
+			}
+			edgeTouchBalance();
 		}
 	}
 
