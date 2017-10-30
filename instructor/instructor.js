@@ -129,7 +129,7 @@ function instruct(record, strategy, padding) {
 	// if(!si.stems.length) return;
 	var tt = ["SVTCA[y-axis]", "RTG"];
 
-	// Blue zone alignment instructions
+	// Blue zone annexation instructions
 	// Bottom
 	for (var k = 0; k < si.blue.bottomZs.length; k++) {
 		invocations.push([[si.blue.bottomZs[k].id, cvtBottomID], ["MIAP[rnd]"]]);

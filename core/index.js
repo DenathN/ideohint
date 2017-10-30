@@ -6,7 +6,7 @@ const hintForSize = require("../core/hinter");
 const { parseOTD } = require("./otdParser");
 const roundings = require("../support/roundings");
 
-exports.version = 10073;
+exports.version = 10074;
 
 exports.hintSingleGlyph = function(contours, strategy) {
 	return exports.decideHints(

@@ -38,7 +38,7 @@ class Individual {
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
 				if (y[j] === y[k]) {
-					pA += A[j][k]; // Alignment
+					pA += A[j][k]; // Annexation
 				} else if (y[j] <= y[k] + avails[j].properWidth) {
 					pC += C[j][k] * (1 + avails[j].properWidth - (y[j] - y[k])); // Collide
 					if (C[j][k]) nCol += sol[j][k] * 2;

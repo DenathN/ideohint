@@ -27,7 +27,7 @@ class Hinter {
 		this.onePixelMatter = ppem <= 18;
 
 		//// GLYPH SPECIFIC
-		this.A = fdefs.collisionMatrices.alignment;
+		this.A = fdefs.collisionMatrices.annexation;
 		this.C = fdefs.collisionMatrices.collision;
 		this.S = fdefs.collisionMatrices.swap;
 		this.P = fdefs.collisionMatrices.promixity;

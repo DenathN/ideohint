@@ -74,7 +74,7 @@ module.exports = function calculateCollisionMatrices(
 	pbs,
 	ecbs
 ) {
-	// A : Alignment operator
+	// A : Annexation operator
 	// C : Collision operator
 	// S : Swap operator
 	let A = [],
@@ -151,8 +151,8 @@ module.exports = function calculateCollisionMatrices(
 				spatialPromixity *= strategy.COEFF_TOP_BOT_PROMIX;
 			}
 
-			let promixityCoeff = 1 + (spatialPromixity > 2 ? 10 : 1) * spatialPromixity;
-			// Alignment coefficients
+			let promixityCoeff = 1 + (spatialPromixity > 2 ? 5 : 1) * spatialPromixity;
+			// Annexation coefficients
 			let coeffA = 1;
 			if (pbs[j][k]) {
 				// ECBS is not considered here
@@ -163,6 +163,12 @@ module.exports = function calculateCollisionMatrices(
 					coeffA *= strategy.COEFF_A_TOPBOT_MERGED_SR;
 				} else {
 					coeffA *= strategy.COEFF_A_TOPBOT_MERGED;
+				}
+				if (
+					(!stems[j].hasGlyphStemAbove && !atRadicalBottom(stems[j], strategy)) ||
+					(!stems[k].hasGlyphStemBelow && !atRadicalTop(stems[k], strategy))
+				) {
+					coeffA *= strategy.COEFF_A_SHAPE_LOST_XX;
 				}
 			}
 			if (stems[j].belongRadical === stems[k].belongRadical) {
@@ -256,8 +262,14 @@ module.exports = function calculateCollisionMatrices(
 				A[j][k] *= strategy.COEFF_A_FEATURE_LOSS;
 		}
 	}
+	for (let j = 0; j < n; j++) {
+		for (let k = j + 1; k < n; k++) {
+			A[j][k] = A[k][j] = Math.min(Math.max(A[j][k], A[k][j]), 1e9);
+			C[j][k] = C[k][j] = Math.min(Math.max(C[j][k], C[k][j]), 1e9);
+		}
+	}
 	return {
-		alignment: A,
+		annexation: A,
 		collision: C,
 		promixity: P,
 		spatialPromixity: Q,
