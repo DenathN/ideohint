@@ -108,6 +108,8 @@ The hinting parameters are stored in `hinting` section. They include:
   * **BOTTOM_CUT_DIAGL_DIST**: Additional space for the higher half of bottommost, semi-diagonal stems to the glyph bottom. In pixels.
   * **BOTTOM_UNIFY_FORCE**: Force to additionally unify bottommost features of a character. 100 by default.
   * **BOTTOM_UNIFY_FORCE_DIAG**: Force to additionally unify bottommost features of a character, applied to diagonal strokes.
+  * **TOP_UNIFY_FORCE**: Force to additionally unify topmost features of a character. 50 by default.
+  * **TOP_UNIFY_FORCE_DIAG**: Force to additionally unify topmost features of a character, applied to diagonal strokes.
 * **Stem Positioning Parameters**
     * **RISE** : Tend to rise topmost stems. 0 for “natural”.
     * **SINK**: Tend to sink bottommost stems. 0 for “natural”.
