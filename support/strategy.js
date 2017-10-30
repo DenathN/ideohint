@@ -49,8 +49,8 @@ class HintingStrategy {
 		this.COEFF_A_MULTIPLIER = 0.01;
 		this.COEFF_A_SAME_RADICAL = 4;
 		this.COEFF_A_SHAPE_LOST = 25;
-		this.COEFF_A_SHAPE_LOST_XX = 250;
-		this.COEFF_A_SHAPE_LOST_XR = 1e8;
+		this.COEFF_A_SHAPE_LOST_XX = 1e8;
+		this.COEFF_A_SHAPE_LOST_XR = 1e6;
 		this.COEFF_A_TOPBOT_MERGED = 3;
 		this.COEFF_A_TOPBOT_MERGED_SR = 15;
 		this.COEFF_A_FEATURE_LOSS = 1000;

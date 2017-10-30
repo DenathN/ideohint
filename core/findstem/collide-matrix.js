@@ -156,29 +156,27 @@ module.exports = function calculateCollisionMatrices(
 			let coeffA = 1;
 			if (pbs[j][k]) {
 				// ECBS is not considered here
-				coeffA = strategy.COEFF_A_FEATURE_LOSS;
-			} else if (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow) {
+				coeffA *= strategy.COEFF_A_FEATURE_LOSS;
+			}
+			if (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow) {
 				if (stems[j].belongRadical === stems[k].belongRadical) {
-					coeffA = strategy.COEFF_A_TOPBOT_MERGED_SR;
+					coeffA *= strategy.COEFF_A_TOPBOT_MERGED_SR;
 				} else {
-					coeffA = strategy.COEFF_A_TOPBOT_MERGED;
+					coeffA *= strategy.COEFF_A_TOPBOT_MERGED;
 				}
-			} else if (stems[j].belongRadical === stems[k].belongRadical) {
-				if (
-					!stems[j].hasSameRadicalStemAbove &&
-					!stems[k].hasSameRadicalStemBelow &&
-					ecbs[j][k]
-				) {
-					coeffA = strategy.COEFF_A_SHAPE_LOST_XX;
+			}
+			if (stems[j].belongRadical === stems[k].belongRadical) {
+				if (!stems[j].hasSameRadicalStemAbove && !stems[k].hasSameRadicalStemBelow) {
+					coeffA *= strategy.COEFF_A_SHAPE_LOST_XX;
 				} else if (!stems[j].hasSameRadicalStemAbove || !stems[k].hasSameRadicalStemBelow) {
-					coeffA = strategy.COEFF_A_SHAPE_LOST;
+					coeffA *= strategy.COEFF_A_SHAPE_LOST;
 				} else {
-					coeffA = strategy.COEFF_A_SAME_RADICAL;
+					coeffA *= strategy.COEFF_A_SAME_RADICAL;
 				}
 			} else if (jrbot && krtop) {
-				coeffA = strategy.COEFF_A_RADICAL_MERGE;
+				coeffA *= strategy.COEFF_A_RADICAL_MERGE;
 			} else if (jrbot || krtop) {
-				coeffA = strategy.COEFF_A_SHAPE_LOST_XR;
+				coeffA *= strategy.COEFF_A_SHAPE_LOST_XR;
 			}
 
 			// Collision coefficients
