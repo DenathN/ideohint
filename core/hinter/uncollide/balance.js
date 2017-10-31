@@ -29,11 +29,17 @@ function spaceAbove1(env, y, k, top) {
 	return space;
 }
 
+function annexed(y, p, q) {
+	return y[p] === y[q];
+}
 function colliding(y, p, q) {
 	return y[p] - y[q] < 2 && y[p] - y[q] >= 1;
 }
+function spaced(y, p, q) {
+	return y[p] - y[q] === 2;
+}
 function spare(y, p, q) {
-	return y[p] - y[q] > 1;
+	return y[p] - y[q] > 2;
 }
 function desc0(a, b) {
 	return b[0] - a[0];
@@ -83,18 +89,18 @@ function balance(y, env) {
 			const j = t[0],
 				k = t[1],
 				m = t[2];
-			if (colliding(y, j, k) && spare(y, k, m) && y[k] > avails[k].low) {
+			if (colliding(y, j, k) && spaced(y, k, m) && y[k] > avails[k].low) {
 				let newcol = 0;
 				for (let s = 0; s < y.length; s++)
-					if (directOverlaps[k][s] && spare(y, k, s)) newcol += env.C[k][s];
+					if (directOverlaps[k][s] && !spare(y, k, s)) newcol += env.C[k][s];
 				if (env.C[j][k] > newcol) {
 					y[k] -= 1;
 					stable = false;
 				}
-			} else if (colliding(y, k, m) && spare(y, j, k) && y[k] < avails[k].high) {
+			} else if (colliding(y, k, m) && spaced(y, j, k) && y[k] < avails[k].high) {
 				let newcol = 0;
 				for (let s = 0; s < y.length; s++) {
-					if (directOverlaps[s][k] && spare(y, s, k)) {
+					if (directOverlaps[s][k] && !spare(y, s, k)) {
 						newcol += env.C[s][k];
 					}
 				}
@@ -102,6 +108,20 @@ function balance(y, env) {
 					y[k] += 1;
 					stable = false;
 				}
+			} else if (
+				(colliding(y, j, k) || annexed(y, j, k)) &&
+				spare(y, k, m) &&
+				y[k] > avails[k].low
+			) {
+				y[k] -= 1;
+				stable = false;
+			} else if (
+				(colliding(y, k, m) || annexed(y, k, m)) &&
+				spare(y, j, k) &&
+				y[k] < avails[k].high
+			) {
+				y[k] += 1;
+				stable = false;
 			} else if (colliding(y, j, k) && colliding(y, k, m)) {
 				if (env.A[j][k] <= env.A[k][m] && y[k] < avails[k].high) {
 					y[k] += 1;

@@ -31,17 +31,19 @@ class Individual {
 			C = env.C,
 			n = y.length,
 			avails = env.avails,
-			sol = env.stemOverlapLengths;
+			ppem = env.ppem,
+			sol = env.stemOverlapLengths,
+			dov = env.directOverlaps;
 		let nCol = 0;
 		let pA = 0,
 			pC = 0;
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
 				if (y[j] === y[k]) {
-					pA += A[j][k]; // Annexation
+					if (dov[j][k]) pA += A[j][k]; // Annexation
 				} else if (y[j] <= y[k] + avails[j].properWidth) {
 					pC += C[j][k] * (1 + avails[j].properWidth - (y[j] - y[k])); // Collide
-					if (C[j][k]) nCol += sol[j][k] * 2;
+					if (C[j][k]) nCol += sol[j][k] * ppem * ppem * 0.04;
 				}
 			}
 		}

@@ -42,7 +42,9 @@ class Avail {
 			w +
 			Math.max(
 				0,
-				!stem.hasGlyphStemBelow ? Math.min(3, stem.turnsBelow) * uppx : 0,
+				stem.turnsBelow > 1 && !stem.hasGlyphStemBelow
+					? Math.min(3, stem.turnsBelow) * uppx
+					: 0,
 				stem.diagLow
 					? env.BOTTOM_CUT_DIAGL
 					: stem.diagHigh
@@ -71,7 +73,9 @@ class Avail {
 			env.glyphTop -
 			Math.max(
 				0,
-				!stem.hasGlyphStemAbove ? xclamp(0, stem.turnsAbove - 1, 3) * uppx : 0,
+				stem.turnsAbove > 1 && !stem.hasGlyphStemAbove
+					? xclamp(0, stem.turnsAbove - 1, 3) * uppx
+					: 0,
 				// cut part
 				stem.diagHigh
 					? env.TOP_CUT_DIAGH

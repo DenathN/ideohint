@@ -1,5 +1,7 @@
 "use strict";
 
+const DEADLY = 1e12;
+
 class HintingStrategy {
 	constructor() {
 		this.FULLHINT = 0;
@@ -46,11 +48,11 @@ class HintingStrategy {
 		this.STEADY_STAGES_X = 4;
 		this.STEADY_STAGES_MAX = 20;
 		this.CANONICAL_STEM_WIDTH_LIMIT_X = 1.375;
-		this.COEFF_A_MULTIPLIER = 0.01;
-		this.COEFF_A_SAME_RADICAL = 4;
+		this.COEFF_A_MULTIPLIER = 0.001;
+		this.COEFF_A_SAME_RADICAL = 4000;
 		this.COEFF_A_SHAPE_LOST = 25;
-		this.COEFF_A_SHAPE_LOST_XX = 1e8;
-		this.COEFF_A_SHAPE_LOST_XR = 1e6;
+		this.COEFF_A_SHAPE_LOST_XX = DEADLY;
+		this.COEFF_A_SHAPE_LOST_XR = DEADLY;
 		this.COEFF_A_TOPBOT_MERGED = 3;
 		this.COEFF_A_TOPBOT_MERGED_SR = 15;
 		this.COEFF_A_FEATURE_LOSS = 1000;
@@ -61,7 +63,7 @@ class HintingStrategy {
 		this.COEFF_C_SHAPE_LOST_XX = 250;
 		this.COEFF_C_FEATURE_LOSS = 12;
 		this.COEFF_C_SAME_RADICAL = 6;
-		this.COEFF_S = 1e8;
+		this.COEFF_S = DEADLY;
 		this.COEFF_DISTORT = 5;
 		this.COEFF_PBS_MIN_PROMIX = 3;
 		this.COEFF_TOP_BOT_PROMIX = 5;

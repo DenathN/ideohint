@@ -72,7 +72,8 @@ module.exports = function calculateCollisionMatrices(
 	overlapRatios,
 	overlapLengths,
 	pbs,
-	ecbs
+	ecbs,
+	turnMatrix
 ) {
 	// A : Annexation operator
 	// C : Collision operator
@@ -104,7 +105,7 @@ module.exports = function calculateCollisionMatrices(
 			const krbot = atRadicalBottom(stems[k], strategy);
 			// Overlap weight
 			let ovr = overlapLengths[j][k];
-			let strong = overlapRatios[j][k] > 0.8 || overlapRatios[k][j] > 0.8;
+			let strong = overlapRatios[j][k] > 0.85 || overlapRatios[k][j] > 0.85 || ovr > 1 / 3;
 			let isSideTouch =
 				(stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax) ||
 				(stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax);
@@ -155,8 +156,12 @@ module.exports = function calculateCollisionMatrices(
 			// Annexation coefficients
 			let coeffA = 1;
 			if (pbs[j][k]) {
+				// There are something in between!
 				// ECBS is not considered here
 				coeffA *= strategy.COEFF_A_FEATURE_LOSS;
+			}
+			if (turnMatrix[j][k] > 1) {
+				coeffA *= strategy.COEFF_A_SHAPE_LOST_XX;
 			}
 			if (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow) {
 				if (stems[j].belongRadical === stems[k].belongRadical) {
@@ -172,12 +177,11 @@ module.exports = function calculateCollisionMatrices(
 				}
 			}
 			if (stems[j].belongRadical === stems[k].belongRadical) {
+				coeffA *= strategy.COEFF_A_SAME_RADICAL;
 				if (!stems[j].hasSameRadicalStemAbove && !stems[k].hasSameRadicalStemBelow) {
 					coeffA *= strategy.COEFF_A_SHAPE_LOST_XX;
 				} else if (!stems[j].hasSameRadicalStemAbove || !stems[k].hasSameRadicalStemBelow) {
 					coeffA *= strategy.COEFF_A_SHAPE_LOST;
-				} else {
-					coeffA *= strategy.COEFF_A_SAME_RADICAL;
 				}
 			} else if (jrbot && krtop) {
 				coeffA *= strategy.COEFF_A_RADICAL_MERGE;
@@ -187,15 +191,23 @@ module.exports = function calculateCollisionMatrices(
 
 			// Collision coefficients
 			let coeffC = 1;
+			if (stems[j].belongRadical === stems[k].belongRadical && strong) {
+				coeffC *= strategy.COEFF_C_SAME_RADICAL;
+			}
 			if (
-				stems[j].belongRadical === stems[k].belongRadical &&
 				!stems[j].hasSameRadicalStemAbove &&
 				!stems[k].hasSameRadicalStemBelow &&
 				ecbs[j][k]
 			) {
 				coeffC *= strategy.COEFF_C_SHAPE_LOST_XX;
 			}
-			if (pbs[j][k]) coeffC *= strategy.COEFF_C_FEATURE_LOSS / 2;
+			if (pbs[j][k]) {
+				// There are something in between!
+				coeffC *= strategy.COEFF_C_FEATURE_LOSS / 2;
+			}
+			if (turnMatrix[j][k] > 1) {
+				coeffC *= strategy.COEFF_C_SHAPE_LOST_XX;
+			}
 			if (strong && (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow)) {
 				coeffC *= strategy.COEFF_C_SHAPE_LOST_XX * Math.pow(ovr, 3);
 			}
@@ -206,7 +218,8 @@ module.exports = function calculateCollisionMatrices(
 			if (Math.abs(stems[j].xmax - stems[k].xmax) <= strategy.BLUEZONE_WIDTH) {
 				symmetryCoeff += 2;
 			}
-			A[j][k] = Math.round(
+
+			A[j][k] = Math.ceil(
 				strategy.COEFF_A_MULTIPLIER * ovr * coeffA * promixityCoeff * slopesCoeff
 			);
 			if (!isFinite(A[j][k])) A[j][k] = 0;

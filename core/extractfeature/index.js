@@ -13,7 +13,6 @@ const getStemKeyInfo = require("./stem-keyinfo");
 const analyzeDominance = require("./dominance");
 const analyzeXInterpolate = require("./xinterpolate");
 const analyzeSpur = require("./analyze-spur");
-const turns = require("./turns");
 
 function byyori(a, b) {
 	return a.y - b.y;
@@ -35,8 +34,6 @@ exports.extractFeature = function(glyph, strategy) {
 	const flexes = analyzeFlex(glyph, blanks);
 	const dominancePriority = analyzeDominance(glyph.stems);
 	const xIP = analyzeXInterpolate(glyph);
-
-	turns.analyzeTurns(glyph, strategy, glyph.stems);
 
 	return {
 		stats: Object.assign(glyph.stats, { nRadicals: glyph.radicals.length }),

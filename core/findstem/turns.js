@@ -82,6 +82,33 @@ function analyzeTurns(g, strategy, stems) {
 			s.turnsAbove = stemTurns;
 		}
 	}
+
+	let turnMatrix = [];
+	for (let j = 0; j < stems.length; j++) {
+		turnMatrix[j] = [];
+		turnMatrix[j][j] = 0;
+		const sj = stems[j];
+		for (let k = 0; k < j; k++) {
+			turnMatrix[j][k] = turnMatrix[k][j] = 0;
+			const sk = stems[k];
+			let xj1 = bitmap.transform(sj.xmin, 0).x;
+			let xj2 = bitmap.transform(sj.xmax, 0).x;
+			let xk1 = bitmap.transform(sk.xmin, 0).x;
+			let xk2 = bitmap.transform(sk.xmax, 0).x;
+			let ybot = bitmap.transform(0, sj.y - sj.width).y - 1;
+			let ytop = bitmap.transform(0, sk.y).y + 1;
+			if (ybot <= ytop) continue;
+			if (xk1 > xj2 || xj1 > xk2) continue;
+			let turnsBetween = 0;
+			if (ybot < 0 || ytop < 0) continue;
+			for (let x = Math.max(xj1, xk1); x <= Math.min(xj2, xk2); x++) {
+				const turns = getTurns(bitmap.array[x].slice(ytop, ybot));
+				if (turns > turnsBetween) turnsBetween = turns;
+			}
+			turnMatrix[j][k] = turnMatrix[k][j] = turnsBetween;
+		}
+	}
+	return turnMatrix;
 }
 
 exports.createImageBitmap = createImageBitmap;

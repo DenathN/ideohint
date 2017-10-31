@@ -73,7 +73,7 @@ function padSD(actions, stems, directOverlaps, uppx, bottom) {
 				wk * uppx * 2 >= widthOf(sk) &&
 				sjmax >= skmax - wk / 2 * uppx &&
 				sjmin <= skmin + wk / 2 * uppx &&
-				!(sjmax <= skmax && sjmin >= skmin) &&
+				!(sjmax < skmax && sjmin > skmin) &&
 				!(sj.rid === sk.rid && sj.rid)
 			) {
 				stackrel[k][j] = BELOW;
@@ -109,7 +109,7 @@ function padSD(actions, stems, directOverlaps, uppx, bottom) {
 				wk * uppx * 2 >= widthOf(sk) &&
 				sjmax >= skmax - wk / 2 * uppx &&
 				sjmin <= skmin + wk / 2 * uppx &&
-				!(skmax >= sjmax && skmin <= sjmin) &&
+				!(skmax > sjmax && skmin < sjmin) &&
 				!(sj.rid === sk.rid && sj.rid)
 			) {
 				stackrel[k][j] = ABOVE;
@@ -142,7 +142,8 @@ function padSD(actions, stems, directOverlaps, uppx, bottom) {
 			}
 		}
 	}
-	for (let j = 0; j < stems.length; j++)
+
+	for (let j = 0; j < stems.length; j++) {
 		for (let k = 0; k < j; k++) {
 			for (let m = 0; m < stems.length; m++) {
 				if (stackrel[j][m] && stackrel[j][m] === stackrel[k][m] && directOverlaps[j][k]) {
@@ -150,6 +151,7 @@ function padSD(actions, stems, directOverlaps, uppx, bottom) {
 				}
 			}
 		}
+	}
 	return actions;
 }
 
