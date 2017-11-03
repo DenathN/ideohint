@@ -119,43 +119,80 @@ class Individual {
 		);
 	}
 
+	_measureTripletDistort(d1, d2, spacejk, spacekw, adjust) {
+		let p = 0;
+		const finelimit = 1 / 8;
+		const dlimit = 1 / 3;
+		const dlimitx = 2 / 3;
+		const compressLimit = 3 / 4;
+
+		const d = d1 - d2;
+		const expanded = spacejk > d1 + compressLimit && spacekw > d2 + compressLimit;
+		const compressed = spacejk < d1 - compressLimit && spacekw < d2 - compressLimit;
+		if (
+			(d >= dlimitx && spacejk <= spacekw) ||
+			(d >= dlimit && spacejk < spacekw) ||
+			(d <= -dlimitx && spacejk >= spacekw) ||
+			(d <= -dlimit && spacejk > spacekw) ||
+			(d < dlimit && d > -dlimit && (spacejk - spacekw > 1 || spacejk - spacekw < -1)) ||
+			(d < dlimit && d > -dlimit && (compressed || expanded))
+		) {
+			p += adjust;
+		}
+		if (d < finelimit && d > -finelimit && spacejk !== spacekw) {
+			p += adjust / 3;
+		}
+		return p;
+	}
+
 	_getTripletBreakP(env) {
 		if (env.noAblation) return 0;
 
 		const y = this.gene,
 			avails = env.avails,
 			triplets = env.triplets,
-			uppx = env.uppx;
+			uppx = env.uppx,
+			n = y.length,
+			dov = env.directOverlaps;
 
 		let p = 0;
+
 		// Triplet distortion
-		const finelimit = uppx / 8;
-		const dlimit = uppx / 3;
-		const dlimitx = 2 * uppx / 3;
-		const compressLimit = 3 * uppx / 4;
 		for (let [j, k, w, d1, d2] of triplets) {
-			const d = d1 - d2;
 			if (!(y[j] > y[k] && y[k] > y[w])) continue;
-			const spacejk = y[j] - y[k] - avails[j].properWidth;
-			const spacekw = y[k] - y[w] - avails[k].properWidth;
-			const expanded =
-				spacejk * uppx > d1 + compressLimit && spacekw * uppx > d2 + compressLimit;
-			const compressed =
-				spacejk * uppx < d1 - compressLimit && spacekw * uppx < d2 - compressLimit;
-			if (
-				(d >= dlimitx && spacejk <= spacekw) ||
-				(d >= dlimit && spacejk < spacekw) ||
-				(d <= -dlimitx && spacejk >= spacekw) ||
-				(d <= -dlimit && spacejk > spacekw) ||
-				(d < dlimit && d > -dlimit && (spacejk - spacekw > 1 || spacejk - spacekw < -1)) ||
-				(d < dlimit && d > -dlimit && (compressed || expanded))
-			) {
-				p += (env.C[j][k] + env.C[k][w]) * env.strategy.COEFF_DISTORT;
-			}
-			if (d < finelimit && d > -finelimit && spacejk !== spacekw) {
-				p += (env.C[j][k] + env.C[k][w]) * env.strategy.COEFF_DISTORT / 3;
-			}
+			p += this._measureTripletDistort(
+				d1 / uppx,
+				d2 / uppx,
+				y[j] - y[k] - avails[j].properWidth,
+				y[k] - y[w] - avails[k].properWidth,
+				(env.C[j][k] + env.C[k][w]) * env.strategy.COEFF_DISTORT
+			);
 		}
+		// Top and bot dispace
+		// for (let j = 0; j < n; j++) {
+		// 	for (let k = 0; k < j; k++) {
+		// 		if (!dov[j][k]) continue;
+		// 		if (y[j] <= y[k]) continue;
+		// 		if (!avails[j].hasGlyphStemAbove) {
+		// 			p += this._measureTripletDistort(
+		// 				env.glyphTopPixels - avails[j].y0px,
+		// 				avails[j].y0px - avails[j].w0px - avails[k].y0px,
+		// 				env.glyphTopPixels - y[j],
+		// 				y[j] - y[k] - avails[j].properWidth,
+		// 				env.C[j][k] * env.strategy.COEFF_DISTORT
+		// 			);
+		// 		}
+		// 		if (!avails[k].hasGlyphStemBelow) {
+		// 			p += this._measureTripletDistort(
+		// 				avails[j].y0px - avails[j].w0px - avails[k].y0px,
+		// 				avails[k].y0px - avails[k].w0px - env.glyphBottomPixels,
+		// 				y[j] - avails[j].properWidth - y[k],
+		// 				y[k] - avails[k].properWidth - env.glyphBottomPixels,
+		// 				env.C[j][k] * env.strategy.COEFF_DISTORT
+		// 			);
+		// 		}
+		// 	}
+		// }
 		return p;
 	}
 	_measureDistort(d, d0, pCompress, pSeparation) {
