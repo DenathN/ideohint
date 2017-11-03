@@ -4,9 +4,10 @@ const { findStems } = require("../core/findstem");
 const { extractFeature } = require("../core/extractfeature");
 const hintForSize = require("../core/hinter");
 const { parseOTD } = require("./otdParser");
+const { xclamp, toVQ } = require("../support/common");
 const roundings = require("../support/roundings");
 
-exports.version = 10075;
+exports.version = 10076;
 
 exports.hintSingleGlyph = function(contours, strategy) {
 	return exports.decideHints(
@@ -111,37 +112,51 @@ exports.decideHints = function(featData, strategy) {
 		sd[ppem] = actions;
 
 		// update initialY
+		const thatPPEM = ppem - 1;
 		const [bottomThis, topThis] = topbotOf(strategy, upm, ppem);
-		const [bottomThat, topThat] = topbotOf(strategy, upm, ppem - 1);
-		const scale = (ppem - 1) / ppem;
+		const [bottomThat, topThat] = topbotOf(strategy, upm, thatPPEM);
 
 		initialY = actions.y.map(function(a) {
 			const y = a[0];
 			const w = a[1];
-			const w1 = Math.round(w * scale);
+			const w1 = Math.round(
+				w *
+					Math.round(toVQ(strategy.CANONICAL_STEM_WIDTH, thatPPEM) / (upm / thatPPEM)) /
+					Math.round(toVQ(strategy.CANONICAL_STEM_WIDTH, ppem) / (upm / ppem))
+			);
 			const spaceBelow = y - w - bottomThis,
 				spaceAbove = topThis - y;
 			if (spaceBelow < spaceAbove) {
 				const spaceBelow1 =
-					(topThat - bottomThat - w1) * spaceBelow / (spaceBelow + spaceAbove);
+					spaceBelow * (topThat - bottomThat - w1) / (spaceBelow + spaceAbove);
 				if (spaceBelow > 1 / 2) {
-					return Math.min(
-						topThat,
-						bottomThat + Math.max(1, Math.round(spaceBelow1)) + w1
+					return xclamp(
+						bottomThat,
+						bottomThat + Math.max(1, Math.round(spaceBelow1)) + w1,
+						topThat
 					);
 				} else {
-					return Math.min(
-						topThat,
-						bottomThat + Math.max(0, Math.round(spaceBelow1)) + w1
+					return xclamp(
+						bottomThat,
+						bottomThat + Math.max(0, Math.round(spaceBelow1)) + w1,
+						topThat
 					);
 				}
 			} else {
 				const spaceAbove1 =
-					(topThat - bottomThat - w1) * spaceAbove / (spaceBelow + spaceAbove);
+					spaceAbove * (topThat - bottomThat - w1) / (spaceBelow + spaceAbove);
 				if (spaceAbove > 1 / 2) {
-					return Math.min(topThat, topThat - Math.max(1, Math.round(spaceAbove1)));
+					return xclamp(
+						bottomThat,
+						topThat - Math.max(1, Math.round(spaceAbove1)),
+						topThat
+					);
 				} else {
-					return Math.min(topThat, topThat - Math.max(0, Math.round(spaceAbove1)));
+					return xclamp(
+						bottomThat,
+						topThat - Math.max(0, Math.round(spaceAbove1)),
+						topThat
+					);
 				}
 			}
 		});

@@ -112,7 +112,11 @@ class Individual {
 	}
 
 	getAblationPotential(env) {
-		return this._getOverseparationP(env) * env.COEFF_OVERSEP + this._getTripletBreakP(env);
+		return (
+			this._getOverseparationP(env) * env.COEFF_OVERSEP +
+			this._getTripletBreakP(env) +
+			this._getShiftP(env)
+		);
 	}
 
 	_getTripletBreakP(env) {
@@ -176,6 +180,16 @@ class Individual {
 				const d0 = avails[j].y0px - avails[j].w0px - avails[k].y0px;
 				p += this._measureDistort(d, d0, P[j][k] + 1, 1);
 			}
+		}
+		return p;
+	}
+	_getShiftP(env) {
+		let p = 0;
+		const avails = env.avails,
+			y = this.gene,
+			n = y.length;
+		for (let j = 0; j < n; j++) {
+			p += (y[j] - avails[j].center) * (y[j] - avails[j].center);
 		}
 		return p;
 	}
