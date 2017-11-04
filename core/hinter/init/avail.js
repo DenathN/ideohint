@@ -1,12 +1,10 @@
 "use strict";
 
-const roundings = require("../../../support/roundings");
-const { mix, lerp, xlerp, xclamp } = require("../../../support/common");
+const { lerp, xclamp } = require("../../../support/common");
 
 function decideMaxShift(y0, w0, ppem, tightness, strategy) {
-	const minShiftLL = xclamp(3 / 4, lerp(ppem, 12, 24, 0.1 * tightness + 0.27, 3 / 4), 2);
 	const maxShiftU = xclamp(
-		minShiftLL,
+		3 / 4,
 		ppem / 16,
 		xclamp(
 			1,
@@ -15,7 +13,7 @@ function decideMaxShift(y0, w0, ppem, tightness, strategy) {
 		)
 	);
 	const maxShiftD = xclamp(
-		minShiftLL,
+		3 / 4,
 		ppem / 16,
 		xclamp(
 			1,

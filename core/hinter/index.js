@@ -26,6 +26,7 @@ function choose(hinter, first, ...sps) {
 function hint(gd, ppem, strg, y0) {
 	const hinter = new Hinter(strg, gd, ppem);
 	if (!hinter.avails.length) return new HintDecision(hinter.xExpansion, [], false);
+
 	// W pass
 	let passes = 0;
 	let spInit = hinter.decideInitHintNT(y0);
@@ -43,7 +44,6 @@ function hint(gd, ppem, strg, y0) {
 		spInit = hinter.decideInitHint();
 		passes += 1;
 	} while (passes < 4);
-
 	// Y pass
 	const spUncol = hinter.uncollide(spInit);
 

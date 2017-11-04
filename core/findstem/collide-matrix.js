@@ -224,11 +224,7 @@ module.exports = function calculateCollisionMatrices(
 			);
 			if (!isFinite(A[j][k])) A[j][k] = 0;
 			C[j][k] = Math.round(
-				strategy.COEFF_C_MULTIPLIER *
-					Math.pow(ovr, 2) *
-					coeffC *
-					symmetryCoeff *
-					slopesCoeff
+				strategy.COEFF_C_MULTIPLIER * ovr * coeffC * symmetryCoeff * slopesCoeff
 			);
 			if (!ovr) C[j][k] = 0;
 			if (stems[j].rid && stems[j].rid === stems[k].rid) {

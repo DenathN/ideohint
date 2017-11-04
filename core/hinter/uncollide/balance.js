@@ -60,7 +60,7 @@ function balance(y, env) {
 	const N = y.length;
 	const avails = env.avails,
 		triplets = env.triplets,
-		directOverlaps = env.directOverlaps;
+		P = env.P;
 	const m = getm(avails);
 	for (let pass = 0; pass < REBALANCE_PASSES; pass++) {
 		let stable = true;
@@ -89,53 +89,52 @@ function balance(y, env) {
 			const j = t[0],
 				k = t[1],
 				m = t[2];
+
+			let mark = 0;
+			let checkImprove = false;
 			if (colliding(y, j, k) && spaced(y, k, m) && y[k] > avails[k].low) {
-				let newcol = 0;
-				for (let s = 0; s < y.length; s++)
-					if (directOverlaps[k][s] && !spare(y, k, s)) newcol += env.C[k][s];
-				if (env.C[j][k] > newcol) {
-					y[k] -= 1;
-					stable = false;
-				}
+				mark = -1;
+				checkImprove = true;
 			} else if (colliding(y, k, m) && spaced(y, j, k) && y[k] < avails[k].high) {
-				let newcol = 0;
-				for (let s = 0; s < y.length; s++) {
-					if (directOverlaps[s][k] && !spare(y, s, k)) {
-						newcol += env.C[s][k];
-					}
-				}
-				if (newcol < env.C[k][m]) {
-					y[k] += 1;
-					stable = false;
-				}
+				mark = 1;
+				checkImprove = true;
 			} else if (
 				(colliding(y, j, k) || annexed(y, j, k)) &&
 				spare(y, k, m) &&
 				y[k] > avails[k].low
 			) {
-				y[k] -= 1;
-				stable = false;
+				mark = -1;
+				if (P[k][m] < 4) checkImprove = true;
 			} else if (
 				(colliding(y, k, m) || annexed(y, k, m)) &&
 				spare(y, j, k) &&
 				y[k] < avails[k].high
 			) {
-				y[k] += 1;
-				stable = false;
+				mark = 1;
+				if (P[j][k] < 4) checkImprove = true;
 			} else if (colliding(y, j, k) && colliding(y, k, m)) {
 				if (env.A[j][k] <= env.A[k][m] && y[k] < avails[k].high) {
-					y[k] += 1;
-					stable = false;
+					mark = 1;
 				} else if (env.A[j][k] >= env.A[k][m] && y[k] > avails[k].low) {
-					y[k] -= 1;
-					stable = false;
+					mark = -1;
 				} else if (y[k] < avails[k].high) {
-					y[k] += 1;
-					stable = false;
+					mark = 1;
 				} else if (y[k] > avails[k].low) {
-					y[k] -= 1;
-					stable = false;
+					mark = -1;
 				}
+			}
+			if (checkImprove) {
+				const fitnessBefore = env.createIndividual(y, true).fitness;
+				y[k] += mark;
+				const fitnessAfter = env.createIndividual(y, true).fitness;
+				if (fitnessAfter > fitnessBefore) {
+					stable = false;
+				} else {
+					y[k] -= mark;
+				}
+			} else {
+				y[k] += mark;
+				stable = false;
 			}
 		}
 		if (stable) break;

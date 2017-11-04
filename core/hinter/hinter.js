@@ -246,7 +246,7 @@ class Hinter {
 		}
 	}
 	createIndividual(y, unbalanced) {
-		const cacheKey = "" + y;
+		const cacheKey = (unbalanced ? 1 : 0) + "!" + y;
 		if (this._idvCache && this._idvCache.has(cacheKey)) {
 			return this._idvCache.get(cacheKey).clone();
 		} else {
