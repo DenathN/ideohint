@@ -68,6 +68,7 @@ function analyzeTurns(g, strategy, stems) {
 		if (yBot > 0) {
 			let stemTurns = 0;
 			for (let x = x1; x <= x2; x++) {
+				if (!bitmap.array[x]) continue;
 				const turns = getTurns(bitmap.array[x].slice(0, yBot));
 				if (turns > stemTurns) stemTurns = turns;
 			}
@@ -76,6 +77,7 @@ function analyzeTurns(g, strategy, stems) {
 		if (yTop > 0) {
 			let stemTurns = 0;
 			for (let x = x1; x <= x2; x++) {
+				if (!bitmap.array[x]) continue;
 				const turns = getTurns(bitmap.array[x].slice(yTop));
 				if (turns > stemTurns) stemTurns = turns;
 			}
@@ -102,6 +104,7 @@ function analyzeTurns(g, strategy, stems) {
 			let turnsBetween = 0;
 			if (ybot < 0 || ytop < 0) continue;
 			for (let x = Math.max(xj1, xk1); x <= Math.min(xj2, xk2); x++) {
+				if (!bitmap.array[x]) continue;
 				const turns = getTurns(bitmap.array[x].slice(ytop, ybot));
 				if (turns > turnsBetween) turnsBetween = turns;
 			}
