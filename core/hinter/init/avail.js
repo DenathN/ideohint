@@ -179,6 +179,7 @@ class Avail {
 		this.isHangingHook =
 			!this.atStrictRadicalBottom &&
 			this.plength < 1 / 3 &&
+			!(this.diagLow || this.diagHigh) &&
 			!stem.hasGlyphLeftAdjacentPointBelow &&
 			!stem.hasGlyphRightAdjacentPointBelow &&
 			this.y0 - this.w0 > env.strategy.Y_FUZZ + env.strategy.BLUEZONE_BOTTOM_LIMIT;
