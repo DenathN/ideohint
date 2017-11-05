@@ -66,15 +66,7 @@ function atGlyphBottom(stem, strategy) {
 	);
 }
 
-module.exports = function calculateCollisionMatrices(
-	strategy,
-	stems,
-	overlapRatios,
-	overlapLengths,
-	pbs,
-	ecbs,
-	turnMatrix
-) {
+module.exports = function(strategy, stems, overlapRatios, overlapLengths, flipMatrix) {
 	// A : Annexation operator
 	// C : Collision operator
 	// S : Swap operator
@@ -98,11 +90,10 @@ module.exports = function calculateCollisionMatrices(
 		return (slopeOf(s.high) + slopeOf(s.low)) / 2;
 	});
 	for (let j = 0; j < n; j++) {
-		const jrtop = atRadicalTop(stems[j], strategy);
 		const jrbot = atRadicalBottom(stems[j], strategy);
 		for (let k = 0; k < j; k++) {
 			const krtop = atRadicalTop(stems[k], strategy);
-			const krbot = atRadicalBottom(stems[k], strategy);
+			const nothingInBetween = flipMatrix[j][k] <= 1;
 			// Overlap weight
 			let ovr = overlapLengths[j][k];
 			let strong = overlapRatios[j][k] > 0.85 || overlapRatios[k][j] > 0.85 || ovr > 1 / 3;
@@ -115,7 +106,7 @@ module.exports = function calculateCollisionMatrices(
 			}
 
 			let slopesCoeff =
-				!pbs[j][k] && stems[j].belongRadical !== stems[k].belongRadical
+				nothingInBetween && stems[j].belongRadical !== stems[k].belongRadical
 					? Math.max(0.25, 1 - Math.abs(slopes[j] - slopes[k]) * 10)
 					: 1;
 
@@ -128,20 +119,14 @@ module.exports = function calculateCollisionMatrices(
 
 			// PBS
 			if (
-				(pbs[j][k] ||
-					ecbs[j][k] ||
-					!stems[j].hasGlyphStemAbove ||
-					!stems[k].hasGlyphStemBelow) &&
+				(!nothingInBetween || !stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow) &&
 				spatialPromixity < strategy.COEFF_PBS_MIN_PROMIX
 			) {
 				spatialPromixity = strategy.COEFF_PBS_MIN_PROMIX;
 			}
-			if ((pbs[j][k] || ecbs[j][k]) && spatialPromixity < strategy.COEFF_PBS_MIN_PROMIX) {
+			if (!nothingInBetween && spatialPromixity < strategy.COEFF_PBS_MIN_PROMIX) {
 				structuralPromixity = strategy.COEFF_PBS_MIN_PROMIX;
 			}
-			// ECBS : entire-contour-between-stems
-			spatialPromixity *= ecbs[j][k] + 1;
-			structuralPromixity *= ecbs[j][k] + 1;
 			// Top/bottom
 			if (
 				(atGlyphTop(stems[j], strategy) && !stems[j].diagLow) ||
@@ -155,12 +140,8 @@ module.exports = function calculateCollisionMatrices(
 			let promixityCoeff = 1 + (spatialPromixity > 2 ? 5 : 1) * spatialPromixity;
 			// Annexation coefficients
 			let coeffA = 1;
-			if (pbs[j][k]) {
-				// There are something in between!
-				// ECBS is not considered here
-				coeffA *= strategy.COEFF_A_FEATURE_LOSS;
-			}
-			if (turnMatrix[j][k] > 1) {
+
+			if (!nothingInBetween) {
 				coeffA *= strategy.COEFF_A_SHAPE_LOST_XX;
 			}
 			if (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow) {
@@ -194,18 +175,8 @@ module.exports = function calculateCollisionMatrices(
 			if (stems[j].belongRadical === stems[k].belongRadical && strong) {
 				coeffC *= strategy.COEFF_C_SAME_RADICAL;
 			}
-			if (
-				!stems[j].hasSameRadicalStemAbove &&
-				!stems[k].hasSameRadicalStemBelow &&
-				ecbs[j][k]
-			) {
-				coeffC *= strategy.COEFF_C_SHAPE_LOST_XX;
-			}
-			if (pbs[j][k]) {
-				// There are something in between!
-				coeffC *= strategy.COEFF_C_FEATURE_LOSS / 2;
-			}
-			if (turnMatrix[j][k] > 1) {
+
+			if (!nothingInBetween) {
 				coeffC *= strategy.COEFF_C_SHAPE_LOST_XX;
 			}
 			if (strong && (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow)) {
@@ -231,7 +202,7 @@ module.exports = function calculateCollisionMatrices(
 				C[j][k] = 0;
 			}
 			S[j][k] = Math.round(strategy.COEFF_S);
-			P[j][k] = Math.round(structuralPromixity + (pbs[j][k] ? 1 : 0));
+			P[j][k] = Math.round(structuralPromixity + (!nothingInBetween ? 1 : 0));
 			Q[j][k] = spatialPromixity;
 		}
 	}

@@ -82,6 +82,12 @@ function balanceTriplets1(y, env) {
 		} else if (colliding(y, k, m) && spaced(y, j, k) && y[k] < avails[k].high) {
 			mark = 1;
 			checkImprove = true;
+		} else if (annexed(y, j, k) && spaced(y, k, m) && y[k] > avails[k].low + 1) {
+			mark = -2;
+			checkImprove = true;
+		} else if (annexed(y, k, m) && spaced(y, j, k) && y[k] < avails[k].high - 1) {
+			mark = 2;
+			checkImprove = true;
 		} else if (
 			(colliding(y, j, k) || annexed(y, j, k)) &&
 			spare(y, k, m) &&
@@ -108,10 +114,10 @@ function balanceTriplets1(y, env) {
 			}
 		}
 		if (checkImprove) {
-			const fitnessBefore = env.findIndividual(y, true).fitness;
+			const before = env.findIndividual(y, true);
 			y[k] += mark;
-			const fitnessAfter = env.findIndividual(y, true).fitness;
-			if (fitnessAfter > fitnessBefore) {
+			const after = env.findIndividual(y, true);
+			if (before.compare(after) < 0) {
 				stable = false;
 			} else {
 				y[k] -= mark;

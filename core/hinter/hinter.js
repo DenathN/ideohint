@@ -265,7 +265,7 @@ class Hinter {
 		const idvPass1 = this.createIndividual(y1);
 		const y2 = uncollide(y1, this, stages, population, false);
 		const idvPass2 = this.createIndividual(y2);
-		if (idvPass1.fitness < idvPass2.fitness) {
+		if (idvPass1.compare(idvPass2) > 0) {
 			return y2;
 		} else {
 			return y1;

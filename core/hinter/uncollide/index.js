@@ -11,7 +11,7 @@ function populate(y0, env, scale, allowUnbalanced) {
 	let unbalIdv = env.createIndividual(y0, true);
 	let population = [initIdv];
 
-	if (allowUnbalanced && unbalIdv.fitness > initIdv.fitness) {
+	if (allowUnbalanced && unbalIdv.better(initIdv)) {
 		population.push(unbalIdv);
 	}
 
@@ -25,7 +25,7 @@ function populate(y0, env, scale, allowUnbalanced) {
 				const idvBal = env.createIndividual(env.balance(y1));
 				const idvUnbal = env.createIndividual(y1, true);
 				population.push(idvBal);
-				if (allowUnbalanced && idvUnbal.fitness > idvBal.fitness) {
+				if (allowUnbalanced && idvUnbal.better(idvBal)) {
 					population.push(idvUnbal);
 				}
 			}
@@ -55,7 +55,7 @@ function populate(y0, env, scale, allowUnbalanced) {
 		const idvBal = env.createIndividual(env.balance(ry));
 		const idvUnbal = env.createIndividual(ry, true);
 		population.push(idvBal);
-		if (allowUnbalanced && idvUnbal.fitness > idvBal.fitness) {
+		if (allowUnbalanced && idvUnbal.better(idvBal)) {
 			population.push(idvUnbal);
 			c++;
 		}
@@ -67,7 +67,7 @@ function selectElite(population) {
 	// Hall of fame
 	let best = population[0];
 	for (let j = 1; j < population.length; j++) {
-		if (population[j].fitness > best.fitness) best = population[j];
+		if (population[j].better(best)) best = population[j];
 	}
 	return best;
 }
@@ -101,7 +101,7 @@ function uncollide(yInit, env, terminalStrictness, scale, allowUnbalanced) {
 	for (let s = 0; s < env.strategy.EVOLUTION_STAGES; s++) {
 		population = evolve(p, q, !(s % 2), env, allowUnbalanced);
 		let elite = selectElite(population);
-		if (elite.fitness <= best.fitness) {
+		if (best.better(elite)) {
 			steadyStages += 1;
 		} else {
 			steadyStages = 0;
@@ -110,8 +110,8 @@ function uncollide(yInit, env, terminalStrictness, scale, allowUnbalanced) {
 		if (steadyStages > terminalStrictness) break;
 	}
 
-	const g = balancize(best, env);
-	return balancize(selectElite(populate(g, env, scale, allowUnbalanced)), env);
+	return balancize(best, env);
+	// return balancize(selectElite(populate(g, env, scale, allowUnbalanced)), env);
 }
 
 module.exports = uncollide;

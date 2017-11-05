@@ -145,8 +145,8 @@ class Avail {
 		this.lowP = Math.round(lowP / uppx);
 		this.highP = Math.round(highP / uppx);
 		// soft high/low limits, affects ablation potential
-		this.softLow = Math.round(low / uppx);
-		this.softHigh = Math.round(high / uppx);
+		this.softLow = this.low;
+		this.softHigh = this.high;
 		// its proper width, in pixels
 		this.properWidth = tw;
 		// its proper position, in pixels
@@ -176,9 +176,12 @@ class Avail {
 		this.rid = stem.rid;
 		this.belongRadical = stem.belongRadical;
 		this.atStrictRadicalBottom = stemSpat.atStrictRadicalBottom(stem, env);
-		this.strictlyAtGlyphBottom =
-			this.atStrictRadicalBottom ||
-			this.y0 - this.w0 <= env.strategy.Y_FUZZ + env.strategy.BLUEZONE_BOTTOM_LIMIT;
+		this.isHangingHook =
+			!this.atStrictRadicalBottom &&
+			this.plength < 1 / 3 &&
+			!stem.hasGlyphLeftAdjacentPointBelow &&
+			!stem.hasGlyphRightAdjacentPointBelow &&
+			this.y0 - this.w0 > env.strategy.Y_FUZZ + env.strategy.BLUEZONE_BOTTOM_LIMIT;
 		this.atGlyphBottomMost = this.atStrictRadicalBottom && env.atGlyphBottomMost(stem);
 	}
 }
@@ -202,7 +205,7 @@ function adjustAvails(avails, stems) {
 					avail.center,
 					bottomPx +
 						avail.properWidth +
-						(avail.atGlyphBottom && avail.strictlyAtGlyphBottom ? 0 : 1)
+						(avail.atGlyphBottom && avail.isHangingHook ? 1 : 0)
 				)
 			);
 		}
@@ -252,7 +255,7 @@ function adjustAvails(avails, stems) {
 			s.center = xclamp(s.center, bottomPx + 1, s.high);
 			s.softLow = s.center;
 		}
-		if (!s.strictlyAtGlyphBottom) {
+		if (s.isHangingHook) {
 			s.softLow = Math.max(this.glyphBottomPixels + s.properWidth + 1, s.softLow);
 		}
 	}

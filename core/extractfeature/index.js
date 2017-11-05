@@ -24,7 +24,7 @@ exports.extractFeature = function(glyph, strategy) {
 	analyzeStemKeyPoints(glyph, strategy, directOverlaps, glyph.collisionMatrices.promixity);
 	const blueZonePoints = analyzeBlueZonePoints(glyph, strategy);
 	analyzeSpur(blueZonePoints, glyph.stems);
-	const iss = analyzeInterpolations(glyph, strategy);
+	const iss = analyzeInterpolations(glyph, blueZonePoints, strategy);
 	const edgeTouches = analyzeEdgeTouches(glyph.stems, glyph.stemOverlaps);
 	const overlaps = transitionClosure(directOverlaps);
 	const blanks = analyzeBlanks(glyph.stems, directOverlaps);

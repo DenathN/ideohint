@@ -1,12 +1,10 @@
 "use strict";
 
 var analyzeStems = require("./coupler");
-var analyzeStemSpatialRelationships = require("./stem-relationship")
-	.analyzeStemSpatialRelationships;
-var analyzePointBetweenStems = require("./stem-relationship").analyzePointBetweenStems;
-var analyzeEntireContorBetweenStems = require("./stem-relationship")
-	.analyzeEntireContorBetweenStems;
-var analyzeEntireContourAboveBelow = require("./stem-relationship").analyzeEntireContourAboveBelow;
+var {
+	analyzeStemSpatialRelationships,
+	analyzeEntireContourAboveBelow
+} = require("./stem-relationship");
 var calculateCollisionMatrices = require("./collide-matrix");
 var findRadicals = require("./radical");
 
@@ -41,8 +39,6 @@ function findStems(glyph, strategy) {
 		return stemOverlapLength(p, q, strategy);
 	});
 	analyzeStemSpatialRelationships(stems, radicals, glyph.stemOverlaps, strategy);
-	const pointBetweenStems = analyzePointBetweenStems(stems, radicals, strategy);
-	const ecbs = analyzeEntireContorBetweenStems(glyph, stems);
 	analyzeEntireContourAboveBelow(glyph, stems, strategy);
 	const tm = (glyph.turnsBetween = turns.analyzeTurns(glyph, strategy, stems));
 	glyph.collisionMatrices = calculateCollisionMatrices(
@@ -50,8 +46,6 @@ function findStems(glyph, strategy) {
 		stems,
 		glyph.stemOverlaps,
 		glyph.stemOverlapLengths,
-		pointBetweenStems,
-		ecbs,
 		tm
 	);
 	glyph.stems = stems;

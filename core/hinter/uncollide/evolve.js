@@ -25,14 +25,14 @@ function crossover(p, q, r, env, background, c, allowUnbalanced) {
 	const idBal = env.createIndividual(env.balance(newgene));
 	const idUnbal = allowUnbalanced ? env.createIndividual(newgene, true) : idBal;
 	if (!background[c]) background[c] = p;
-	if (idBal.fitness > p.fitness) {
-		if (idUnbal.fitness > idBal.fitness) {
+	if (idBal.better(p)) {
+		if (idUnbal.better(idBal)) {
 			background[c] = idUnbal;
 		} else {
 			background[c] = idBal;
 		}
 	} else {
-		if (idUnbal.fitness > p.fitness) {
+		if (idUnbal.better(p)) {
 			background[c] = idUnbal;
 		}
 	}

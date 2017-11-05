@@ -15,7 +15,7 @@ function choose(hinter, first, ...sps) {
 	let idvOptimal = hinter.createIndividual(optimal);
 	for (let sp of sps) {
 		let idv = hinter.createIndividual(sp);
-		if (idv.fitness > idvOptimal.fitness) {
+		if (idv.compare(idvOptimal) > 0) {
 			optimal = sp;
 			idvOptimal = idv;
 		}
@@ -26,10 +26,9 @@ function choose(hinter, first, ...sps) {
 function hint(gd, ppem, strg, y0) {
 	const hinter = new Hinter(strg, gd, ppem);
 	if (!hinter.avails.length) return new HintDecision(hinter.xExpansion, [], false);
-
 	// W pass
 	let passes = 0;
-	let spInit = hinter.decideInitHintNT(y0);
+	let spInit = hinter.balance(hinter.decideInitHintNT(y0));
 	const spNT = spInit;
 	do {
 		const { w } = hinter.allocateWidth(spInit);
@@ -41,7 +40,7 @@ function hint(gd, ppem, strg, y0) {
 						: Math.round(Math.max(a.properWidth, w[j]))
 			)
 		);
-		spInit = hinter.decideInitHint();
+		spInit = hinter.balance(hinter.decideInitHint());
 		passes += 1;
 	} while (passes < 4);
 	// Y pass

@@ -2,6 +2,7 @@
 
 const DIAG_BIAS_PIXELS = 1 / 6;
 const DIAG_BIAS_PIXELS_NEG = 1 / 3;
+const ABLATION_MARK = 1 / 8192;
 class Individual {
 	constructor(y, env, unbalanced) {
 		if (y) {
@@ -10,7 +11,6 @@ class Individual {
 			this.collidePotential =
 				this.getCollidePotential(env) + this.getSevereDistortionPotential(env);
 			this.ablationPotential = this.getAblationPotential(env);
-			this.fitness = this.getFitness();
 		}
 	}
 	clone() {
@@ -19,11 +19,22 @@ class Individual {
 		idv.unbalanced = this.unbalanced;
 		idv.collidePotential = this.collidePotential;
 		idv.ablationPotential = this.ablationPotential;
-		idv.fitness = this.fitness;
 		return idv;
 	}
 	getFitness() {
-		return 1 / (1 + Math.max(0, this.collidePotential + this.ablationPotential / 160));
+		return (
+			1 / (1 + Math.max(0, this.collidePotential + this.ablationPotential * ABLATION_MARK))
+		);
+	}
+	compare(that) {
+		if (this.collidePotential < that.collidePotential) return 1;
+		if (this.collidePotential > that.collidePotential) return -1;
+		if (this.ablationPotential < that.ablationPotential) return 1;
+		if (this.ablationPotential > that.ablationPotential) return -1;
+		return 0;
+	}
+	better(that) {
+		return this.compare(that) > 0;
 	}
 	getCollidePotential(env) {
 		const y = this.gene,

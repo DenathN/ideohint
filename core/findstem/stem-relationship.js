@@ -348,8 +348,8 @@ function analyzePBS(u, v, radical, strategy) {
 					!v.hasGlyphPointBelow ||
 					point.xExtrema ||
 					point.yExtrema) &&
-				point.y > v.y - blueFuzz &&
-				point.y < u.y - u.width + blueFuzz &&
+				point.y > v.y + blueFuzz &&
+				point.y < u.y - u.width - blueFuzz &&
 				point.x > v.xmin + blueFuzz &&
 				point.x < v.xmax - blueFuzz &&
 				point.x > u.xmin + blueFuzz &&
@@ -405,8 +405,7 @@ exports.analyzeEntireContorBetweenStems = function(glyph, stems) {
 	return ans;
 };
 
-exports.analyzeEntireContourAboveBelow = function(glyph, stems, strategy) {
-	var blueFuzz = strategy.BLUEZONE_WIDTH || 15;
+exports.analyzeEntireContourAboveBelow = function(glyph, stems) {
 	for (var j = 0; j < stems.length; j++) {
 		var sj = stems[j];
 		for (var c = 0; c < glyph.contours.length; c++) {
