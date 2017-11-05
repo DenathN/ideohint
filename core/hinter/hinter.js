@@ -16,6 +16,32 @@ function risefn(x) {
 	return x * x * x * x * x * x;
 }
 
+class YCache {
+	constructor() {
+		this.cache = new Map();
+	}
+	get(y) {
+		let focus = this.cache;
+		for (let j = 0; j < y.length; j++) {
+			if (!focus.has(y[j])) return null;
+			focus = focus.get(y[j]);
+		}
+		return focus;
+	}
+	set(y, v) {
+		let focus = this.cache;
+		for (let j = 0; j < y.length; j++) {
+			if (j < y.length - 1) {
+				if (!focus.has(y[j])) focus.set(y[j], new Map());
+				focus = focus.get(y[j]);
+			} else {
+				focus.set(y[j], v);
+			}
+		}
+		return this;
+	}
+}
+
 class Hinter {
 	constructor(strategy, fdefs, ppem) {
 		//// STRATEGY SPECIFIC
@@ -53,8 +79,18 @@ class Hinter {
 	}
 	updateAvails(tws) {
 		this.avails = decideAvails.call(this, this.stems, tws);
-		this._idvCache = new Map();
-		this._balanceCache = new Map();
+
+		this.availsByLength = function() {
+			let m = [];
+			for (let j = 0; j < this.avails.length; j++) {
+				m.push([this.avails[j].length, j]);
+			}
+			return m.sort((a, b) => b[0] - a[0]);
+		}.call(this);
+
+		this._idvCache = new YCache();
+		this._idvCacheU = new YCache();
+		this._balanceCache = new YCache();
 	}
 	prepareParameters() {
 		const { strategy, ppem } = this;
@@ -236,22 +272,34 @@ class Hinter {
 		}
 	}
 	balance(y) {
-		const cacheKey = "" + y;
-		if (this._balanceCache && this._balanceCache.has(cacheKey)) {
-			return [...this._balanceCache.get(cacheKey)];
+		const cached = this._balanceCache.get(y);
+		if (cached) {
+			return [...cached];
 		} else {
 			const y1 = balance(y, this);
-			this._balanceCache.set(cacheKey, y1);
+			this._balanceCache.set(y, y1);
 			return y1;
 		}
 	}
 	createIndividual(y, unbalanced) {
-		const cacheKey = (unbalanced ? 1 : 0) + "!" + y;
-		if (this._idvCache && this._idvCache.has(cacheKey)) {
-			return this._idvCache.get(cacheKey).clone();
+		const cache = unbalanced ? this._idvCacheU : this._idvCache;
+		const cached = cache.get(y);
+		if (cached) {
+			return cached;
 		} else {
 			const idv = new Individual(y, this, unbalanced);
-			this._idvCache.set(cacheKey, idv);
+			cache.set(y, idv);
+			return idv;
+		}
+	}
+	findIndividual(y, unbalanced) {
+		const cache = unbalanced ? this._idvCacheU : this._idvCache;
+		const cached = cache.get(y);
+		if (cached) {
+			return cached;
+		} else {
+			const idv = new Individual(y, this, unbalanced);
+			cache.set(y, idv);
 			return idv;
 		}
 	}

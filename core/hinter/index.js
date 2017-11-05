@@ -46,7 +46,6 @@ function hint(gd, ppem, strg, y0) {
 	} while (passes < 4);
 	// Y pass
 	const spUncol = hinter.uncollide(spInit);
-
 	// width pass
 	const { y, w } = hinter.allocateWidth(choose(hinter, spNT, spUncol));
 	// results

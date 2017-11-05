@@ -53,6 +53,16 @@ function atGlyphBottomMost(stem, strategy) {
 	);
 }
 
+function atStrictRadicalBottom(stem, strategy) {
+	return (
+		atRadicalBottom(stem, strategy) &&
+		!stem.hasRadicalLeftAdjacentPointBelow &&
+		!stem.hasRadicalRightAdjacentPointBelow &&
+		!stem.hasRadicalLeftDistancedPointBelow &&
+		!stem.hasRadicalRightDistancedPointBelow
+	);
+}
+
 function atRadicalTop(stem, strategy) {
 	return (
 		!stem.hasSameRadicalStemAbove &&
@@ -97,3 +107,4 @@ exports.atRadicalTop = atRadicalTop;
 exports.atGlyphBottom = atGlyphBottom;
 exports.atGlyphTop = atGlyphTop;
 exports.atGlyphBottomMost = atGlyphBottomMost;
+exports.atStrictRadicalBottom = atStrictRadicalBottom;

@@ -23,7 +23,7 @@ class Individual {
 		return idv;
 	}
 	getFitness() {
-		return 1 / (1 + Math.max(0, this.collidePotential * 8 + this.ablationPotential / 16));
+		return 1 / (1 + Math.max(0, this.collidePotential + this.ablationPotential / 160));
 	}
 	getCollidePotential(env) {
 		const y = this.gene,
@@ -51,7 +51,9 @@ class Individual {
 	}
 
 	getSevereDistortionPotential(env) {
-		return this._getDiagonalBreakP(env) + this._getSwapAndSymBreakP(env);
+		return (
+			this._getDiagonalBreakP(env) + this._getSwapAndSymBreakP(env) + this._getSoftBreakP(env)
+		);
 	}
 
 	_getDiagonalBreakP(env) {
@@ -106,6 +108,18 @@ class Individual {
 						p += S[j][k];
 					}
 				}
+			}
+		}
+		return p;
+	}
+	_getSoftBreakP(env) {
+		const y = this.gene,
+			avails = env.avails,
+			n = y.length;
+		let p = 0;
+		for (let j = 0; j < n; j++) {
+			if (y[j] < avails[j].softLow) {
+				p += env.strategy.COEFF_C_MULTIPLIER * env.strategy.COEFF_C_FEATURE_LOSS;
 			}
 		}
 		return p;

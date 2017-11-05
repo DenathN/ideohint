@@ -1,6 +1,7 @@
 "use strict";
 
 const { lerp, xclamp } = require("../../../support/common");
+const stemSpat = require("../../../support/stem-spatial");
 
 function decideMaxShift(y0, w0, ppem, tightness, strategy) {
 	const maxShiftU = xclamp(
@@ -32,8 +33,10 @@ class Avail {
 		const y0 = stem.y,
 			w0 = stem.width,
 			w = tw * uppx;
+		// Spatial relationships
 		this.atGlyphTop = env.atGlyphTop(stem);
 		this.atGlyphBottom = env.atGlyphBottom(stem);
+
 		// The bottom limit of a stem
 		let lowlimit =
 			env.glyphBottom +
@@ -160,8 +163,8 @@ class Avail {
 		this.plength = this.length / upm;
 		this.hasLRSpur = stem.hasLRSpur;
 		// spatial relationships
-		this.atGlyphTop = env.atGlyphTop(stem);
-		this.atGlyphBottom = env.atGlyphBottom(stem);
+		// this.atGlyphTop = env.atGlyphTop(stem);
+		// this.atGlyphBottom = env.atGlyphBottom(stem);
 		this.hasGlyphStemAbove = stem.hasGlyphStemAbove;
 		this.hasGlyphStemBelow = stem.hasGlyphStemBelow;
 		this.hasSameRadicalStemAbove = stem.hasSameRadicalStemAbove;
@@ -172,6 +175,11 @@ class Avail {
 		this.diagHigh = stem.diagHigh;
 		this.rid = stem.rid;
 		this.belongRadical = stem.belongRadical;
+		this.atStrictRadicalBottom = stemSpat.atStrictRadicalBottom(stem, env);
+		this.strictlyAtGlyphBottom =
+			this.atStrictRadicalBottom ||
+			this.y0 - this.w0 <= env.strategy.Y_FUZZ + env.strategy.BLUEZONE_BOTTOM_LIMIT;
+		this.atGlyphBottomMost = this.atStrictRadicalBottom && env.atGlyphBottomMost(stem);
 	}
 }
 
@@ -192,7 +200,9 @@ function adjustAvails(avails, stems) {
 			avail.high = Math.round(
 				Math.max(
 					avail.center,
-					bottomPx + avail.properWidth + (this.atGlyphBottom(stem) ? 0 : 1)
+					bottomPx +
+						avail.properWidth +
+						(avail.atGlyphBottom && avail.strictlyAtGlyphBottom ? 0 : 1)
 				)
 			);
 		}
@@ -205,9 +215,9 @@ function adjustAvails(avails, stems) {
 			avail.low = Math.round(avail.center);
 		}
 
-		if (this.atGlyphBottomMost(stem)) {
-			// Push bottommost stroke down to unify bottom features.
-			// This unifies bottom features to make the text more "aligned".
+		// Push bottommost stroke down to unify bottom features.
+		// This unifies bottom features to make the text more "aligned".
+		if (avail.atGlyphBottomMost) {
 			const bot = avail.high - avail.properWidth;
 			const force =
 				stem.diagHigh || stem.diagLow
@@ -218,9 +228,10 @@ function adjustAvails(avails, stems) {
 			avail.high = Math.round(bot1 + avail.properWidth);
 			if (avail.high < avail.low) avail.high = avail.low;
 		}
-		if (this.atGlyphTop(stem) && !this.atGlyphBottomMost(stem)) {
-			// Push topmost stroke down to unify top features.
-			// This unifies top features to make the text more "aligned".
+
+		// Push topmost stroke down to unify top features.
+		// This unifies top features to make the text more "aligned".
+		if (avail.atGlyphTop && !avail.atGlyphBottomMost) {
 			const top = avail.low;
 			const force =
 				stem.diagHigh || stem.diagLow ? this.TOP_UNIFY_FORCE_DIAG : this.TOP_UNIFY_FORCE;
@@ -240,6 +251,9 @@ function adjustAvails(avails, stems) {
 		if (s.diagHigh && s.center <= bottomPx + 0.5) {
 			s.center = xclamp(s.center, bottomPx + 1, s.high);
 			s.softLow = s.center;
+		}
+		if (!s.strictlyAtGlyphBottom) {
+			s.softLow = Math.max(this.glyphBottomPixels + s.properWidth + 1, s.softLow);
 		}
 	}
 }

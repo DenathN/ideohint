@@ -1,21 +1,12 @@
 "use strict";
 
-var evolve = require("./evolve");
-var Individual = require("./individual");
-var balance = require("./balance");
+const evolve = require("./evolve");
+const { xclamp } = require("../../../support/common");
 
-function xclamp(low, x, high) {
-	return x < low ? low : x > high ? high : x;
-}
-
-function uncollide(yInit, env, terminalStrictness, scale, allowUnbalanced) {
-	if (!yInit.length) return yInit;
-	const n = yInit.length;
+function populate(y0, env, scale, allowUnbalanced) {
+	const n = y0.length;
 	const avails = env.avails;
-	let y0 = [];
-	for (let j = 0; j < n; j++) {
-		y0[j] = xclamp(avails[j].low, Math.round(yInit[j]), avails[j].high);
-	}
+
 	let initIdv = env.createIndividual(env.balance(y0));
 	let unbalIdv = env.createIndividual(y0, true);
 	let population = [initIdv];
@@ -42,20 +33,12 @@ function uncollide(yInit, env, terminalStrictness, scale, allowUnbalanced) {
 	// Y-mutant
 	population.push(
 		env.createIndividual(
-			env.balance(
-				y0.map(function(y, j) {
-					return xclamp(avails[j].low, y - 1, avails[j].high);
-				})
-			)
+			env.balance(y0.map((y, j) => xclamp(avails[j].low, y - 1, avails[j].high)))
 		)
 	);
 	population.push(
 		env.createIndividual(
-			env.balance(
-				y0.map(function(y, j) {
-					return xclamp(avails[j].low, y + 1, avails[j].high);
-				})
-			)
+			env.balance(y0.map((y, j) => xclamp(avails[j].low, y + 1, avails[j].high)))
 		)
 	);
 	// Random
@@ -77,11 +60,37 @@ function uncollide(yInit, env, terminalStrictness, scale, allowUnbalanced) {
 			c++;
 		}
 	}
+	return population;
+}
+
+function selectElite(population) {
 	// Hall of fame
 	let best = population[0];
 	for (let j = 1; j < population.length; j++) {
 		if (population[j].fitness > best.fitness) best = population[j];
 	}
+	return best;
+}
+
+function balancize(idv, env) {
+	if (idv.unbalanced) {
+		return env.balance(idv.gene);
+	} else {
+		return idv.gene;
+	}
+}
+
+function uncollide(yInit, env, terminalStrictness, scale, allowUnbalanced) {
+	if (!yInit.length) return yInit;
+	const n = yInit.length;
+	const avails = env.avails;
+	let y0 = [];
+	for (let j = 0; j < n; j++) {
+		y0[j] = xclamp(avails[j].low, Math.round(yInit[j]), avails[j].high);
+	}
+	let population = populate(y0, env, scale, allowUnbalanced);
+	// Hall of fame
+	let best = selectElite(population);
 	// "no-improvement" generations
 	let steadyStages = 0;
 	// Build a swapchain
@@ -91,11 +100,7 @@ function uncollide(yInit, env, terminalStrictness, scale, allowUnbalanced) {
 	// Start evolution
 	for (let s = 0; s < env.strategy.EVOLUTION_STAGES; s++) {
 		population = evolve(p, q, !(s % 2), env, allowUnbalanced);
-		let elite = population[0];
-		for (let j = 1; j < population.length; j++)
-			if (population[j].fitness > elite.fitness) {
-				elite = population[j];
-			}
+		let elite = selectElite(population);
 		if (elite.fitness <= best.fitness) {
 			steadyStages += 1;
 		} else {
@@ -105,11 +110,8 @@ function uncollide(yInit, env, terminalStrictness, scale, allowUnbalanced) {
 		if (steadyStages > terminalStrictness) break;
 	}
 
-	if (best.unbalanced) {
-		return env.balance(best.gene);
-	} else {
-		return best.gene;
-	}
+	const g = balancize(best, env);
+	return balancize(selectElite(populate(g, env, scale, allowUnbalanced)), env);
 }
 
 module.exports = uncollide;
