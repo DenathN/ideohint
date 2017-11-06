@@ -7,7 +7,7 @@ const stemSpat = require("../../support/stem-spatial");
 const decideAvails = require("./init/avail");
 const decideWidths = require("./init/decide-widths");
 
-const balance = require("./uncollide/balance");
+const balancer = require("./uncollide/balance");
 const Individual = require("./uncollide/individual");
 const uncollide = require("./uncollide");
 const allocateWidth = require("./allocate-width");
@@ -29,16 +29,22 @@ class YCache {
 		return focus;
 	}
 	set(y, v) {
+		const [f, k] = this.peek(y);
+		f.set(k, v);
+		return this;
+	}
+	peek(y) {
 		let focus = this.cache;
+		let key = null;
 		for (let j = 0; j < y.length; j++) {
 			if (j < y.length - 1) {
 				if (!focus.has(y[j])) focus.set(y[j], new Map());
 				focus = focus.get(y[j]);
 			} else {
-				focus.set(y[j], v);
+				key = y[j];
 			}
 		}
-		return this;
+		return [focus, key];
 	}
 }
 
@@ -90,7 +96,9 @@ class Hinter {
 
 		this._idvCache = new YCache();
 		this._idvCacheU = new YCache();
-		this._balanceCache = new YCache();
+		this._balanceCache1 = new YCache();
+		this._balanceCache2 = new YCache();
+		this._balanceCache3 = new YCache();
 	}
 	prepareParameters() {
 		const { strategy, ppem } = this;
@@ -271,15 +279,22 @@ class Hinter {
 			return y1;
 		}
 	}
-	balance(y) {
-		const cached = this._balanceCache.get(y);
+	_balancePass(y, fn, cache) {
+		const cached = cache.get(y);
 		if (cached) {
-			return [...cached];
+			return cached;
 		} else {
-			const y1 = balance(y, this);
-			this._balanceCache.set(y, y1);
+			const [f, k] = cache.peek(y);
+			const y1 = fn(y, this);
+			f.set(k, y1);
 			return y1;
 		}
+	}
+	balance(y) {
+		const y1 = this._balancePass(y, balancer.balance1, this._balanceCache1);
+		const y2 = this._balancePass(y1, balancer.balance2, this._balanceCache2);
+		const y3 = this._balancePass(y2, balancer.balance3, this._balanceCache3);
+		return y3;
 	}
 	createIndividual(y, unbalanced) {
 		const cache = unbalanced ? this._idvCacheU : this._idvCache;

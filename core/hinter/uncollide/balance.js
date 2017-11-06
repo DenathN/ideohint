@@ -82,12 +82,6 @@ function balanceTriplets1(y, env) {
 		} else if (colliding(y, k, m) && spaced(y, j, k) && y[k] < avails[k].high) {
 			mark = 1;
 			checkImprove = true;
-		} else if (annexed(y, j, k) && spaced(y, k, m) && y[k] > avails[k].low + 1) {
-			mark = -2;
-			checkImprove = true;
-		} else if (annexed(y, k, m) && spaced(y, j, k) && y[k] < avails[k].high - 1) {
-			mark = 2;
-			checkImprove = true;
 		} else if (
 			(colliding(y, j, k) || annexed(y, j, k)) &&
 			spare(y, k, m) &&
@@ -168,6 +162,35 @@ function balanceTriplets2(y, env) {
 	return stable;
 }
 
+function balance1(y, env) {
+	const REBALANCE_PASSES = env.strategy.REBALANCE_PASSES;
+	for (let pass = 0; pass < REBALANCE_PASSES; pass++) {
+		if (balanceMove(y, env)) break;
+	}
+	return y;
+}
+function balance2(y, env) {
+	const REBALANCE_PASSES = env.strategy.REBALANCE_PASSES;
+	for (let pass = 0; pass < REBALANCE_PASSES; pass++) {
+		if (balanceTriplets1(y, env)) break;
+	}
+	return y;
+}
+function balance3(y, env) {
+	const REBALANCE_PASSES = env.strategy.REBALANCE_PASSES;
+	for (let pass = 0; pass < REBALANCE_PASSES; pass++) {
+		if (balanceTriplets2(y, env)) break;
+	}
+	for (let j = 0; j < y.length; j++) {
+		for (let k = 0; k < j; k++) {
+			if (env.symmetry[j][k] && y[j] !== y[k]) {
+				y[k] = y[j];
+			}
+		}
+	}
+	return y;
+}
+
 function balance(y, env) {
 	const REBALANCE_PASSES = env.strategy.REBALANCE_PASSES;
 
@@ -190,4 +213,7 @@ function balance(y, env) {
 	return y;
 }
 
-module.exports = balance;
+module.exports.balance = balance;
+module.exports.balance1 = balance1;
+module.exports.balance2 = balance2;
+module.exports.balance3 = balance3;
