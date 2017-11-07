@@ -143,15 +143,6 @@ function padSD(actions, stems, directOverlaps, uppx, bottom) {
 		}
 	}
 
-	for (let j = 0; j < stems.length; j++) {
-		for (let k = 0; k < j; k++) {
-			for (let m = 0; m < stems.length; m++) {
-				if (stackrel[j][m] && stackrel[j][m] === stackrel[k][m] && directOverlaps[j][k]) {
-					actions[k][W] = 0;
-				}
-			}
-		}
-	}
 	return actions;
 }
 

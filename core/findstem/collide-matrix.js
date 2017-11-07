@@ -1,7 +1,7 @@
 "use strict";
 
 let slopeOf = require("../types/").slopeOf;
-let segmentsPromixity = require("./seg").segmentsPromixity;
+let segmentsPromixity = require("../si-common/seg").segmentsPromixity;
 
 function atRadicalTop(stem, strategy) {
 	return (
@@ -93,10 +93,14 @@ module.exports = function(strategy, stems, overlapRatios, overlapLengths, flipMa
 		const jrbot = atRadicalBottom(stems[j], strategy);
 		for (let k = 0; k < j; k++) {
 			const krtop = atRadicalTop(stems[k], strategy);
-			const nothingInBetween = flipMatrix[j][k] <= 1;
+			const nothingInBetween = flipMatrix[j][k] <= 3;
 			// Overlap weight
 			let ovr = overlapLengths[j][k];
-			let strong = overlapRatios[j][k] > 0.85 || overlapRatios[k][j] > 0.85 || ovr > 1 / 3;
+			const tb =
+				(atGlyphTop(stems[j], strategy) && !stems[j].diagLow) ||
+				(atGlyphBottom(stems[k], strategy) && !stems[j].diagHigh);
+			let strong =
+				overlapRatios[j][k] > 0.85 || overlapRatios[k][j] > 0.85 || ovr > 1 / 3 || tb;
 			let isSideTouch =
 				(stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax) ||
 				(stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax);
@@ -128,10 +132,7 @@ module.exports = function(strategy, stems, overlapRatios, overlapLengths, flipMa
 				structuralPromixity = strategy.COEFF_PBS_MIN_PROMIX;
 			}
 			// Top/bottom
-			if (
-				(atGlyphTop(stems[j], strategy) && !stems[j].diagLow) ||
-				(atGlyphBottom(stems[k], strategy) && !stems[j].diagHigh)
-			) {
+			if (tb) {
 				spatialPromixity *= strategy.COEFF_STRICT_TOP_BOT_PROMIX;
 			} else if (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow) {
 				spatialPromixity *= strategy.COEFF_TOP_BOT_PROMIX;
@@ -141,7 +142,7 @@ module.exports = function(strategy, stems, overlapRatios, overlapLengths, flipMa
 			// Annexation coefficients
 			let coeffA = 1;
 
-			if (!nothingInBetween) {
+			if (!nothingInBetween || tb) {
 				coeffA *= strategy.COEFF_A_SHAPE_LOST_XX;
 			}
 			if (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow) {
@@ -163,11 +164,20 @@ module.exports = function(strategy, stems, overlapRatios, overlapLengths, flipMa
 					coeffA *= strategy.COEFF_A_SHAPE_LOST_XX;
 				} else if (!stems[j].hasSameRadicalStemAbove || !stems[k].hasSameRadicalStemBelow) {
 					coeffA *= strategy.COEFF_A_SHAPE_LOST;
+				} else if (
+					Math.abs(stems[j].xmin0 - stems[k].xmin0) < strategy.Y_FUZZ &&
+					Math.abs(stems[j].xmax0 - stems[k].xmax0) < strategy.Y_FUZZ
+				) {
+					coeffA /= strategy.COEFF_A_SAME_RADICAL * strategy.COEFF_A_SHAPE_LOST;
 				}
 			} else if (jrbot && krtop) {
 				coeffA *= strategy.COEFF_A_RADICAL_MERGE;
-			} else if (jrbot || krtop) {
+			} else if (krtop) {
+				// n-case
+				// for u-case, it is less severe
 				coeffA *= strategy.COEFF_A_SHAPE_LOST_XR;
+			} else if (jrbot) {
+				//coeffA *= strategy.COEFF_A_FEATURE_LOSS_XR;
 			}
 
 			// Collision coefficients
@@ -176,7 +186,7 @@ module.exports = function(strategy, stems, overlapRatios, overlapLengths, flipMa
 				coeffC *= strategy.COEFF_C_SAME_RADICAL;
 			}
 
-			if (!nothingInBetween) {
+			if (!nothingInBetween || tb) {
 				coeffC *= strategy.COEFF_C_SHAPE_LOST_XX;
 			}
 			if (strong && (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow)) {
@@ -253,6 +263,7 @@ module.exports = function(strategy, stems, overlapRatios, overlapLengths, flipMa
 		collision: C,
 		promixity: P,
 		spatialPromixity: Q,
-		swap: S
+		swap: S,
+		flips: flipMatrix
 	};
 };

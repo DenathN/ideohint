@@ -3,10 +3,9 @@
 const analyzeStemKeyPoints = require("./stem-keypoints");
 const analyzeInterpolations = require("./absorptions-interpolations");
 const analyzeBlueZonePoints = require("./bluezone");
-const analyzeDirectOverlaps = require("./overlap").analyzeDirectOverlaps;
-const analyzeEdgeTouches = require("./overlap").analyzeEdgeTouches;
-const transitionClosure = require("./overlap").transitionClosure;
-const analyzeTriplets = require("./triplet").analyzeTriplets;
+
+const { analyzeDirectOverlaps, transitionClosure } = require("../si-common/overlap");
+const { analyzeTriplets, analyzeQuartlets } = require("./triplet");
 const analyzeBlanks = require("./triplet").analyzeBlanks;
 const analyzeFlex = require("./flex");
 const getStemKeyInfo = require("./stem-keyinfo");
@@ -21,15 +20,21 @@ function byyori(a, b) {
 exports.extractFeature = function(glyph, strategy) {
 	const directOverlaps = analyzeDirectOverlaps(glyph, strategy, true);
 	const strictOverlaps = analyzeDirectOverlaps(glyph, strategy, false);
-	analyzeStemKeyPoints(glyph, strategy, directOverlaps, glyph.collisionMatrices.promixity);
+	analyzeStemKeyPoints(
+		glyph.stems,
+		strategy,
+		directOverlaps,
+		glyph.collisionMatrices.promixity,
+		glyph.collisionMatrices.flips
+	);
 	const blueZonePoints = analyzeBlueZonePoints(glyph, strategy);
 	analyzeSpur(blueZonePoints, glyph.stems);
 	const iss = analyzeInterpolations(glyph, blueZonePoints, strategy);
-	const edgeTouches = analyzeEdgeTouches(glyph.stems, glyph.stemOverlaps);
 	const overlaps = transitionClosure(directOverlaps);
 	const blanks = analyzeBlanks(glyph.stems, directOverlaps);
 	const strictBlanks = analyzeBlanks(glyph.stems, strictOverlaps);
 	const triplets = analyzeTriplets(glyph.stems, directOverlaps, blanks);
+	const quartlets = analyzeQuartlets(triplets, directOverlaps, blanks);
 	const strictTriplets = analyzeTriplets(glyph.stems, strictOverlaps, strictBlanks);
 	const flexes = analyzeFlex(glyph, blanks);
 	const dominancePriority = analyzeDominance(glyph.stems);
@@ -42,9 +47,9 @@ exports.extractFeature = function(glyph, strategy) {
 		stemOverlapLengths: glyph.stemOverlapLengths,
 		directOverlaps: directOverlaps,
 		strictOverlaps: strictOverlaps,
-		edgeTouches: edgeTouches,
 		overlaps: overlaps,
-		triplets: triplets,
+		triplets,
+		quartlets,
 		strictTriplets: strictTriplets,
 		flexes: flexes,
 		collisionMatrices: glyph.collisionMatrices,

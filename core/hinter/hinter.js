@@ -7,7 +7,7 @@ const stemSpat = require("../../support/stem-spatial");
 const decideAvails = require("./init/avail");
 const decideWidths = require("./init/decide-widths");
 
-const balancer = require("./uncollide/balance");
+const { balance1, balance2, balance3 } = require("./uncollide/balance");
 const Individual = require("./uncollide/individual");
 const uncollide = require("./uncollide");
 const allocateWidth = require("./allocate-width");
@@ -18,19 +18,19 @@ function risefn(x) {
 
 class YCache {
 	constructor() {
-		this.cache = new Map();
+		this.cache = [];
 	}
 	get(y) {
 		let focus = this.cache;
 		for (let j = 0; j < y.length; j++) {
-			if (!focus.has(y[j])) return null;
-			focus = focus.get(y[j]);
+			if (!focus[y[j]]) return null;
+			focus = focus[y[j]];
 		}
 		return focus;
 	}
 	set(y, v) {
 		const [f, k] = this.peek(y);
-		f.set(k, v);
+		f[k] = v;
 		return this;
 	}
 	peek(y) {
@@ -38,8 +38,8 @@ class YCache {
 		let key = null;
 		for (let j = 0; j < y.length; j++) {
 			if (j < y.length - 1) {
-				if (!focus.has(y[j])) focus.set(y[j], new Map());
-				focus = focus.get(y[j]);
+				if (!focus[y[j]]) focus[y[j]] = [];
+				focus = focus[y[j]];
 			} else {
 				key = y[j];
 			}
@@ -64,6 +64,7 @@ class Hinter {
 		this.S = fdefs.collisionMatrices.swap;
 		this.P = fdefs.collisionMatrices.promixity;
 		this.Q = fdefs.collisionMatrices.spatialPromixity;
+		this.F = fdefs.collisionMatrices.flips;
 
 		this.overlaps = fdefs.overlaps;
 		this.directOverlaps = fdefs.directOverlaps;
@@ -71,6 +72,7 @@ class Hinter {
 		this.stemOverlapLengths = fdefs.stemOverlapLengths;
 
 		this.triplets = fdefs.triplets;
+		this.quartlets = fdefs.quartlets;
 		this.strictTriplets = fdefs.strictTriplets;
 
 		this.stats = fdefs.stats;
@@ -96,9 +98,7 @@ class Hinter {
 
 		this._idvCache = new YCache();
 		this._idvCacheU = new YCache();
-		this._balanceCache1 = new YCache();
-		this._balanceCache2 = new YCache();
-		this._balanceCache3 = new YCache();
+		this._balanceCache = new YCache();
 	}
 	prepareParameters() {
 		const { strategy, ppem } = this;
@@ -262,38 +262,46 @@ class Hinter {
 
 	uncollide(y) {
 		const { strategy, ppem } = this;
-		const stages = xclamp(
-			2,
-			Math.round(this.nStems / strategy.STEADY_STAGES_X * this.nStems / ppem),
-			strategy.STEADY_STAGES_MAX
-		);
-		const population = strategy.POPULATION_LIMIT * Math.max(1, this.nStems);
+		const stages = //xclamp(
+			//2,
+			//Math.round(this.nStems / strategy.STEADY_STAGES_X * this.nStems / ppem),
+			strategy.STEADY_STAGES_MAX;
+		//);
+		const population = strategy.POPULATION_LIMIT; // * Math.max(1, this.nStems);
 		const y1 = uncollide(y, this, stages, population, true);
-
-		const idvPass1 = this.createIndividual(y1);
 		const y2 = uncollide(y1, this, stages, population, false);
-		const idvPass2 = this.createIndividual(y2);
-		if (idvPass1.compare(idvPass2) > 0) {
-			return y2;
-		} else {
-			return y1;
-		}
+		return y2;
 	}
-	_balancePass(y, fn, cache) {
-		const cached = cache.get(y);
+	// Manual expanded for performance
+	balance(y) {
+		const cached = this._balanceCache.get(y);
 		if (cached) {
 			return cached;
-		} else {
-			const [f, k] = cache.peek(y);
-			const y1 = fn(y, this);
-			f.set(k, y1);
-			return y1;
 		}
-	}
-	balance(y) {
-		const y1 = this._balancePass(y, balancer.balance1, this._balanceCache1);
-		const y2 = this._balancePass(y1, balancer.balance2, this._balanceCache2);
-		const y3 = this._balancePass(y2, balancer.balance3, this._balanceCache3);
+
+		let y0 = [...y];
+		const [f, k] = this._balanceCache.peek(y);
+
+		const y1 = balance1(y0, this);
+		const cached1 = this._balanceCache.get(y1);
+		if (cached1) {
+			f[k] = cached1;
+			return cached1;
+		}
+		const [f1, k1] = this._balanceCache.peek(y1);
+
+		const y2 = balance2(y1, this);
+		const cached2 = this._balanceCache.get(y2);
+		if (cached2) {
+			f[k] = f1[k1] = cached2;
+			return cached2;
+		}
+		const [f2, k2] = this._balanceCache.peek(y2);
+
+		const y3 = balance3(y2, this);
+		const [f3, k3] = this._balanceCache.peek(y3);
+
+		f[k] = f1[k1] = f2[k2] = f3[k3] = y3;
 		return y3;
 	}
 	createIndividual(y, unbalanced) {
@@ -302,18 +310,18 @@ class Hinter {
 		if (cached) {
 			return cached;
 		} else {
-			const idv = new Individual(y, this, unbalanced);
+			const idv = new Individual([...y], this, !!unbalanced);
 			cache.set(y, idv);
 			return idv;
 		}
 	}
-	findIndividual(y, unbalanced) {
-		const cache = unbalanced ? this._idvCacheU : this._idvCache;
+	createBalancedIndividual(y) {
+		const cache = this._idvCache;
 		const cached = cache.get(y);
 		if (cached) {
 			return cached;
 		} else {
-			const idv = new Individual(y, this, unbalanced);
+			const idv = new Individual(this.balance(y), this, false);
 			cache.set(y, idv);
 			return idv;
 		}

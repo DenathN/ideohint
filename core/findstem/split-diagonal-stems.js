@@ -1,7 +1,7 @@
 "use strict";
 
 const Point = require("../types/").Point;
-const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ } = require("./seg");
+const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ } = require("../si-common/seg");
 
 function shouldSplit(hl, ll, hr, lr, strategy) {
 	if (hl === hr || ll === lr) return false;

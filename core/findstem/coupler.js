@@ -1,9 +1,9 @@
 "use strict";
 
-const { overlapInfo, overlapRatio } = require("./overlap");
+const { overlapInfo, overlapRatio } = require("../si-common/overlap");
 const slopeOf = require("../types/").slopeOf;
 const hlkey = require("./hlkey");
-const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ, expandZ } = require("./seg");
+const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ, expandZ } = require("../si-common/seg");
 const { xclamp, mix, mixz, toVQ } = require("../../support/common");
 
 // substeps
@@ -178,7 +178,12 @@ function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strate
 			let hasEnoughOverlap =
 				segOverlap.len / segOverlap.la >= strategy.STROKE_SEGMENTS_MIN_OVERLAP &&
 				segOverlap.len / segOverlap.lb >= strategy.STROKE_SEGMENTS_MIN_OVERLAP;
-
+			if (!hasEnoughOverlap) {
+				let segOverlap = overlapInfo(highEdge, lowEdge);
+				hasEnoughOverlap =
+					segOverlap.len / segOverlap.la >= strategy.STROKE_SEGMENTS_MIN_OVERLAP &&
+					segOverlap.len / segOverlap.lb >= strategy.STROKE_SEGMENTS_MIN_OVERLAP;
+			}
 			if (
 				hasEnoughOverlap &&
 				!stemShapeIsIncorrect(radical, strategy, highEdge, lowEdge, maxh)

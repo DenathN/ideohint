@@ -8,8 +8,8 @@ var {
 var calculateCollisionMatrices = require("./collide-matrix");
 var findRadicals = require("./radical");
 
-var stemOverlapRatio = require("./overlap").stemOverlapRatio;
-var stemOverlapLength = require("./overlap").stemOverlapLength;
+var stemOverlapRatio = require("../si-common/overlap").stemOverlapRatio;
+var stemOverlapLength = require("../si-common/overlap").stemOverlapLength;
 
 const turns = require("./turns");
 

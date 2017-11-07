@@ -1,22 +1,23 @@
 "use strict";
-var minmaxOfSeg = require("./seg").minmaxOfSeg;
+
+const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ, expandZ } = require("../si-common/seg");
 
 function pointBelowStem(point, stem, fuzz) {
 	return point.y < stem.y - stem.width - fuzz;
 }
 
 function analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, strategy) {
-	var blueFuzz = strategy.BLUEZONE_WIDTH || 15;
-	var a0 = stem.low[0][0].x,
+	const blueFuzz = strategy.BLUEZONE_WIDTH || 15;
+	const a0 = stem.low[0][0].x,
 		az = stem.low[stem.low.length - 1][stem.low[stem.low.length - 1].length - 1].x;
-	var b0 = stem.high[0][0].x,
+	const b0 = stem.high[0][0].x,
 		bz = stem.high[stem.high.length - 1][stem.high[stem.high.length - 1].length - 1].x;
-	var xmin = Math.min(a0, b0, az, bz),
+	const xmin = Math.min(a0, b0, az, bz),
 		xmax = Math.max(a0, b0, az, bz);
-	var radicalParts = [radical.outline].concat(radical.holes);
-	for (var j = 0; j < radicalParts.length; j++)
-		for (var k = 0; k < radicalParts[j].points.length - 1; k++) {
-			var point = radicalParts[j].points[k];
+	const radicalParts = [radical.outline].concat(radical.holes);
+	for (let j = 0; j < radicalParts.length; j++)
+		for (let k = 0; k < radicalParts[j].points.length - 1; k++) {
+			const point = radicalParts[j].points[k];
 			if (point.y > stem.y && point.x < xmax - blueFuzz && point.x > xmin + blueFuzz) {
 				stem.hasGlyphPointAbove = true;
 				stem.glyphCenterRise = Math.max(stem.glyphCenterRise || 0, point.y - stem.y);
@@ -86,7 +87,7 @@ function analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, str
 			}
 			// upper 匚-like shapes
 			if (point.prev && point.prev.prev && point.prev.prev.prev) {
-				var z1 = point,
+				let z1 = point,
 					z2 = point.prev,
 					z3 = point.prev.prev,
 					z4 = point.prev.prev.prev;
@@ -232,17 +233,44 @@ function analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, str
 }
 
 function analyzePointToStemSpatialRelationships(stem, radicals, strategy) {
-	var rHigh = minmaxOfSeg(stem.high);
-	var rLow = minmaxOfSeg(stem.low);
-	var xmin = Math.min(rHigh.min, rLow.min),
-		xmax = Math.max(rHigh.max, rLow.max);
-	for (var rad = 0; rad < radicals.length; rad++) {
-		var radical = radicals[rad];
-		var sameRadical = radical === radicals[stem.belongRadical];
+	for (let rad = 0; rad < radicals.length; rad++) {
+		let radical = radicals[rad];
+		let sameRadical = radical === radicals[stem.belongRadical];
 		analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, strategy);
 	}
-	stem.xmin = xmin;
-	stem.xmax = xmax;
+	const p = expandZ(
+		radicals[stem.belongRadical],
+		leftmostZ(stem.high),
+		-1,
+		-(stem.slope || 0),
+		strategy.UPM
+	);
+	const q = expandZ(
+		radicals[stem.belongRadical],
+		leftmostZ(stem.low),
+		-1,
+		-(stem.slope || 0),
+		strategy.UPM
+	);
+	const coP = expandZ(
+		radicals[stem.belongRadical],
+		rightmostZ(stem.high),
+		1,
+		stem.slope || 0,
+		strategy.UPM
+	);
+	const coQ = expandZ(
+		radicals[stem.belongRadical],
+		rightmostZ(stem.low),
+		1,
+		stem.slope || 0,
+		strategy.UPM
+	);
+
+	stem.xmin = Math.min(p.x, q.x);
+	stem.xmax = Math.max(coP.x, coQ.x);
+	stem.xmin0 = Math.min(leftmostZ(stem.high).x, leftmostZ(stem.low).x);
+	stem.xmax0 = Math.max(rightmostZ(stem.high).x, rightmostZ(stem.low).x);
 }
 
 const SHARED_BOOL_PROPS = [
@@ -307,9 +335,9 @@ const SHARED_NUM_PROPS = [
 ];
 
 exports.analyzeStemSpatialRelationships = function(stems, radicals, overlaps, strategy) {
-	for (var k = 0; k < stems.length; k++) {
+	for (let k = 0; k < stems.length; k++) {
 		analyzePointToStemSpatialRelationships(stems[k], radicals, strategy);
-		for (var j = 0; j < stems.length; j++) {
+		for (let j = 0; j < stems.length; j++) {
 			if (
 				overlaps[j][k] > strategy.COLLISION_MIN_OVERLAP_RATIO &&
 				stems[j].y > stems[k].y &&
@@ -337,12 +365,12 @@ exports.analyzeStemSpatialRelationships = function(stems, radicals, overlaps, st
 };
 
 function analyzePBS(u, v, radical, strategy) {
-	var blueFuzz = strategy.BLUEZONE_WIDTH || 15;
-	var radicalParts = [radical.outline].concat(radical.holes);
-	var ans = 0;
-	for (var j = 0; j < radicalParts.length; j++)
-		for (var k = 0; k < radicalParts[j].points.length - 1; k++) {
-			var point = radicalParts[j].points[k];
+	let blueFuzz = strategy.BLUEZONE_WIDTH || 15;
+	let radicalParts = [radical.outline].concat(radical.holes);
+	let ans = 0;
+	for (let j = 0; j < radicalParts.length; j++)
+		for (let k = 0; k < radicalParts[j].points.length - 1; k++) {
+			let point = radicalParts[j].points[k];
 			if (
 				(!u.hasGlyphPointAbove ||
 					!v.hasGlyphPointBelow ||
@@ -365,12 +393,12 @@ function analyzePBS(u, v, radical, strategy) {
 }
 
 exports.analyzePointBetweenStems = function(stems, radicals, strategy) {
-	var res = [];
-	for (var sj = 0; sj < stems.length; sj++) {
+	let res = [];
+	for (let sj = 0; sj < stems.length; sj++) {
 		res[sj] = [];
-		for (var sk = 0; sk < sj; sk++) {
+		for (let sk = 0; sk < sj; sk++) {
 			res[sj][sk] = 0;
-			for (var rad = 0; rad < radicals.length; rad++) {
+			for (let rad = 0; rad < radicals.length; rad++) {
 				res[sj][sk] += analyzePBS(stems[sj], stems[sk], radicals[rad], strategy);
 			}
 		}
@@ -379,16 +407,16 @@ exports.analyzePointBetweenStems = function(stems, radicals, strategy) {
 };
 
 exports.analyzeEntireContorBetweenStems = function(glyph, stems) {
-	var ans = [];
-	for (var j = 0; j < stems.length; j++) {
+	let ans = [];
+	for (let j = 0; j < stems.length; j++) {
 		ans[j] = [];
-		for (var k = 0; k < stems.length; k++) {
+		for (let k = 0; k < stems.length; k++) {
 			ans[j][k] = 0;
 			if (!(stems[j].y > stems[k].y)) continue;
-			for (var c = 0; c < glyph.contours.length; c++) {
-				var cr = glyph.contours[c];
-				var sj = stems[j];
-				var sk = stems[k];
+			for (let c = 0; c < glyph.contours.length; c++) {
+				let cr = glyph.contours[c];
+				let sj = stems[j];
+				let sk = stems[k];
 				if (
 					cr.xmin >= sj.xmin &&
 					cr.xmax <= sj.xmax &&
@@ -406,10 +434,10 @@ exports.analyzeEntireContorBetweenStems = function(glyph, stems) {
 };
 
 exports.analyzeEntireContourAboveBelow = function(glyph, stems) {
-	for (var j = 0; j < stems.length; j++) {
-		var sj = stems[j];
-		for (var c = 0; c < glyph.contours.length; c++) {
-			var cr = glyph.contours[c];
+	for (let j = 0; j < stems.length; j++) {
+		let sj = stems[j];
+		for (let c = 0; c < glyph.contours.length; c++) {
+			let cr = glyph.contours[c];
 			if (cr.xmin >= sj.xmin && cr.xmax <= sj.xmax && cr.ymin >= sj.y) {
 				sj.hasEntireContourAbove = true;
 			}

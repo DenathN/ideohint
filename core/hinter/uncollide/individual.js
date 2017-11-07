@@ -1,5 +1,7 @@
 "use strict";
 
+const { xclamp } = require("../../../support/common");
+
 const DIAG_BIAS_PIXELS = 1 / 6;
 const DIAG_BIAS_PIXELS_NEG = 1 / 3;
 const ABLATION_MARK = 1 / 8192;
@@ -27,19 +29,24 @@ class Individual {
 		);
 	}
 	compare(that) {
-		if (this.collidePotential < that.collidePotential) return 1;
-		if (this.collidePotential > that.collidePotential) return -1;
-		if (this.ablationPotential < that.ablationPotential) return 1;
-		if (this.ablationPotential > that.ablationPotential) return -1;
-		return 0;
+		const f1 = this.getFitness();
+		const f2 = that.getFitness();
+		return f1 - f2;
+		// if (this.collidePotential < that.collidePotential) return 1;
+		// if (this.collidePotential > that.collidePotential) return -1;
+		// if (this.ablationPotential < that.ablationPotential) return 1;
+		// if (this.ablationPotential > that.ablationPotential) return -1;
+		// return 0;
 	}
 	better(that) {
 		return this.compare(that) > 0;
 	}
+
 	getCollidePotential(env) {
 		const y = this.gene,
 			A = env.A,
 			C = env.C,
+			F = env.F,
 			n = y.length,
 			avails = env.avails,
 			ppem = env.ppem,
@@ -47,18 +54,25 @@ class Individual {
 			dov = env.directOverlaps;
 		let nCol = 0;
 		let pA = 0,
-			pC = 0;
+			pC = 0,
+			pCompress = 0;
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
+				if (dov[j][k] && F[j][k] > 4 && y[j] <= 1 + y[k] + avails[j].properWidth) {
+					const d = 2 - (y[j] - avails[j].properWidth - y[k]);
+					pC += C[j][k] * d * d; // Collide
+					if (C[j][k]) nCol += sol[j][k] * ppem * ppem * 0.04;
+				}
 				if (y[j] === y[k]) {
 					if (dov[j][k]) pA += A[j][k]; // Annexation
 				} else if (y[j] <= y[k] + avails[j].properWidth) {
-					pC += C[j][k] * (1 + avails[j].properWidth - (y[j] - y[k])); // Collide
+					const d = 1 - (y[j] - avails[j].properWidth - y[k]);
+					pC += C[j][k] * d * d; // Collide
 					if (C[j][k]) nCol += sol[j][k] * ppem * ppem * 0.04;
 				}
 			}
 		}
-		return pA + pC * nCol * nCol;
+		return pA + pC * nCol * nCol + pCompress;
 	}
 
 	getSevereDistortionPotential(env) {
@@ -144,7 +158,7 @@ class Individual {
 		);
 	}
 
-	_measureTripletDistort(d1, d2, spacejk, spacekw, adjust) {
+	_measureTripletDistort(d1, d2, spacejk, spacekw, adjust, sym) {
 		let p = 0;
 		const finelimit = 1 / 8;
 		const dlimit = 1 / 3;
@@ -166,6 +180,7 @@ class Individual {
 		}
 		if (d < finelimit && d > -finelimit && spacejk !== spacekw) {
 			p += adjust / 3;
+			if (sym) p += adjust * 32;
 		}
 		return p;
 	}
@@ -183,14 +198,19 @@ class Individual {
 		let p = 0;
 
 		// Triplet distortion
-		for (let [j, k, w, d1, d2] of triplets) {
+		for (let _t = 0; _t < triplets.length; _t++) {
+			const [j, k, w] = triplets[_t];
 			if (!(y[j] > y[k] && y[k] > y[w])) continue;
 			p += this._measureTripletDistort(
-				d1 / uppx,
-				d2 / uppx,
+				avails[j].y0px - avails[j].w0px - avails[k].y0px,
+				avails[k].y0px - avails[k].w0px - avails[w].y0px,
 				y[j] - y[k] - avails[j].properWidth,
 				y[k] - y[w] - avails[k].properWidth,
-				(env.C[j][k] + env.C[k][w]) * env.strategy.COEFF_DISTORT
+				(env.C[j][k] + env.C[k][w]) * env.strategy.COEFF_DISTORT,
+				avails[j].xmin === avails[k].xmin &&
+					avails[k].xmin === avails[w].xmin &&
+					avails[j].xmax === avails[k].xmax &&
+					avails[k].xmax === avails[w].xmax
 			);
 		}
 		// Top and bot dispace

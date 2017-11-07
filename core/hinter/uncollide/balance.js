@@ -29,18 +29,9 @@ function spaceAbove1(env, y, k, top) {
 	return space;
 }
 
-function annexed(y, p, q) {
-	return y[p] === y[q];
-}
-function colliding(y, p, q) {
-	return y[p] - y[q] < 2 && y[p] - y[q] >= 1;
-}
-function spaced(y, p, q) {
-	return y[p] - y[q] === 2;
-}
-function spare(y, p, q) {
-	return y[p] - y[q] > 2;
-}
+const ANNEXED = 0;
+const COLLIDING = 1;
+const SPACED = 2;
 
 function balanceMove(y, env) {
 	const m = env.availsByLength;
@@ -76,27 +67,27 @@ function balanceTriplets1(y, env) {
 			m = t[2];
 		let mark = 0;
 		let checkImprove = false;
-		if (colliding(y, j, k) && spaced(y, k, m) && y[k] > avails[k].low) {
+		if (y[j] - y[k] === COLLIDING && y[k] - y[m] === SPACED && y[k] > avails[k].low) {
 			mark = -1;
 			checkImprove = true;
-		} else if (colliding(y, k, m) && spaced(y, j, k) && y[k] < avails[k].high) {
+		} else if (y[k] - y[m] === COLLIDING && y[j] - y[k] === SPACED && y[k] < avails[k].high) {
 			mark = 1;
 			checkImprove = true;
 		} else if (
-			(colliding(y, j, k) || annexed(y, j, k)) &&
-			spare(y, k, m) &&
+			(y[j] - y[k] === COLLIDING || y[j] - y[k] === ANNEXED) &&
+			y[k] - y[m] > SPACED &&
 			y[k] > avails[k].low
 		) {
 			mark = -1;
 			if (P[k][m] < 4) checkImprove = true;
 		} else if (
-			(colliding(y, k, m) || annexed(y, k, m)) &&
-			spare(y, j, k) &&
+			(y[k] - y[m] === COLLIDING || y[k] - y[m] === ANNEXED) &&
+			y[j] - y[k] > SPACED &&
 			y[k] < avails[k].high
 		) {
 			mark = 1;
 			if (P[j][k] < 4) checkImprove = true;
-		} else if (colliding(y, j, k) && colliding(y, k, m)) {
+		} else if (y[j] - y[k] === COLLIDING && y[k] - y[m] === COLLIDING) {
 			if (env.A[j][k] <= env.A[k][m] && y[k] < avails[k].high) {
 				mark = 1;
 			} else if (env.A[j][k] >= env.A[k][m] && y[k] > avails[k].low) {
@@ -108,10 +99,10 @@ function balanceTriplets1(y, env) {
 			}
 		}
 		if (checkImprove) {
-			const before = env.findIndividual(y, true);
+			const before = env.createIndividual(y, true);
 			y[k] += mark;
-			const after = env.findIndividual(y, true);
-			if (before.compare(after) < 0) {
+			const after = env.createIndividual(y, true);
+			if (after.better(before)) {
 				stable = false;
 			} else {
 				y[k] -= mark;
@@ -124,39 +115,33 @@ function balanceTriplets1(y, env) {
 	return stable;
 }
 
-function balanceTriplets2(y, env) {
+function balanceQuartlets(y, env) {
 	const avails = env.avails;
-	const triplets = env.triplets;
+	const quartlets = env.quartlets;
 	let stable = true;
-	for (let _t = 0; _t < triplets.length; _t++) {
-		const t = triplets[_t];
+	for (let _t = 0; _t < quartlets.length; _t++) {
+		const t = quartlets[_t];
 		const j = t[0],
 			k = t[1],
-			m = t[2];
-		const su = spaceAbove1(env, y, k, env.glyphTopPixels + 3);
-		const sb = spaceBelow1(env, y, k, env.glyphBottomPixels - 3);
-		const d1 = y[j] - avails[j].properWidth - y[k];
-		const d2 = y[k] - avails[k].properWidth - y[m];
-		const o1 = avails[j].y0 - avails[j].w0 - avails[k].y0;
-		const o2 = avails[k].y0 - avails[k].w0 - avails[m].y0;
+			m = t[2],
+			w = t[3];
+		// |1||2| prevention -> |1|0|1|
 		if (
-			y[k] < avails[k].high &&
-			o1 / o2 < 2 &&
-			env.P[j][k] <= env.P[k][m] &&
-			su > 1 &&
-			(sb < 1 || d1 >= d2 * 2)
+			avails[k].xmin === avails[m].xmin &&
+			avails[k].xmax === avails[m].xmax &&
+			y[k] - y[m] === ANNEXED
 		) {
-			y[k] += 1;
-			stable = false;
-		} else if (
-			y[k] > avails[k].low &&
-			o2 / o1 < 2 &&
-			env.P[j][k] >= env.P[k][m] &&
-			sb > 1 &&
-			(su < 1 || d2 >= d1 * 2)
-		) {
-			y[k] -= 1;
-			stable = false;
+			if (y[j] - y[k] === SPACED + 1 && y[m] - y[w] === SPACED && y[k] < avails[k].high) {
+				y[k] += 1;
+				stable = false;
+			} else if (
+				y[j] - y[k] === SPACED &&
+				y[m] - y[w] === SPACED + 1 &&
+				y[m] > avails[m].high
+			) {
+				y[m] -= 1;
+				stable = false;
+			}
 		}
 	}
 	return stable;
@@ -179,7 +164,7 @@ function balance2(y, env) {
 function balance3(y, env) {
 	const REBALANCE_PASSES = env.strategy.REBALANCE_PASSES;
 	for (let pass = 0; pass < REBALANCE_PASSES; pass++) {
-		if (balanceTriplets2(y, env)) break;
+		if (balanceQuartlets(y, env)) break;
 	}
 	for (let j = 0; j < y.length; j++) {
 		for (let k = 0; k < j; k++) {
@@ -200,9 +185,7 @@ function balance(y, env) {
 	for (let pass = 0; pass < REBALANCE_PASSES; pass++) {
 		if (balanceTriplets1(y, env)) break;
 	}
-	for (let pass = 0; pass < REBALANCE_PASSES; pass++) {
-		if (balanceTriplets2(y, env)) break;
-	}
+
 	for (let j = 0; j < y.length; j++) {
 		for (let k = 0; k < j; k++) {
 			if (env.symmetry[j][k] && y[j] !== y[k]) {

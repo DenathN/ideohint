@@ -18,17 +18,22 @@ function edgetouch(s, t) {
 function cover(s, t) {
 	return t.xmin > mix(s.xmin, s.xmax, 0.05) && t.xmax < mix(s.xmin, s.xmax, 0.95);
 }
+function requiredSpaceBetween(env, j, k) {
+	return env.F[j][k] > 4 ? env.WIDTH_GEAR_PROPER : env.F[j][k] > 3 ? 1 : 0;
+}
 function spaceBelow(env, y, w, k, bottom) {
 	let space = y[k] - w[k] - bottom;
 	for (let j = k - 1; j >= 0; j--) {
-		if (env.strictOverlaps[k][j] && y[k] - y[j] - w[k] < space) space = y[k] - y[j] - w[k];
+		if (env.strictOverlaps[k][j] && y[k] - y[j] - w[k] < space)
+			space = y[k] - y[j] - w[k] - requiredSpaceBetween(env, j, k);
 	}
 	return space;
 }
 function spaceAbove(env, y, w, k, top) {
 	let space = top - y[k];
 	for (let j = k + 1; j < y.length; j++) {
-		if (env.strictOverlaps[j][k] && y[j] - y[k] - w[j] < space) space = y[j] - y[k] - w[j];
+		if (env.strictOverlaps[j][k] && y[j] - y[k] - w[j] < space)
+			space = y[j] - y[k] - w[j] - requiredSpaceBetween(env, j, k);
 	}
 	return space;
 }
@@ -48,7 +53,8 @@ function allocateWidth(y0, env) {
 		properWidths = new Array(N);
 	const avails = env.avails,
 		strictOverlaps = env.strictOverlaps,
-		strictTriplets = env.strictTriplets;
+		strictTriplets = env.strictTriplets,
+		F = env.F;
 	const onePixelMatter = env.onePixelMatter;
 	for (let j = 0; j < y0.length; j++) {
 		properWidths[j] = Math.round(avails[j].properWidth);
@@ -102,88 +108,8 @@ function allocateWidth(y0, env) {
 				}
 		}
 	}
-	function balancePass() {}
-	function balanceSmallSize() {
-		// small size
-		for (let [j, k, m] of strictTriplets) {
-			let y1 = y.slice(0),
-				w1 = w.slice(0);
-			// [1] 0 [1] 0 [1] -> [1] & [1] 1 [1]
-			if (
-				tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY) &&
-				y[j] - w[j] - y[k] === 0 &&
-				y[k] - w[k] - y[m] === 0 &&
-				env.P[j][k] > env.P[k][m] &&
-				env.C[j][k] > env.C[k][m]
-			) {
-				y[k] -= 1;
-				continue;
-			} else if (
-				tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY) &&
-				y[j] - w[j] - y[k] === 0 &&
-				y[k] - w[k] - y[m] === 0 &&
-				env.P[j][k] < env.P[k][m] &&
-				env.C[j][k] < env.C[k][m]
-			) {
-				// [1] 0 [1] 0 [1] -> [1] 1 [1] & [1]
-				y[k] += 1;
-				continue;
-			} else if (
-				tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY) &&
-				y[j] - w[j] - y[k] === 0 &&
-				y[k] - w[k] - y[m] >= 1 &&
-				env.P[j][k] > env.P[k][m] &&
-				env.C[j][k] > env.C[k][m]
-			) {
-				// [1] 0 [1] 1 [1] -> [1] 1 [1] 0 [1]
-				y[k] -= 1;
-				continue;
-			} else if (
-				tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY) &&
-				y[j] - w[j] - y[k] >= 1 &&
-				y[k] - w[k] - y[m] === 0 &&
-				env.P[j][k] < env.P[k][m] &&
-				env.C[j][k] < env.C[k][m]
-			) {
-				// [1] 1 [1] 0 [1] -> [1] 0 [1] 1 [1]
-				y[k] += 1;
-				continue;
-			} else if (
-				tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY) &&
-				y[j] - w[j] - y[k] === 0 &&
-				y[k] - w[k] - y[m] >= 2
-			) {
-				// [1] 0 [1] 2 [1] -> [1] 1 [1] 1 [1]
-				y[k] -= 1;
-			} else if (
-				tripletSatisifiesPattern(j, k, m, 1, 1, 1, ANY, ANY, ANY) &&
-				y[j] - w[j] - y[k] >= 2 &&
-				y[k] - w[k] - y[m] === 0
-			) {
-				// [1] 0 [1] 2 [1] -> [1] 1 [1] 1 [1]
-				y[k] += 1;
-			}
-			// rollback when no space
-			if (
-				spaceBelow(env, y, w, j, pixelBottom - 1) < 1 ||
-				spaceAbove(env, y, w, k, pixelTop + 1) < 1 ||
-				spaceAbove(env, y, w, m, pixelTop + 1) < 1 ||
-				spaceBelow(env, y, w, k, pixelBottom - 1) < 1 ||
-				(j < N - 1 && y[j] > y[j + 1]) ||
-				(j > 0 && y[j] < y[j - 1]) ||
-				(k < N - 1 && y[k] > y[k + 1]) ||
-				(k > 0 && y[k] < y[k - 1]) ||
-				(m < N - 1 && y[m] > y[m + 1]) ||
-				(m > 0 && y[m] < y[m - 1]) ||
-				!atValidPosition(pixelTop, pixelBottom, y[k], w[k], avails[k]) ||
-				!atValidPosition(pixelTop, pixelBottom, y[m], w[m], avails[m])
-			) {
-				y = y1;
-				w = w1;
-			}
-		}
-	}
-	function avaoidThinStoke(applyToLowerOnly) {
+
+	function avoidThinStroke(y0, applyToLowerOnly) {
 		// push stems down to avoid thin strokes.
 		for (let j = N - 1; j >= 0; j--) {
 			if (!(applyToLowerOnly || !avails[j].hasGlyphStemAbove)) continue;
@@ -193,9 +119,10 @@ function allocateWidth(y0, env) {
 			for (let k = 0; k < j; k++) {
 				if (
 					strictOverlaps[j][k] &&
-					y[j] - w[j] - y[k] <= 1 &&
+					y[j] - w[j] - y[k] <= 1 + requiredSpaceBetween(env, j, k) &&
 					(onePixelMatter || // shifting strokes modifies glyph too much
 					y[k] <= avails[k].lowP || // the stroke is low enough
+					y[k] <= y0[k] - 1 || // the stroke is low enough
 					y[k] <= pixelBottom + w[k] || // or it is thin enough
 						w[k] < 2)
 				) {
@@ -204,7 +131,10 @@ function allocateWidth(y0, env) {
 			}
 			if (!able) continue;
 			for (let k = 0; k < j; k++)
-				if (strictOverlaps[j][k] && y[j] - w[j] - y[k] <= 1) {
+				if (
+					strictOverlaps[j][k] &&
+					y[j] - w[j] - y[k] <= 1 + requiredSpaceBetween(env, j, k)
+				) {
 					y[k] -= 1;
 					w[k] -= 1;
 				}
@@ -213,6 +143,7 @@ function allocateWidth(y0, env) {
 		for (let j = N - 1; j >= 0; j--) {
 			if (w[j] >= (!avails[j].hasGlyphFoldBelow ? properWidths[j] : 2)) continue;
 			if (y[j] >= avails[j].highP) continue;
+			if (y[j] >= y0[j] + 1) continue;
 			if (!avails[j].hasGlyphStemAbove && y[j] >= pixelTop - 2) continue;
 
 			let able = true;
@@ -220,7 +151,7 @@ function allocateWidth(y0, env) {
 			for (let k = j + 1; k < N; k++) {
 				if (
 					strictOverlaps[k][j] &&
-					y[k] - w[k] - y[j] <= 1 && // there is no stem below satisifies:
+					y[k] - w[k] - y[j] <= 1 + requiredSpaceBetween(env, k, j) && // there is no stem below satisifies:
 					// with one pixel space, and prevent upward adjustment, if
 					(onePixelMatter || // shifting strokes modifies glyph too much
 					!cover(avails[j], avails[k]) || // it is not dominated with stroke J
@@ -232,7 +163,10 @@ function allocateWidth(y0, env) {
 			}
 			if (!able) continue;
 			for (let k = j + 1; k < N; k++)
-				if (strictOverlaps[k][j] && y[k] - w[k] - y[j] <= 1) {
+				if (
+					strictOverlaps[k][j] &&
+					y[k] - w[k] - y[j] <= 1 + requiredSpaceBetween(env, k, j)
+				) {
 					w[k] -= 1;
 				}
 			y[j] += 1;
@@ -425,13 +359,13 @@ function allocateWidth(y0, env) {
 	}
 	// Advanced balancer
 	for (let pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) {
-		balanceSmallSize();
 		// large size
 		if (env.WIDTH_GEAR_PROPER > 1) {
 			if (!onePixelMatter) {
-				avaoidThinStoke(false);
-				avaoidThinStoke(true);
-				avaoidThinStoke(true);
+				const y0 = [...y];
+				avoidThinStroke(y0, false);
+				avoidThinStroke(y0, true);
+				avoidThinStroke(y0, true);
 			}
 			for (let j = N - 1; j >= 0; j--) {
 				for (let k = j - 1; k >= 0; k--) {

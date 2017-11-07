@@ -1,27 +1,22 @@
 "use strict";
 
-const { lerp, xclamp } = require("../../../support/common");
+const { mix, lerp, xclamp } = require("../../../support/common");
 const stemSpat = require("../../../support/stem-spatial");
 
 function decideMaxShift(y0, w0, ppem, tightness, strategy) {
-	const maxShiftU = xclamp(
-		3 / 4,
-		ppem / 16,
-		xclamp(
-			1,
-			lerp(y0 - w0 / 2, strategy.BLUEZONE_TOP_CENTER, strategy.BLUEZONE_BOTTOM_CENTER, 1, 3),
-			2
-		)
+	const minShiftLL = xclamp(3 / 4, lerp(ppem, 12, 24, 0.1 * tightness + 0.27, 3 / 4), 2);
+	const mU = xclamp(
+		1,
+		lerp(y0 - w0 / 2, strategy.BLUEZONE_TOP_CENTER, strategy.BLUEZONE_BOTTOM_CENTER, 1, 3),
+		2
 	);
-	const maxShiftD = xclamp(
-		3 / 4,
-		ppem / 16,
-		xclamp(
-			1,
-			lerp(y0 - w0 / 2, strategy.BLUEZONE_TOP_CENTER, strategy.BLUEZONE_BOTTOM_CENTER, 3, 1),
-			2
-		)
+	const mD = xclamp(
+		1,
+		lerp(y0 - w0 / 2, strategy.BLUEZONE_TOP_CENTER, strategy.BLUEZONE_BOTTOM_CENTER, 3, 1),
+		2
 	);
+	const maxShiftU = xclamp(Math.min(mU, minShiftLL), ppem / 16, mU);
+	const maxShiftD = xclamp(Math.min(mD, minShiftLL), ppem / 16, mD);
 	return [maxShiftD, maxShiftU];
 }
 
@@ -43,8 +38,8 @@ class Avail {
 			w +
 			Math.max(
 				0,
-				stem.turnsBelow > 1 && !stem.hasGlyphStemBelow
-					? Math.min(3, stem.turnsBelow) * uppx
+				stem.turnsBelow > 2 && !stem.hasGlyphStemBelow
+					? Math.min(3, stem.turnsBelow - 2) * uppx
 					: 0,
 				stem.diagLow
 					? env.BOTTOM_CUT_DIAGL
@@ -74,8 +69,8 @@ class Avail {
 			env.glyphTop -
 			Math.max(
 				0,
-				stem.turnsAbove > 1 && !stem.hasGlyphStemAbove
-					? xclamp(0, stem.turnsAbove - 1, 3) * uppx
+				stem.turnsAbove > 2 && !stem.hasGlyphStemAbove
+					? xclamp(0, stem.turnsAbove - 2, 3) * uppx
 					: 0,
 				// cut part
 				stem.diagHigh
@@ -157,6 +152,11 @@ class Avail {
 		this.w0 = w0;
 		this.y0px = y0 / uppx;
 		this.w0px = w0 / uppx;
+		const proportion =
+			(env.glyphTopPixels - this.y0px) /
+			(env.glyphTopPixels - env.glyphBottomPixels - this.w0px);
+		this.yrpx =
+			proportion * this.w0px + mix(env.glyphTopPixels, env.glyphBottomPixels, proportion);
 		this.xmin = stem.xmin;
 		this.xmax = stem.xmax;
 		this.length = stem.xmax - stem.xmin;
@@ -221,7 +221,7 @@ function adjustAvails(avails, stems) {
 
 		// Push bottommost stroke down to unify bottom features.
 		// This unifies bottom features to make the text more "aligned".
-		if (avail.atGlyphBottomMost) {
+		if (avail.atGlyphBottomMost && !avail.diagHigh) {
 			const bot = avail.high - avail.properWidth;
 			const force =
 				stem.diagHigh || stem.diagLow
@@ -235,7 +235,7 @@ function adjustAvails(avails, stems) {
 
 		// Push topmost stroke down to unify top features.
 		// This unifies top features to make the text more "aligned".
-		if (avail.atGlyphTop && !avail.atGlyphBottomMost) {
+		if (avail.atGlyphTop && !avail.atGlyphBottomMost && !avail.diagLow) {
 			const top = avail.low;
 			const force =
 				stem.diagHigh || stem.diagLow ? this.TOP_UNIFY_FORCE_DIAG : this.TOP_UNIFY_FORCE;

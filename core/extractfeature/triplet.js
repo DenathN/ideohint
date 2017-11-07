@@ -1,10 +1,10 @@
 "use strict";
 
 function analyzeBlanks(stems, directOverlaps) {
-	var blanks = [];
-	for (var j = 0; j < directOverlaps.length; j++) {
+	let blanks = [];
+	for (let j = 0; j < directOverlaps.length; j++) {
 		blanks[j] = [];
-		for (var k = 0; k < directOverlaps.length; k++) {
+		for (let k = 0; k < directOverlaps.length; k++) {
 			blanks[j][k] = stems[j].y - stems[j].width - stems[k].y;
 		}
 	}
@@ -12,19 +12,25 @@ function analyzeBlanks(stems, directOverlaps) {
 }
 exports.analyzeBlanks = analyzeBlanks;
 exports.analyzeTriplets = function(stems, directOverlaps, blanks) {
-	var triplets = [];
-	for (var j = 0; j < stems.length; j++) {
-		for (var k = 0; k < j; k++) {
-			for (var w = 0; w < k; w++)
-				if (
-					directOverlaps[j][k] &&
-					directOverlaps[k][w] &&
-					blanks[j][k] >= 0 &&
-					blanks[k][w] >= 0
-				) {
+	let triplets = [];
+	for (let j = 0; j < stems.length; j++) {
+		for (let k = 0; k < j; k++) {
+			if (!directOverlaps[j][k] || blanks[j][k] < 0) continue;
+			for (let w = 0; w < k; w++)
+				if (directOverlaps[k][w] && blanks[k][w] >= 0) {
 					triplets.push([j, k, w, blanks[j][k], blanks[k][w]]);
 				}
 		}
 	}
 	return triplets;
+};
+exports.analyzeQuartlets = function(triplets, directOverlaps, blanks) {
+	const quartlets = [];
+	for (let [j, k, m] of triplets) {
+		for (let w = 0; w < m; w++) {
+			if (!directOverlaps[m][w] || blanks[m][w] < 0) continue;
+			quartlets.push([j, k, m, w]);
+		}
+	}
+	return quartlets;
 };

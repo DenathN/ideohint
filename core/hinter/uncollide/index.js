@@ -8,29 +8,30 @@ function populate(y0, env, scale, allowUnbalanced) {
 	const avails = env.avails;
 
 	let initIdv = env.createIndividual(env.balance(y0));
-	let unbalIdv = env.createIndividual(y0, true);
 	let population = [initIdv];
 
-	if (allowUnbalanced && unbalIdv.better(initIdv)) {
-		population.push(unbalIdv);
+	if (allowUnbalanced) {
+		let unbalIdv = env.createIndividual(y0, true);
+		if (unbalIdv.better(initIdv)) population.push(unbalIdv);
 	}
 
 	// Generate initial population
-	// Extereme
+	// Movement
 	for (let j = 0; j < n; j++) {
-		for (let k = avails[j].low; k <= avails[j].high; k++)
-			if (k !== y0[j]) {
-				const y1 = y0.slice(0);
-				y1[j] = k;
-				const idvBal = env.createIndividual(env.balance(y1));
+		for (let k = avails[j].low; k <= avails[j].high; k++) {
+			if (k === y0[j]) continue;
+
+			const y1 = [...y0];
+			y1[j] = k;
+			const idvBal = env.createIndividual(env.balance(y1));
+			population.push(idvBal);
+			if (allowUnbalanced) {
 				const idvUnbal = env.createIndividual(y1, true);
-				population.push(idvBal);
-				if (allowUnbalanced && idvUnbal.better(idvBal)) {
-					population.push(idvUnbal);
-				}
+				if (idvUnbal.better(idvBal)) population.push(idvUnbal);
 			}
+		}
 	}
-	// Y-mutant
+	// Derive
 	population.push(
 		env.createIndividual(
 			env.balance(y0.map((y, j) => xclamp(avails[j].low, y - 1, avails[j].high)))
@@ -41,10 +42,14 @@ function populate(y0, env, scale, allowUnbalanced) {
 			env.balance(y0.map((y, j) => xclamp(avails[j].low, y + 1, avails[j].high)))
 		)
 	);
+	// Extreme
+	population.push(env.createIndividual(env.balance(y0.map((y, j) => avails[j].high))));
+	population.push(env.createIndividual(env.balance(y0.map((y, j) => avails[j].low))));
 	// Random
-	for (let c = population.length; c < scale; c++) {
+	const N = population.length;
+	for (let c = N; c < scale || c < N * 2; c++) {
 		// fill population with random individuals
-		const ry = new Array(n);
+		const ry = [...y0];
 		for (let j = 0; j < n; j++) {
 			ry[j] = xclamp(
 				avails[j].low,
@@ -53,11 +58,13 @@ function populate(y0, env, scale, allowUnbalanced) {
 			);
 		}
 		const idvBal = env.createIndividual(env.balance(ry));
-		const idvUnbal = env.createIndividual(ry, true);
 		population.push(idvBal);
-		if (allowUnbalanced && idvUnbal.better(idvBal)) {
-			population.push(idvUnbal);
-			c++;
+		if (allowUnbalanced) {
+			const idvUnbal = env.createIndividual(ry, true);
+			if (idvUnbal.better(idvBal)) {
+				population.push(idvUnbal);
+				c++;
+			}
 		}
 	}
 	return population;
@@ -95,17 +102,17 @@ function uncollide(yInit, env, terminalStrictness, scale, allowUnbalanced) {
 	let steadyStages = 0;
 	// Build a swapchain
 	let p = population,
-		q = new Array(population.length);
+		q = [...population];
 
 	// Start evolution
 	for (let s = 0; s < env.strategy.EVOLUTION_STAGES; s++) {
 		population = evolve(p, q, !(s % 2), env, allowUnbalanced);
 		let elite = selectElite(population);
-		if (best.better(elite)) {
-			steadyStages += 1;
-		} else {
+		if (elite.better(best)) {
 			steadyStages = 0;
 			best = elite;
+		} else {
+			steadyStages += 1;
 		}
 		if (steadyStages > terminalStrictness) break;
 	}
