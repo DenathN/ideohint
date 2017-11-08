@@ -229,18 +229,14 @@ exports.computeACS = function(strategy, stems, overlapRatios, overlapLengths, Q,
 				symmetryCoeff += 2;
 			}
 
-			A[j][k] = Math.ceil(
-				strategy.COEFF_A_MULTIPLIER * ovr * coeffA * promixityCoeff * slopesCoeff
-			);
+			A[j][k] = strategy.COEFF_A_MULTIPLIER * ovr * coeffA * promixityCoeff * slopesCoeff;
 			if (!isFinite(A[j][k])) A[j][k] = 0;
-			C[j][k] = Math.round(
-				strategy.COEFF_C_MULTIPLIER * ovr * coeffC * symmetryCoeff * slopesCoeff
-			);
+			C[j][k] = strategy.COEFF_C_MULTIPLIER * ovr * coeffC * symmetryCoeff * slopesCoeff;
 			if (!ovr) C[j][k] = 0;
 			if (stems[j].rid && stems[j].rid === stems[k].rid) {
 				C[j][k] = 0;
 			}
-			S[j][k] = Math.round(strategy.COEFF_S);
+			S[j][k] = strategy.COEFF_S;
 		}
 	}
 	for (let j = 0; j < n; j++) {

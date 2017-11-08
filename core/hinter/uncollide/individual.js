@@ -68,7 +68,16 @@ class Individual {
 				} else if (y[j] <= y[k] + avails[j].properWidth) {
 					const d = 1 - (y[j] - avails[j].properWidth - y[k]);
 					pC += C[j][k] * d * d; // Collide
-					if (C[j][k]) nCol += sol[j][k] * ppem * ppem * 0.04;
+					if (C[j][k])
+						nCol +=
+							sol[j][k] *
+							ppem *
+							ppem *
+							0.04 *
+							((avails[j].diagLow && !avails[k].diagHigh) ||
+							(!avails[j].diagLow && avails[k].diagHigh)
+								? 3
+								: 1);
 				}
 			}
 		}

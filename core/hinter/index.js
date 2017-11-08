@@ -25,6 +25,7 @@ function choose(hinter, first, ...sps) {
 
 function hint(gd, ppem, strg, y0) {
 	const hinter = new Hinter(strg, gd, ppem);
+
 	if (!hinter.avails.length) return new HintDecision(hinter.xExpansion, [], false);
 
 	const spInit = hinter.balance(hinter.decideInitHint(y0));

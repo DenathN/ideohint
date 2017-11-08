@@ -126,18 +126,14 @@ function balanceQuartlets(y, env) {
 			m = t[2],
 			w = t[3];
 		// |1||2| prevention -> |1|0|1|
-		if (
-			avails[k].xmin === avails[m].xmin &&
-			avails[k].xmax === avails[m].xmax &&
-			y[k] - y[m] === ANNEXED
-		) {
+		if (y[k] - y[m] === ANNEXED) {
 			if (y[j] - y[k] === SPACED + 1 && y[m] - y[w] === SPACED && y[k] < avails[k].high) {
 				y[k] += 1;
 				stable = false;
 			} else if (
 				y[j] - y[k] === SPACED &&
 				y[m] - y[w] === SPACED + 1 &&
-				y[m] > avails[m].high
+				y[m] > avails[m].low
 			) {
 				y[m] -= 1;
 				stable = false;

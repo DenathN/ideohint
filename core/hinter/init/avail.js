@@ -250,14 +250,6 @@ function adjustAvails(avails, stems) {
 	}
 
 	for (let s of avails) {
-		if (s.diagLow && s.center >= topPx - 0.5) {
-			s.center = xclamp(s.low, topPx - 1, s.center);
-			s.softHigh = s.center;
-		}
-		if (s.diagHigh && s.center <= bottomPx + 0.5) {
-			s.center = xclamp(s.center, bottomPx + 1, s.high);
-			s.softLow = s.center;
-		}
 		if (s.isHangingHook) {
 			s.softLow = Math.max(this.glyphBottomPixels + s.properWidth + 1, s.softLow);
 		}
@@ -272,15 +264,7 @@ function decideAvails(stems, tws) {
 	}
 	// unify top/bottom features
 	adjustAvails.call(this, avails, stems);
-	// get soft high/low limit for diggonals
-	for (let j = 0; j < stems.length; j++) {
-		if (avails[j].diagLow) {
-			avails[j].softHigh = avails[j].center;
-		}
-		if (avails[j].diagHigh) {
-			avails[j].softLow = avails[j].center;
-		}
-	}
+
 	// calculate proportion for ablation calculation
 	for (let j = 0; j < stems.length; j++) {
 		avails[j].proportion =
