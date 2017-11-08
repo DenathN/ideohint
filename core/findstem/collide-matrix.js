@@ -66,24 +66,73 @@ function atGlyphBottom(stem, strategy) {
 	);
 }
 
-module.exports = function(strategy, stems, overlapRatios, overlapLengths, flipMatrix) {
+exports.computePQ = function(strategy, stems, flipMatrix) {
+	// A : Annexation operator
+	// C : Collision operator
+	// S
+	let P = [],
+		Q = [],
+		n = stems.length;
+	for (let j = 0; j < n; j++) {
+		P[j] = [];
+		Q[j] = [];
+		for (let k = 0; k < n; k++) {
+			P[j][k] = Q[j][k] = 0;
+		}
+	}
+	for (let j = 0; j < n; j++) {
+		for (let k = 0; k < j; k++) {
+			const nothingInBetween = flipMatrix[j][k] <= 3;
+			// Overlap weight
+			const tb =
+				(atGlyphTop(stems[j], strategy) && !stems[j].diagLow) ||
+				(atGlyphBottom(stems[k], strategy) && !stems[j].diagHigh);
+
+			let structuralPromixity =
+				segmentsPromixity(stems[j].low, stems[k].high) +
+				segmentsPromixity(stems[j].high, stems[k].low) +
+				segmentsPromixity(stems[j].low, stems[k].low) +
+				segmentsPromixity(stems[j].high, stems[k].high);
+			let spatialPromixity = structuralPromixity;
+
+			// PBS
+			if (
+				(!nothingInBetween || !stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow) &&
+				spatialPromixity < strategy.COEFF_PBS_MIN_PROMIX
+			) {
+				spatialPromixity = strategy.COEFF_PBS_MIN_PROMIX;
+			}
+			if (!nothingInBetween && spatialPromixity < strategy.COEFF_PBS_MIN_PROMIX) {
+				structuralPromixity = strategy.COEFF_PBS_MIN_PROMIX;
+			}
+			// Top/bottom
+			if (tb) {
+				spatialPromixity *= strategy.COEFF_STRICT_TOP_BOT_PROMIX;
+			} else if (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow) {
+				spatialPromixity *= strategy.COEFF_TOP_BOT_PROMIX;
+			}
+			P[j][k] = Math.round(structuralPromixity + (!nothingInBetween ? 1 : 0));
+			Q[j][k] = spatialPromixity;
+		}
+	}
+	return { P, Q };
+};
+
+exports.computeACS = function(strategy, stems, overlapRatios, overlapLengths, Q, flipMatrix) {
 	// A : Annexation operator
 	// C : Collision operator
 	// S : Swap operator
 	let A = [],
 		C = [],
 		S = [],
-		P = [],
-		Q = [],
 		n = stems.length;
 	for (let j = 0; j < n; j++) {
 		A[j] = [];
 		C[j] = [];
 		S[j] = [];
-		P[j] = [];
-		Q[j] = [];
+
 		for (let k = 0; k < n; k++) {
-			A[j][k] = C[j][k] = S[j][k] = P[j][k] = Q[j][k] = 0;
+			A[j][k] = C[j][k] = S[j][k] = 0;
 		}
 	}
 	let slopes = stems.map(function(s) {
@@ -114,31 +163,7 @@ module.exports = function(strategy, stems, overlapRatios, overlapLengths, flipMa
 					? Math.max(0.25, 1 - Math.abs(slopes[j] - slopes[k]) * 10)
 					: 1;
 
-			let structuralPromixity =
-				segmentsPromixity(stems[j].low, stems[k].high) +
-				segmentsPromixity(stems[j].high, stems[k].low) +
-				segmentsPromixity(stems[j].low, stems[k].low) +
-				segmentsPromixity(stems[j].high, stems[k].high);
-			let spatialPromixity = structuralPromixity;
-
-			// PBS
-			if (
-				(!nothingInBetween || !stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow) &&
-				spatialPromixity < strategy.COEFF_PBS_MIN_PROMIX
-			) {
-				spatialPromixity = strategy.COEFF_PBS_MIN_PROMIX;
-			}
-			if (!nothingInBetween && spatialPromixity < strategy.COEFF_PBS_MIN_PROMIX) {
-				structuralPromixity = strategy.COEFF_PBS_MIN_PROMIX;
-			}
-			// Top/bottom
-			if (tb) {
-				spatialPromixity *= strategy.COEFF_STRICT_TOP_BOT_PROMIX;
-			} else if (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow) {
-				spatialPromixity *= strategy.COEFF_TOP_BOT_PROMIX;
-			}
-
-			let promixityCoeff = 1 + (spatialPromixity > 2 ? 5 : 1) * spatialPromixity;
+			let promixityCoeff = 1 + (Q[j][k] > 2 ? 5 : 1) * Q[j][k];
 			// Annexation coefficients
 			let coeffA = 1;
 
@@ -165,8 +190,12 @@ module.exports = function(strategy, stems, overlapRatios, overlapLengths, flipMa
 				} else if (!stems[j].hasSameRadicalStemAbove || !stems[k].hasSameRadicalStemBelow) {
 					coeffA *= strategy.COEFF_A_SHAPE_LOST;
 				} else if (
-					Math.abs(stems[j].xmin0 - stems[k].xmin0) < strategy.Y_FUZZ &&
-					Math.abs(stems[j].xmax0 - stems[k].xmax0) < strategy.Y_FUZZ
+					Math.abs(stems[j].xmin - stems[k].xmin) < strategy.Y_FUZZ &&
+					Math.abs(stems[j].xmax - stems[k].xmax) < strategy.Y_FUZZ &&
+					!(
+						stems[j].promixityDown > stems[j].promixityUp &&
+						stems[k].promixityUp > stems[k].promixityDown
+					)
 				) {
 					coeffA /= strategy.COEFF_A_SAME_RADICAL * strategy.COEFF_A_SHAPE_LOST;
 				}
@@ -212,8 +241,6 @@ module.exports = function(strategy, stems, overlapRatios, overlapLengths, flipMa
 				C[j][k] = 0;
 			}
 			S[j][k] = Math.round(strategy.COEFF_S);
-			P[j][k] = Math.round(structuralPromixity + (!nothingInBetween ? 1 : 0));
-			Q[j][k] = spatialPromixity;
 		}
 	}
 	for (let j = 0; j < n; j++) {
@@ -261,8 +288,6 @@ module.exports = function(strategy, stems, overlapRatios, overlapLengths, flipMa
 	return {
 		annexation: A,
 		collision: C,
-		promixity: P,
-		spatialPromixity: Q,
 		swap: S,
 		flips: flipMatrix
 	};

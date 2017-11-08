@@ -81,7 +81,7 @@ class Hinter {
 		this.tightness = this.getTightness(fdefs);
 		this.nStems = fdefs.stems.length;
 		this.stems = fdefs.stems;
-		this.updateAvails(this.decideWidths(fdefs.stems, fdefs.dominancePriority));
+		this.updateAvails(this.decideWidths(fdefs.stems));
 		this.symmetry = decideSymmetry.call(this);
 		this.xExpansion = 1 + Math.round(toVQ(strategy.X_EXPAND, ppem)) / 100;
 	}
@@ -188,8 +188,8 @@ class Hinter {
 	}
 
 	// Decide proper widths of stems globally
-	decideWidths(stems, dominancePriority) {
-		return decideWidths.call(this, stems, dominancePriority);
+	decideWidths(stems) {
+		return decideWidths.call(this, stems);
 	}
 
 	cheby(_x, extreme) {

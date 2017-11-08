@@ -26,23 +26,10 @@ function choose(hinter, first, ...sps) {
 function hint(gd, ppem, strg, y0) {
 	const hinter = new Hinter(strg, gd, ppem);
 	if (!hinter.avails.length) return new HintDecision(hinter.xExpansion, [], false);
-	// W pass
-	let passes = 0;
-	let spInit = hinter.balance(hinter.decideInitHintNT(y0));
-	const spNT = spInit;
-	do {
-		const { w } = hinter.allocateWidth(spInit);
-		hinter.updateAvails(
-			hinter.avails.map(
-				(a, j) =>
-					a.atGlyphTop || a.atGlyphBottom
-						? w[j]
-						: Math.round(Math.max(a.properWidth, w[j]))
-			)
-		);
-		spInit = hinter.balance(hinter.decideInitHint());
-		passes += 1;
-	} while (passes < 4);
+
+	const spInit = hinter.balance(hinter.decideInitHint(y0));
+	const spNT = hinter.balance(hinter.decideInitHintNT(y0));
+
 	// Y pass
 	let initWidths = hinter.avails.map(a => a.properWidth);
 	const spUncol = hinter.uncollide(spInit);
@@ -50,6 +37,7 @@ function hint(gd, ppem, strg, y0) {
 	const pass1Idv = choose(hinter, spNT, spUncol);
 	let { y, w } = hinter.allocateWidth(pass1Idv.gene);
 
+	// The width allocator may alter the initial width
 	// do the second pass if necessary
 	let doSecondPass = false;
 	for (let j = 0; j < w.length; j++) {

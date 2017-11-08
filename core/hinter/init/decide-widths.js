@@ -31,66 +31,12 @@ function calculateWidthOfStem(w, doCoordinate) {
 }
 
 // Decide proper widths of stems globally
-function decideWidths(stems, priorityMap) {
-	const { strategy, upm, ppem, uppx } = this;
+function decideWidths(stems) {
+	const { strategy } = this;
 	const doCoordinate = !strategy.DONT_COORDINATE_WIDTHS;
 	let tws = [];
-	let areaLost = 0;
-	let totalArea = 0;
-	let totalLength = 0;
 	for (let j = 0; j < stems.length; j++) {
 		tws[j] = calculateWidthOfStem.call(this, stems[j].width, doCoordinate);
-		totalArea += stems[j].width * (stems[j].xmax - stems[j].xmin);
-		totalLength += stems[j].xmax - stems[j].xmin;
-		const coordinatedOriginalWidth = doCoordinate
-			? stems[j].width / this.CANONICAL_STEM_WIDTH * this.WIDTH_GEAR_PROPER
-			: stems[j].width / uppx;
-		areaLost += (coordinatedOriginalWidth - tws[j]) * (stems[j].xmax - stems[j].xmin);
-	}
-	if (!doCoordinate) return tws;
-	// Coordinate widths
-	const coordinateWidth = calculateWidthOfStem.call(this, totalArea / totalLength, true);
-	if (areaLost > 0) {
-		let areaLostDecreased = true;
-		let passes = 0;
-		while (areaLostDecreased && areaLost > 0 && passes < 100) {
-			// We will try to increase stroke width if we detected that some pixels are lost.
-			areaLostDecreased = false;
-			passes += 1;
-			for (let m = 0; m < priorityMap.length; m++) {
-				let j = priorityMap[m];
-				let len = stems[j].xmax - stems[j].xmin;
-				if (tws[j] < this.WIDTH_GEAR_PROPER && areaLost > len / 2) {
-					tws[j] += 1;
-					areaLost -= len;
-					areaLostDecreased = true;
-					break;
-				}
-			}
-		}
-	} else {
-		let areaLostDecreased = true;
-		let passes = 0;
-		while (areaLostDecreased && areaLost < 0 && passes < 100) {
-			// We will try to increase stroke width if we detected that some pixels are lost.
-			areaLostDecreased = false;
-			passes += 1;
-			for (let m = priorityMap.length - 1; m >= 0; m--) {
-				let j = priorityMap[m];
-				let len = stems[j].xmax - stems[j].xmin;
-				if (tws[j] > coordinateWidth && areaLost < -len / 2) {
-					areaLost += len;
-					tws[j] -= 1;
-					areaLostDecreased = true;
-					break;
-				}
-			}
-		}
-	}
-	for (let j = 0; j < stems.length; j++) {
-		if (tws[j] < 1) {
-			tws[j] = 1;
-		}
 	}
 	return tws;
 }

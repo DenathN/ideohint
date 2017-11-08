@@ -112,10 +112,10 @@ function analyzeTurns(g, strategy, stems) {
 			const fa = new FlipAnalyzer();
 
 			const sk = stems[k];
-			let xj1 = bitmap.transform(sj.xmin, 0).x;
-			let xj2 = bitmap.transform(sj.xmax, 0).x;
-			let xk1 = bitmap.transform(sk.xmin, 0).x;
-			let xk2 = bitmap.transform(sk.xmax, 0).x;
+			let xj1 = bitmap.transform(sj.xminX, 0).x;
+			let xj2 = bitmap.transform(sj.xmaxX, 0).x;
+			let xk1 = bitmap.transform(sk.xminX, 0).x;
+			let xk2 = bitmap.transform(sk.xmaxX, 0).x;
 			let ybot = bitmap.transform(0, sj.y - sj.width).y - 1;
 			let ytop = bitmap.transform(0, sk.y).y + 1;
 			if (ybot <= ytop) continue;

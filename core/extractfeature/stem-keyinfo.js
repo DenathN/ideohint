@@ -4,8 +4,8 @@ class HintStem {
 	constructor(s) {
 		this.xmin = s.xmin;
 		this.xmax = s.xmax;
-		this.xmin0 = s.xmin0;
-		this.xmax0 = s.xmax0;
+		this.xminX = s.xminX;
+		this.xmaxX = s.xmaxX;
 		this.y = s.y;
 		this.width = s.width;
 		this.belongRadical = s.belongRadical;

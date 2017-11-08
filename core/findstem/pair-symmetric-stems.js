@@ -1,5 +1,6 @@
 "use strict";
-module.exports = function pairSymmetricStems(stems, strategy) { // Symmetric stem pairing
+module.exports = function pairSymmetricStems(stems, strategy) {
+	// Symmetric stem pairing
 	for (let j = 0; j < stems.length; j++) {
 		for (let k = j + 1; k < stems.length; k++) {
 			if (!stems[j] || !stems[k]) continue;
@@ -10,6 +11,11 @@ module.exports = function pairSymmetricStems(stems, strategy) { // Symmetric ste
 			)
 				continue;
 			if (Math.abs(stems[j].width - stems[k].width) > strategy.UPM * delta) continue;
+			if (
+				Math.abs(stems[j].xmaxX - stems[j].xminX - (stems[k].xmaxX - stems[k].xminX)) >
+				strategy.UPM / 16
+			)
+				continue;
 			stems[j].high = stems[j].high.concat(stems[k].high);
 			stems[j].low = stems[j].low.concat(stems[k].low);
 			stems[k] = null;

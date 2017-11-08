@@ -7,6 +7,8 @@ function pointBelowStem(point, stem, fuzz) {
 }
 
 function analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, strategy) {
+	stem.promixityUp = 0;
+	stem.promixityDown = 0;
 	const blueFuzz = strategy.BLUEZONE_WIDTH || 15;
 	const a0 = stem.low[0][0].x,
 		az = stem.low[stem.low.length - 1][stem.low[stem.low.length - 1].length - 1].x;
@@ -238,39 +240,7 @@ function analyzePointToStemSpatialRelationships(stem, radicals, strategy) {
 		let sameRadical = radical === radicals[stem.belongRadical];
 		analyzeRadicalPointsToStemRelationships(radical, stem, sameRadical, strategy);
 	}
-	const p = expandZ(
-		radicals[stem.belongRadical],
-		leftmostZ(stem.high),
-		-1,
-		-(stem.slope || 0),
-		strategy.UPM
-	);
-	const q = expandZ(
-		radicals[stem.belongRadical],
-		leftmostZ(stem.low),
-		-1,
-		-(stem.slope || 0),
-		strategy.UPM
-	);
-	const coP = expandZ(
-		radicals[stem.belongRadical],
-		rightmostZ(stem.high),
-		1,
-		stem.slope || 0,
-		strategy.UPM
-	);
-	const coQ = expandZ(
-		radicals[stem.belongRadical],
-		rightmostZ(stem.low),
-		1,
-		stem.slope || 0,
-		strategy.UPM
-	);
-
-	stem.xmin = Math.min(p.x, q.x);
-	stem.xmax = Math.max(coP.x, coQ.x);
-	stem.xmin0 = Math.min(leftmostZ(stem.high).x, leftmostZ(stem.low).x);
-	stem.xmax0 = Math.max(rightmostZ(stem.high).x, rightmostZ(stem.low).x);
+	stem.calculateMinmax(radicals, strategy);
 }
 
 const SHARED_BOOL_PROPS = [

@@ -2,9 +2,10 @@
 
 const { overlapInfo, overlapRatio } = require("../si-common/overlap");
 const slopeOf = require("../types/").slopeOf;
-const hlkey = require("./hlkey");
 const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ, expandZ } = require("../si-common/seg");
 const { xclamp, mix, mixz, toVQ } = require("../../support/common");
+
+const Stem = require("./couplestem");
 
 // substeps
 const findHorizontalSegments = require("./segments");
@@ -220,7 +221,8 @@ function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strate
 	}
 }
 
-function pairSegmentsForRadical(radical, r, strategy) {
+function pairSegmentsForRadical(radicals, r, strategy) {
+	const radical = radicals[r];
 	let graph = [],
 		ove = [],
 		up = [];
@@ -259,34 +261,26 @@ function pairSegmentsForRadical(radical, r, strategy) {
 		if (!used[j]) {
 			identifyStem(radical, used, segs, candidates, graph, ove, up, j, strategy);
 		}
-	return candidates.map(function(s) {
-		return {
-			high: s.high,
-			low: s.low,
-			y: s.high[0][0].y,
-			width: Math.abs(s.high[0][0].y - s.low[0][0].y),
-			belongRadical: r
-		};
-	});
+	return candidates.map(s => new Stem(s.high, s.low, r).calculateMinmax(radicals, strategy));
 }
 
 function pairSegments(radicals, strategy) {
 	let stems = [];
 	for (let r = 0; r < radicals.length; r++) {
-		let radicalStems = pairSegmentsForRadical(radicals[r], r, strategy);
+		let radicalStems = pairSegmentsForRadical(radicals, r, strategy);
 		stems = stems.concat(radicalStems);
 		radicals[r].stems = radicalStems;
 	}
-	return stems.sort(function(a, b) {
-		return a.y - b.y;
-	});
+	return stems;
 }
 
 module.exports = function(radicals, strategy) {
 	findHorizontalSegments(radicals, strategy);
-	let ss = pairSegments(radicals, strategy);
+	let ss = pairSegments(radicals, strategy).sort((a, b) => a.y - b.y);
 	ss = pairSymmetricStems(ss, strategy);
 	ss = splitDiagonalStems(ss, strategy);
-	ss = hlkey.correctYW(ss, strategy);
+	for (let s of ss) {
+		s.calculateYW(strategy).calculateMinmax(radicals, strategy);
+	}
 	return ss;
 };

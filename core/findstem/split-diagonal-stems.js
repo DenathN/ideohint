@@ -2,6 +2,7 @@
 
 const Point = require("../types/").Point;
 const { leftmostZ_SS: leftmostZ, rightmostZ_SS: rightmostZ } = require("../si-common/seg");
+const Stem = require("./couplestem");
 
 function shouldSplit(hl, ll, hr, lr, strategy) {
 	if (hl === hr || ll === lr) return false;
@@ -68,26 +69,20 @@ function splitDiagonalStem(s, strategy, rid, results) {
 		let lmx = (ll.x + lr.x) / 2;
 		let hmy = (hl.y + hr.y) / 2;
 		let lmy = (ll.y + lr.y) / 2;
-		let sleft = {
-			high: [[hl, new Point(hmx - 1, hmy, true, Point.PHANTOM)]],
-			low: [[ll, new Point(lmx - 1, lmy, true, Point.PHANTOM)]],
-			y: hl.y,
-			atLeft: true,
-			width: hl.y - ll.y,
-			belongRadical: s.belongRadical,
-			rid: rid
-		};
-		let sright = {
-			high: [[new Point(hmx + 1, hmy, true, Point.PHANTOM), hr]],
-			low: [[new Point(lmx + 1, lmy, true, Point.PHANTOM), lr]],
-			y: hr.y,
-			width: hr.y - lr.y,
-			belongRadical: s.belongRadical,
-			atRight: true,
-			linkedIPsHigh: linkIP(s.high, hl, hr),
-			linkedIPsLow: linkIP(s.low, ll, lr),
-			rid: rid
-		};
+		const sleft = new Stem(
+			[[hl, new Point(hmx - 1, hmy, true, Point.PHANTOM)]],
+			[[ll, new Point(lmx - 1, lmy, true, Point.PHANTOM)]],
+			s.belongRadical
+		);
+		sleft.atLeft = true;
+		sleft.rid = rid;
+		const sright = new Stem(
+			[[new Point(hmx + 1, hmy, true, Point.PHANTOM), hr]],
+			[[new Point(lmx + 1, lmy, true, Point.PHANTOM), lr]],
+			s.belongRadical
+		);
+		sright.atRight = true;
+		sright.rid = rid;
 		if (hl.y > hr.y) {
 			sleft.diagHigh = true;
 			sright.diagLow = true;

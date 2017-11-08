@@ -7,9 +7,7 @@ const analyzeBlueZonePoints = require("./bluezone");
 const { analyzeDirectOverlaps, transitionClosure } = require("../si-common/overlap");
 const { analyzeTriplets, analyzeQuartlets } = require("./triplet");
 const analyzeBlanks = require("./triplet").analyzeBlanks;
-const analyzeFlex = require("./flex");
 const getStemKeyInfo = require("./stem-keyinfo");
-const analyzeDominance = require("./dominance");
 const analyzeXInterpolate = require("./xinterpolate");
 const analyzeSpur = require("./analyze-spur");
 
@@ -36,8 +34,6 @@ exports.extractFeature = function(glyph, strategy) {
 	const triplets = analyzeTriplets(glyph.stems, directOverlaps, blanks);
 	const quartlets = analyzeQuartlets(triplets, directOverlaps, blanks);
 	const strictTriplets = analyzeTriplets(glyph.stems, strictOverlaps, strictBlanks);
-	const flexes = analyzeFlex(glyph, blanks);
-	const dominancePriority = analyzeDominance(glyph.stems);
 	const xIP = analyzeXInterpolate(glyph);
 
 	return {
@@ -51,13 +47,11 @@ exports.extractFeature = function(glyph, strategy) {
 		triplets,
 		quartlets,
 		strictTriplets: strictTriplets,
-		flexes: flexes,
 		collisionMatrices: glyph.collisionMatrices,
 		blueZoned: blueZonePoints,
 		interpolations: iss.interpolations,
 		shortAbsorptions: iss.shortAbsorptions,
 		diagAligns: iss.diagAligns,
-		dominancePriority: dominancePriority,
 		xIP: xIP
 	};
 };

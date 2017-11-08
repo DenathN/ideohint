@@ -3,7 +3,7 @@
 const { xclamp } = require("../../../support/common");
 
 const DIAG_BIAS_PIXELS = 1 / 6;
-const DIAG_BIAS_PIXELS_NEG = 1 / 3;
+const DIAG_BIAS_PIXELS_NEG = 0.35;
 const ABLATION_MARK = 1 / 8192;
 class Individual {
 	constructor(y, env, unbalanced) {

@@ -159,6 +159,8 @@ class Avail {
 			proportion * this.w0px + mix(env.glyphTopPixels, env.glyphBottomPixels, proportion);
 		this.xmin = stem.xmin;
 		this.xmax = stem.xmax;
+		this.xminX = stem.xminX;
+		this.xmaxX = stem.xmaxX;
 		this.length = stem.xmax - stem.xmin;
 		this.plength = this.length / upm;
 		this.hasLRSpur = stem.hasLRSpur;

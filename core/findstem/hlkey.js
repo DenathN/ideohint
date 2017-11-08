@@ -48,18 +48,13 @@ function findHighLowKeys(s, strategy) {
 function correctYWForStem(s, strategy) {
 	const slope = (slopeOf(s.high) + slopeOf(s.low)) / 2;
 	let { highkey, lowkey } = findHighLowKeys(s, strategy);
-	(s.highkey = highkey), (s.lowkey = lowkey);
+	s.highkey = highkey;
+	s.lowkey = lowkey;
 	s.slope = slope;
 	s.y = highkey.y;
 	s.width = highkey.y - lowkey.y + (lowkey.x - highkey.x) * slope;
 	return { highkey, lowkey, slope };
 }
 
-function correctYW(ss, strategy) {
-	ss.forEach(s => correctYWForStem(s, strategy));
-	return ss;
-}
-
 exports.findHighLowKeys = findHighLowKeys;
-exports.correctYW = correctYW;
 exports.correctYWForStem = correctYWForStem;
