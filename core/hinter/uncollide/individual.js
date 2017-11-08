@@ -5,6 +5,7 @@ const { xclamp } = require("../../../support/common");
 const DIAG_BIAS_PIXELS = 1 / 6;
 const DIAG_BIAS_PIXELS_NEG = 0.35;
 const ABLATION_MARK = 1 / 8192;
+const MUST_BE_FLAT = 1 / 4;
 class Individual {
 	constructor(y, env, unbalanced) {
 		if (y) {
@@ -68,16 +69,9 @@ class Individual {
 				} else if (y[j] <= y[k] + avails[j].properWidth) {
 					const d = 1 - (y[j] - avails[j].properWidth - y[k]);
 					pC += C[j][k] * d * d; // Collide
-					if (C[j][k])
-						nCol +=
-							sol[j][k] *
-							ppem *
-							ppem *
-							0.04 *
-							((avails[j].diagLow && !avails[k].diagHigh) ||
-							(!avails[j].diagLow && avails[k].diagHigh)
-								? 3
-								: 1);
+					if (C[j][k]) {
+						nCol += sol[j][k] * ppem * ppem * 0.04;
+					}
 				}
 			}
 		}
@@ -86,8 +80,30 @@ class Individual {
 
 	getSevereDistortionPotential(env) {
 		return (
-			this._getDiagonalBreakP(env) + this._getSwapAndSymBreakP(env) + this._getSoftBreakP(env)
+			this._getDiagonalBreakP(env) +
+			this._getSwapAndSymBreakP(env) +
+			this._getSoftBreakP(env) +
+			this._getSevereOversepP(env)
 		);
+	}
+	_getSevereOversepP(env) {
+		const y = this.gene,
+			avails = env.avails,
+			n = y.length,
+			C = env.C;
+		let p = 0;
+		for (let j = 0; j < n; j++) {
+			for (let k = 0; k < j; k++) {
+				const d = y[j] - avails[j].properWidth - y[k];
+				const d0 = avails[j].y0px - avails[j].w0px - avails[k].y0px;
+				if (d > 1 && d0 > 0.25 && d > d0 * 2) {
+					// Severely separated or compressed
+					// Treat as a collision
+					p += C[j][k];
+				}
+			}
+		}
+		return p;
 	}
 
 	_getDiagonalBreakP(env) {
@@ -98,9 +114,11 @@ class Individual {
 		let p = 0;
 		// Diagonal break
 		for (let j = 0; j < n; j++) {
+			if (!avails[j].rid) continue;
 			for (let k = 0; k < j; k++) {
-				if (!(avails[j].rid && avails[j].rid === avails[k].rid)) continue;
+				if (avails[j].rid !== avails[k].rid) continue;
 				if (
+					(avails[j].y0px - avails[k].y0px < MUST_BE_FLAT && y[j] !== y[k]) ||
 					y[j] - y[k] > Math.ceil(avails[j].y0px - avails[k].y0px + DIAG_BIAS_PIXELS) ||
 					y[j] - y[k] < Math.ceil(avails[j].y0px - avails[k].y0px - DIAG_BIAS_PIXELS_NEG)
 				) {
@@ -222,31 +240,6 @@ class Individual {
 					avails[k].xmax === avails[w].xmax
 			);
 		}
-		// Top and bot dispace
-		// for (let j = 0; j < n; j++) {
-		// 	for (let k = 0; k < j; k++) {
-		// 		if (!dov[j][k]) continue;
-		// 		if (y[j] <= y[k]) continue;
-		// 		if (!avails[j].hasGlyphStemAbove) {
-		// 			p += this._measureTripletDistort(
-		// 				env.glyphTopPixels - avails[j].y0px,
-		// 				avails[j].y0px - avails[j].w0px - avails[k].y0px,
-		// 				env.glyphTopPixels - y[j],
-		// 				y[j] - y[k] - avails[j].properWidth,
-		// 				env.C[j][k] * env.strategy.COEFF_DISTORT
-		// 			);
-		// 		}
-		// 		if (!avails[k].hasGlyphStemBelow) {
-		// 			p += this._measureTripletDistort(
-		// 				avails[j].y0px - avails[j].w0px - avails[k].y0px,
-		// 				avails[k].y0px - avails[k].w0px - env.glyphBottomPixels,
-		// 				y[j] - avails[j].properWidth - y[k],
-		// 				y[k] - avails[k].properWidth - env.glyphBottomPixels,
-		// 				env.C[j][k] * env.strategy.COEFF_DISTORT
-		// 			);
-		// 		}
-		// 	}
-		// }
 		return p;
 	}
 	_measureDistort(d, d0, pCompress, pSeparation) {
