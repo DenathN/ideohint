@@ -5,7 +5,7 @@ function calculateWidthOfStem(s, w) {
 	if (this.WIDTH_GEAR_PROPER <= 1) return 1;
 	return Math.max(
 		1,
-		this.atGlyphTop(s) || this.atGlyphBottom(s) ? Math.min(2, this.WIDTH_GEAR_PROPER) : 0,
+		!s.hasGlyphStemAbove || !s.hasGlyphStemBelow ? Math.min(2, this.WIDTH_GEAR_PROPER) : 0,
 		Math.round(w / this.uppx)
 	);
 }
