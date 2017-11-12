@@ -4,8 +4,8 @@ const { xclamp } = require("../../../support/common");
 
 const DIAG_BIAS_PIXELS = 1 / 6;
 const DIAG_BIAS_PIXELS_NEG = 0.35;
+const PRETTY_FLAT = 0.4;
 const ABLATION_MARK = 1 / 8192;
-const MUST_BE_FLAT = 1 / 4;
 class Individual {
 	constructor(y, env, unbalanced) {
 		if (y) {
@@ -110,6 +110,7 @@ class Individual {
 		const y = this.gene,
 			avails = env.avails,
 			n = y.length,
+			C = env.C,
 			S = env.S;
 		let p = 0;
 		// Diagonal break
@@ -118,11 +119,25 @@ class Individual {
 			for (let k = 0; k < j; k++) {
 				if (avails[j].rid !== avails[k].rid) continue;
 				if (
-					(avails[j].y0px - avails[k].y0px < MUST_BE_FLAT && y[j] !== y[k]) ||
-					y[j] - y[k] > Math.ceil(avails[j].y0px - avails[k].y0px + DIAG_BIAS_PIXELS) ||
-					y[j] - y[k] < Math.ceil(avails[j].y0px - avails[k].y0px - DIAG_BIAS_PIXELS_NEG)
+					y[j] - y[k] > avails[j].y0px - avails[k].y0px + DIAG_BIAS_PIXELS ||
+					y[j] - y[k] < avails[j].y0px - avails[k].y0px - DIAG_BIAS_PIXELS_NEG
 				) {
-					p += S[j][k]; // diagonal break
+					p += C[j][k]; // diagonal break
+
+					// Avoid this situation: Stem L and H are both pos-at-bottom, and L's width bring larger than H's. If so, then y[L] === y[H] is a swap.
+					const turningBack =
+						!avails[j].posKeyAtTop &&
+						avails[k].w0px > avails[j].w0px &&
+						avails[j].y0px - avails[j].w0px - (avails[k].y0px - avails[k].w0px) > 1 / 2;
+					if (turningBack && y[j] === y[k]) {
+						p += C[j][k];
+					}
+					if (
+						y[j] > y[k] + (turningBack ? 1 : 0) &&
+						avails[j].y0px - avails[k].y0px < PRETTY_FLAT
+					) {
+						p += S[j][k]; // severely broken!
+					}
 				}
 			}
 		}

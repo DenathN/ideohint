@@ -3,68 +3,13 @@
 let slopeOf = require("../types/").slopeOf;
 let segmentsPromixity = require("../si-common/seg").segmentsPromixity;
 
-function atRadicalTop(stem, strategy) {
-	return (
-		!stem.hasSameRadicalStemAbove &&
-		!(stem.hasRadicalPointAbove && stem.radicalCenterRise > strategy.STEM_CENTER_MIN_RISE) &&
-		!(
-			stem.hasRadicalLeftAdjacentPointAbove &&
-			stem.radicalLeftAdjacentRise > strategy.STEM_SIDE_MIN_RISE
-		) &&
-		!(
-			stem.hasRadicalRightAdjacentPointAbove &&
-			stem.radicalRightAdjacentRise > strategy.STEM_SIDE_MIN_RISE
-		)
-	);
-}
-function atRadicalBottom(stem, strategy) {
-	return (
-		!stem.hasSameRadicalStemBelow &&
-		!(
-			stem.hasRadicalPointBelow &&
-			stem.radicalCenterDescent > strategy.STEM_CENTER_MIN_DESCENT
-		) &&
-		!(
-			stem.hasRadicalLeftAdjacentPointBelow &&
-			stem.radicalLeftAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT
-		) &&
-		!(
-			stem.hasRadicalRightAdjacentPointBelow &&
-			stem.radicalRightAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT
-		)
-	);
-}
-
-function atGlyphTop(stem, strategy) {
-	return (
-		atRadicalTop(stem, strategy) &&
-		!stem.hasGlyphStemAbove &&
-		!(stem.hasGlyphPointAbove && stem.glyphCenterRise > strategy.STEM_CENTER_MIN_RISE) &&
-		!(
-			stem.hasGlyphLeftAdjacentPointAbove &&
-			stem.glyphLeftAdjacentRise > strategy.STEM_SIDE_MIN_RISE
-		) &&
-		!(
-			stem.hasGlyphRightAdjacentPointAbove &&
-			stem.glyphRightAdjacentRise > strategy.STEM_SIDE_MIN_RISE
-		)
-	);
-}
-function atGlyphBottom(stem, strategy) {
-	return (
-		atRadicalBottom(stem, strategy) &&
-		!stem.hasGlyphStemBelow &&
-		!(stem.hasGlyphPointBelow && stem.glyphCenterDescent > strategy.STEM_CENTER_MIN_DESCENT) &&
-		!(
-			stem.hasGlyphLeftAdjacentPointBelow &&
-			stem.glyphLeftAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT
-		) &&
-		!(
-			stem.hasGlyphRightAdjacentPointBelow &&
-			stem.glyphRightAdjacentDescent > strategy.STEM_SIDE_MIN_DESCENT
-		)
-	);
-}
+const {
+	atRadicalTop,
+	atRadicalBottom,
+	atGlyphTop,
+	atGlyphBottom,
+	isCapShape
+} = require("../../support/stem-spatial");
 
 exports.computePQ = function(strategy, stems, flipMatrix) {
 	// A : Annexation operator
@@ -139,7 +84,7 @@ exports.computeACS = function(strategy, stems, overlapRatios, overlapLengths, Q,
 		return (slopeOf(s.high) + slopeOf(s.low)) / 2;
 	});
 	for (let j = 0; j < n; j++) {
-		const jrbot = atRadicalBottom(stems[j], strategy);
+		const jrbot = atRadicalBottom(stems[j], strategy) && !isCapShape(stems[j], strategy);
 		for (let k = 0; k < j; k++) {
 			const krtop = atRadicalTop(stems[k], strategy);
 			const nothingInBetween = flipMatrix[j][k] <= 3;
@@ -149,7 +94,10 @@ exports.computeACS = function(strategy, stems, overlapRatios, overlapLengths, Q,
 				(atGlyphTop(stems[j], strategy) && !stems[j].diagLow) ||
 				(atGlyphBottom(stems[k], strategy) && !stems[j].diagHigh);
 			let strong =
-				overlapRatios[j][k] > 0.85 || overlapRatios[k][j] > 0.85 || ovr > 1 / 3 || tb;
+				overlapRatios[j][k] > 0.85 ||
+				overlapRatios[k][j] > 0.85 ||
+				ovr > 1 / 3 ||
+				(tb && (overlapRatios[j][k] > 0.3 || overlapRatios[k][j] > 0.3));
 			let isSideTouch =
 				(stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax) ||
 				(stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax);
@@ -217,7 +165,7 @@ exports.computeACS = function(strategy, stems, overlapRatios, overlapLengths, Q,
 				coeffC *= strategy.COEFF_C_SHAPE_LOST_XX;
 			}
 
-			if (!nothingInBetween || tb) {
+			if (!nothingInBetween || (tb && strong)) {
 				coeffC *= strategy.COEFF_C_SHAPE_LOST_XX;
 			}
 			if (strong && (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow)) {

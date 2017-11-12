@@ -23,8 +23,8 @@ function choose(hinter, first, ...sps) {
 	return idvOptimal;
 }
 
-function hint(gd, ppem, strg, y0) {
-	const hinter = new Hinter(strg, gd, ppem);
+function hint(gd, ppem, strg, y0, margins) {
+	const hinter = new Hinter(strg, gd, ppem, margins);
 	if (!hinter.avails.length) return new HintDecision(hinter.xExpansion, [], false);
 
 	const spInit = hinter.balance(hinter.decideInitHint(y0));

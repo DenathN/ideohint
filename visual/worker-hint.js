@@ -25,7 +25,7 @@ onmessage = function(message) {
 			postprocess.for(
 				g.hints[ppem].y,
 				g.features.stems,
-				g.features.directOverlaps,
+				g.features.overlaps,
 				strategy.UPM / ppem,
 				Math.round(
 					roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, strategy.UPM, ppem) /

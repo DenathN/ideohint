@@ -43,7 +43,12 @@ function processPost(request, response, callback) {
 	}
 }
 
+const cache = {};
+
 function acquireCharacters(hgl, w, callback) {
+	if (cache[hgl] && cache[hgl][w]) {
+		return callback(cache[hgl][w]);
+	}
 	const instream = fs.createReadStream(hgl);
 	let matches = [];
 	let founds = new Set();
@@ -69,6 +74,8 @@ function acquireCharacters(hgl, w, callback) {
 		}
 	});
 	rl.on("close", function() {
+		if (!cache[hgl]) cache[hgl] = {};
+		cache[hgl][w] = matches;
 		callback(matches);
 	});
 }

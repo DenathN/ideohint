@@ -44,7 +44,7 @@ function getMinmax(stems, k, a, sign) {
 		return [sk.xmin, sk.xmax, couple, 0];
 	}
 }
-function padSD(actions, stems, directOverlaps, uppx, bottom) {
+function padSD(actions, stems, overlaps, uppx, bottom) {
 	let stackrel = [];
 	for (let j = 0; j < stems.length; j++) {
 		actions[j][HARD] = false;
@@ -61,7 +61,7 @@ function padSD(actions, stems, directOverlaps, uppx, bottom) {
 			yj = actions[j][Y],
 			wj = actions[j][W];
 		for (let k = 0; k < j; k++) {
-			if (!(directOverlaps[j][k] || directOverlaps[k][j])) continue;
+			if (!(overlaps[j][k] || overlaps[k][j])) continue;
 
 			const sk = stems[k],
 				yk = actions[k][Y],
@@ -76,11 +76,12 @@ function padSD(actions, stems, directOverlaps, uppx, bottom) {
 				!(sjmax < skmax && sjmin > skmin) &&
 				!(sj.rid === sk.rid && sj.rid)
 			) {
+				stackrel[j][k] = ABOVE;
 				stackrel[k][j] = BELOW;
 				actions[k][STACKED] = true;
 			}
 			if (wj * uppx > widthOf(sj)) continue;
-			if (!(directOverlaps[j][k] || directOverlaps[k][j])) continue;
+			if (!(overlaps[j][k] || overlaps[k][j])) continue;
 			if (
 				(yj - wj - yk === 1 &&
 					sj.posKeyAtTop &&
@@ -96,7 +97,7 @@ function padSD(actions, stems, directOverlaps, uppx, bottom) {
 			yj = actions[j][Y],
 			wj = actions[j][W];
 		for (let k = j + 1; k < stems.length; k++) {
-			if (!(directOverlaps[j][k] || directOverlaps[k][j])) continue;
+			if (!(overlaps[j][k] || overlaps[k][j])) continue;
 
 			const sk = stems[k],
 				yk = actions[k][Y],
@@ -112,6 +113,7 @@ function padSD(actions, stems, directOverlaps, uppx, bottom) {
 				!(skmax > sjmax && skmin < sjmin) &&
 				!(sj.rid === sk.rid && sj.rid)
 			) {
+				stackrel[j][k] = BELOW;
 				stackrel[k][j] = ABOVE;
 				actions[k][STACKED] = true;
 			}
@@ -142,7 +144,15 @@ function padSD(actions, stems, directOverlaps, uppx, bottom) {
 			}
 		}
 	}
-
+	for (let j = 0; j < stems.length; j++) {
+		for (let k = 0; k < j; k++) {
+			for (let m = 0; m < k; m++) {
+				if (stackrel[j][k] && stackrel[j][k] === stackrel[k][m] && overlaps[j][k]) {
+					actions[k][W] = 0;
+				}
+			}
+		}
+	}
 	return actions;
 }
 
@@ -154,7 +164,7 @@ module.exports = function(data) {
 		padSD(
 			sd[ppem].y,
 			si.stems,
-			si.directOverlaps,
+			si.overlaps,
 			si.upm / ppem,
 			Math.round(roundings.rtg(si.blue.bottomPos, si.upm, ppem) / (si.upm / ppem))
 		);

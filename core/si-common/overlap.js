@@ -23,15 +23,15 @@ function pushEvents(events, seg, radical, s, isA) {
 	}
 }
 
-function overlapInfo(a, b, radical) {
+function overlapInfo(a, b, ra, rb) {
 	const slopeA = slopeOf(a),
 		slopeB = slopeOf(b);
 	let events = [];
 	for (let j = 0; j < a.length; j++) {
-		pushEvents(events, a[j], radical, slopeA, true);
+		pushEvents(events, a[j], ra, slopeA, true);
 	}
 	for (let j = 0; j < b.length; j++) {
-		pushEvents(events, b[j], radical, slopeB, false);
+		pushEvents(events, b[j], rb, slopeB, false);
 	}
 	events.sort(byAt);
 	let len = 0,
@@ -75,20 +75,18 @@ function overlapRatio(a, b, op) {
 
 function stemOverlapRatio(a, b, op) {
 	return Math.max(
-		overlapRatio(a.low, b.low, op),
-		overlapRatio(a.high, b.low, op),
-		overlapRatio(a.low, b.high, op),
-		overlapRatio(a.high, b.high, op)
+		overlapRatio(a.lowExp, b.lowExp, op),
+		overlapRatio(a.highExp, b.lowExp, op),
+		overlapRatio(a.lowExp, b.highExp, op),
+		overlapRatio(a.highExp, b.highExp, op)
 	);
 }
-function stemOverlapLength(a, b, strategy) {
-	return (
-		Math.max(
-			overlapInfo(a.low, b.low).len,
-			overlapInfo(a.high, b.low).len,
-			overlapInfo(a.low, b.high).len,
-			overlapInfo(a.high, b.high).len
-		) / strategy.UPM
+function stemOverlapLength(a, b) {
+	return Math.max(
+		overlapInfo(a.lowExp, b.lowExp).len,
+		overlapInfo(a.highExp, b.lowExp).len,
+		overlapInfo(a.lowExp, b.highExp).len,
+		overlapInfo(a.highExp, b.highExp).len
 	);
 }
 

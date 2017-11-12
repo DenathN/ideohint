@@ -31,6 +31,28 @@ function atGlyphBottom(stem, strategy) {
 	);
 }
 
+function atRadicalBottomMost(stem, strategy) {
+	return (
+		atRadicalBottom(stem, strategy) &&
+		!(
+			stem.hasRadicalLeftDistancedPointBelow &&
+			stem.radicalLeftDistancedDescent > strategy.STEM_SIDE_MIN_DIST_DESCENT
+		) &&
+		!(
+			stem.hasRadicalRightDistancedPointBelow &&
+			stem.radicalRightDistancedDescent > strategy.STEM_SIDE_MIN_DIST_DESCENT
+		)
+	);
+}
+function isCapShape(stem, strategy) {
+	return (
+		atRadicalBottom(stem, strategy) &&
+		((stem.hasRadicalLeftDistancedPointBelow &&
+			stem.radicalLeftDistancedDescent > strategy.STEM_SIDE_MIN_DIST_DESCENT) ||
+			(stem.hasRadicalRightDistancedPointBelow &&
+				stem.radicalRightDistancedDescent > strategy.STEM_SIDE_MIN_DIST_DESCENT))
+	);
+}
 function atGlyphBottomMost(stem, strategy) {
 	return (
 		atGlyphBottom(stem, strategy) &&
@@ -106,5 +128,7 @@ exports.atRadicalBottom = atRadicalBottom;
 exports.atRadicalTop = atRadicalTop;
 exports.atGlyphBottom = atGlyphBottom;
 exports.atGlyphTop = atGlyphTop;
+exports.atRadicalBottomMost = atRadicalBottomMost;
+exports.isCapShape = isCapShape;
 exports.atGlyphBottomMost = atGlyphBottomMost;
 exports.atStrictRadicalBottom = atStrictRadicalBottom;

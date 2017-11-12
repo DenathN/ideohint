@@ -21,7 +21,7 @@ function decideMaxShift(y0, w0, ppem, tightness, strategy) {
 }
 
 class Avail {
-	constructor(env, stem, tw) {
+	constructor(env, stem, tw, ir) {
 		const { upm, ppem, uppx, strategy, tightness } = env;
 		const halfway0 = (env.BLUEZONE_TOP_CENTER + env.BLUEZONE_BOTTOM_CENTER) / 2;
 		const halfway = (env.glyphBottom + env.glyphTop) / 2;
@@ -38,16 +38,20 @@ class Avail {
 			w +
 			Math.max(
 				0,
-				stem.turnsBelow > 2 && !stem.hasGlyphStemBelow
-					? Math.min(3, stem.turnsBelow - 2) * uppx
+				stem.turnsBelow > 2 &&
+				((!stem.hasGlyphStemBelow && !stem.diagLow) || stem.turnsBelow > 5)
+					? Math.min(3, stem.turnsBelow / 2) * uppx
 					: 0,
 				stem.diagLow
 					? env.BOTTOM_CUT_DIAGL
 					: stem.diagHigh
 						? env.BOTTOM_CUT_DIAGL + env.BOTTOM_CUT_DIAG_DIST
 						: env.BOTTOM_CUT,
-				this.atGlyphBottom && !stem.diagHigh ? 0 : uppx
+				this.atGlyphBottom ? 0 : uppx
 			);
+		if (!stem.hasGlyphStemBelow && ir && ir[0] < ir[1]) {
+			lowlimit = Math.max(env.glyphBottom + w + ir[0] * uppx, lowlimit);
+		}
 		let fold = false;
 		// Add additional space below strokes with a fold under it.
 		if (stem.hasGlyphFoldBelow && !stem.hasGlyphStemBelow) {
@@ -79,6 +83,9 @@ class Avail {
 				// spatial part
 				this.atGlyphTop ? 0 : uppx
 			);
+		if (!stem.hasGlyphStemAbove && ir && ir[1] < ir[0]) {
+			highlimit = Math.min(env.glyphTop - ir[1] * uppx, highlimit);
+		}
 
 		if (stem.hasEntireContourAbove) {
 			highlimit = Math.min(env.glyphTop - 2 * uppx, highlimit);
@@ -202,9 +209,11 @@ function adjustAvails(avails, stems) {
 	for (let j = 0; j < stems.length; j++) {
 		const avail = avails[j],
 			stem = stems[j];
-		if (!stem.hasGlyphStemBelow) {
+		/// Locking bottom
+		if (!stem.hasGlyphStemBelow && !stem.diagHigh) {
 			avail.high = Math.round(
 				Math.max(
+					avail.low,
 					avail.center,
 					bottomPx +
 						avail.properWidth +
@@ -212,13 +221,13 @@ function adjustAvails(avails, stems) {
 				)
 			);
 		}
+		/// lock top
 		if (
 			!stem.hasGlyphStemAbove &&
 			!stem.diagLow &&
 			(avail.atGlyphTop ? avail.center > (topPx + bottomPx) / 2 : avail.center >= topPx - 1)
 		) {
-			// lock top
-			avail.low = Math.round(avail.center);
+			avail.low = Math.min(avail.high, Math.round(avail.center));
 		}
 
 		// Push bottommost stroke down to unify bottom features.
@@ -245,6 +254,8 @@ function adjustAvails(avails, stems) {
 				bottomPx +
 				(top - bottomPx) * (topPx - bottomPx - force) / (topPx - bottomPx - force * 2);
 			avail.low = Math.round(top1);
+			if (avail.low - avail.center > 1) avail.low = Math.max(top, avail.low - 1);
+
 			if (avail.low > avail.high) avail.low = avail.high;
 		}
 	}
@@ -264,11 +275,11 @@ function adjustAvails(avails, stems) {
 	}
 }
 
-function decideAvails(stems, tws) {
+function decideAvails(stems, tws, margins) {
 	let avails = [];
 	// decide avails
 	for (let j = 0; j < stems.length; j++) {
-		avails[j] = new Avail(this, stems[j], tws[j]);
+		avails[j] = new Avail(this, stems[j], tws[j], margins ? margins[j] : null);
 	}
 	// unify top/bottom features
 	adjustAvails.call(this, avails, stems);

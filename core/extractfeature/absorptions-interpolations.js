@@ -38,15 +38,16 @@ function shortAbsorptionByKeys(shortAbsorptions, strategy, pts, keys, inSameRadi
 	}
 }
 
-function compareZ(key, pt, f) {
+function compareZ(key, pt, f, aux) {
+	if (!f(key, pt, aux)) return false;
 	while (key.linkedKey) key = key.linkedKey;
-	return f(key, pt);
+	return f(key, pt, aux);
 }
-function cLT(key, pt) {
-	return key.y < pt.y;
+function cLT(key, pt, aux) {
+	return key.y + aux < pt.y;
 }
-function cGT(key, pt) {
-	return key.y > pt.y;
+function cGT(key, pt, aux) {
+	return key.y - aux > pt.y;
 }
 
 const COEFF_EXT = 1;
@@ -68,7 +69,7 @@ function interpolateByKeys(
 		let lowerK = null,
 			lowerdist = 0xffff;
 		for (let m = keys.length - 1; m >= 0; m--)
-			if (compareZ(keys[m], pt, cLT)) {
+			if (compareZ(keys[m], pt, cLT, strategy.Y_FUZZ)) {
 				if (
 					!lowerK ||
 					Math.hypot(keys[m].x - pt.x, COEFF_EXT * (keys[m].y - pt.y)) < lowerdist
@@ -78,7 +79,7 @@ function interpolateByKeys(
 				}
 			}
 		for (let m = keys.length - 1; m >= 0; m--)
-			if (compareZ(keys[m], pt, cGT)) {
+			if (compareZ(keys[m], pt, cGT, strategy.Y_FUZZ)) {
 				if (
 					!upperK ||
 					Math.hypot(keys[m].x - pt.x, COEFF_EXT * (keys[m].y - pt.y)) < upperdist

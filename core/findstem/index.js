@@ -49,8 +49,11 @@ function findStems(glyph, strategy) {
 	// There are two overlapping matrices are being used: one "minimal" and one "canonical".
 	// The minimal one is ued for collision matrices calclulation, and the canonical one is
 	// used for spatial relationship detection
-	glyph.stemOverlaps = OverlapMatrix(stems, (p, q) => stemOverlapRatio(p, q, Math.min, strategy));
-	glyph.stemOverlapLengths = OverlapMatrix(stems, (p, q) => stemOverlapLength(p, q, strategy));
+	glyph.stemOverlaps = OverlapMatrix(stems, (p, q) => stemOverlapRatio(p, q, Math.min, radicals));
+	glyph.stemOverlapLengths = OverlapMatrix(
+		stems,
+		(p, q) => stemOverlapLength(p, q, radicals) / strategy.UPM
+	);
 	analyzeStemSpatialRelationships(stems, radicals, glyph.stemOverlaps, strategy);
 	analyzeEntireContourAboveBelow(glyph, stems, strategy);
 	const F = (glyph.turnsBetween = turns.analyzeTurns(glyph, strategy, stems));

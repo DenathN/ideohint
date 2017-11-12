@@ -1,20 +1,8 @@
 "use strict";
 
 const hlkey = require("../findstem/hlkey");
-const { mix } = require("../../support/common");
 
-function hasGreaterLowerPromixity(stems, js, dov, P, F) {
-	var promUp = 0;
-	var promDown = 0;
-	for (let j = 0; j < stems.length; j++) {
-		if (dov[j][js]) promUp += P[j][js] + F[j][js];
-		if (dov[js][j]) promDown += P[js][j] + F[js][j];
-	}
-
-	return promUp * 2 <= promDown;
-}
-
-module.exports = function(stems, strategy, dov, P, F) {
+module.exports = function(stems, strategy) {
 	// Stem Keypoints
 	for (var js = 0; js < stems.length; js++) {
 		const s = stems[js];
@@ -79,6 +67,7 @@ module.exports = function(stems, strategy, dov, P, F) {
 		}
 		s.posKey = posKeyShouldAtBottom ? lowkey : highkey;
 		s.advKey = posKeyShouldAtBottom ? highkey : lowkey;
+		s.advKey.linkedKey = s.posKey;
 		s.posAlign = posKeyShouldAtBottom ? lownonkey : highnonkey;
 		s.advAlign = posKeyShouldAtBottom ? highnonkey : lownonkey;
 		s.posKeyAtTop = !posKeyShouldAtBottom;

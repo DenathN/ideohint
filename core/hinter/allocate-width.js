@@ -86,11 +86,13 @@ function allocateWidth(y0, env) {
 		else if (op === SUFF) return p > 1 && w >= p;
 		else return true;
 	}
-	function tripletSatisifiesPattern(j, k, m, w1, w2, w3, j1, j2, j3) {
+	function tripletSatisifiesPattern(j, k, m, w1, djk, w2, dkm, w3, j1, j2, j3) {
 		return (
 			(!w1 || (w[j] === w1 && relationSat(w[j], properWidths[j], j1))) &&
 			(!w2 || (w[k] === w2 && relationSat(w[k], properWidths[k], j2))) &&
-			(!w3 || (w[m] === w3 && relationSat(w[m], properWidths[m], j3)))
+			(!w3 || (w[m] === w3 && relationSat(w[m], properWidths[m], j3))) &&
+			y[j] - w[j] - y[k] === djk &&
+			y[k] - w[k] - y[m] === dkm
 		);
 	}
 
@@ -226,90 +228,64 @@ function allocateWidth(y0, env) {
 
 		let y1 = y.slice(0),
 			w1 = w.slice(0);
-		if (
-			tripletSatisifiesPattern(j, k, m, 1, 1, 2, ANY, ANY, ANY) &&
-			y[j] - w[j] - y[k] < 1 &&
-			y[k] - w[k] - y[m] >= 1
-		) {
+		if (tripletSatisifiesPattern(j, k, m, 1, 0, 1, 2, 2, ANY, ANY, ANY)) {
 			(y[k] -= 1), (y[m] -= 1), (w[m] -= 1);
-		} else if (
-			tripletSatisifiesPattern(j, k, m, 2, 1, 1, ANY, ANY, ANY) &&
-			y[j] - w[j] - y[k] >= 1 &&
-			y[k] - w[k] - w[m] < 1
-		) {
+		} else if (tripletSatisifiesPattern(j, k, m, 2, 2, 1, 0, 1, ANY, ANY, ANY)) {
 			// [2] 1 [1] 0 [1] -> [1] 1 [1] 1 [1]
 			w[j] -= 1;
 			y[k] += 1;
-		} else if (
-			tripletSatisifiesPattern(j, k, m, 3, 3, 2, SUFF, SUFF, LESS) &&
-			y[j] - w[j] - y[k] >= 2
-		) {
+		} else if (tripletSatisifiesPattern(j, k, m, 3, 2, 3, 1, 2, SUFF, SUFF, LESS)) {
 			// [3] 2 [3] 1 [2] -> [3] 1 [3] 1 [3]
 			(y[k] += 1), (y[m] += 1), (w[m] += 1);
-		} else if (
-			tripletSatisifiesPattern(j, k, m, 2, 3, 3, LESS, SUFF, SUFF) &&
-			y[j] - w[j] - y[k] >= 2
-		) {
+		} else if (tripletSatisifiesPattern(j, k, m, 2, 2, 3, 1, 3, LESS, SUFF, SUFF)) {
 			// [2] 2 [3] 1 [3] -> [3] 1 [3] 1 [3]
 			w[j] += 1;
-		} else if (
-			tripletSatisifiesPattern(j, k, m, 3, 3, 2, SUFF, SUFF, LESS) &&
-			y[k] - w[k] - y[m] >= 2
-		) {
+		} else if (tripletSatisifiesPattern(j, k, m, 3, 1, 3, 2, 2, SUFF, SUFF, LESS)) {
 			// [3] 1 [3] 2 [2] -> [3] 1 [3] 1 [3]
 			(y[m] += 1), (w[m] += 1);
-		} else if (
-			tripletSatisifiesPattern(j, k, m, 2, 3, 3, LESS, SUFF, SUFF) &&
-			y[k] - w[k] - y[m] >= 2
-		) {
+		} else if (tripletSatisifiesPattern(j, k, m, 2, 1, 3, 2, 3, LESS, SUFF, SUFF)) {
 			// [2] 1 [3] 2 [3] -> [3] 1 [3] 1 [3]
 			(w[j] += 1), (y[k] -= 1);
-		} else if (tripletSatisifiesPattern(j, k, m, 3, 1, 3, SUFF, LESS, SUFF)) {
+		} else if (tripletSatisifiesPattern(j, k, m, 3, 1, 1, 1, 3, SUFF, LESS, SUFF)) {
 			// [3] 1 [1] 1 [3] -> [2] 1 [2] 1 [3] or [3] 1 [2] 1 [2]
 			if (env.P[j][k] > env.P[k][m]) {
 				(w[j] -= 1), (y[k] += 1), (w[k] += 1);
 			} else {
 				(w[k] += 1), (y[m] -= 1), (w[m] -= 1);
 			}
-		} else if (tripletSatisifiesPattern(j, k, m, 3, 2, 1, SUFF, ANY, LESS)) {
+		} else if (tripletSatisifiesPattern(j, k, m, 3, 1, 2, 1, 1, SUFF, ANY, LESS)) {
 			// [3] 1 [2] 1 [1] -> [2] 1 [2] 1 [2]
 			(w[j] -= 1), (y[k] += 1), (y[m] += 1), (w[m] += 1);
-		} else if (tripletSatisifiesPattern(j, k, m, 1, 3, 2, LESS, SUFF, ANY)) {
+		} else if (tripletSatisifiesPattern(j, k, m, 1, 1, 3, 1, 2, LESS, SUFF, ANY)) {
 			// [1] 1 [3] 1 [2] -> [2] 1 [2] 1 [2]
 			(w[j] += 1), (y[k] -= 1), (w[k] -= 1);
-		} else if (tripletSatisifiesPattern(j, k, m, 1, 3, 3, LESS, SUFF, ANY)) {
+		} else if (tripletSatisifiesPattern(j, k, m, 1, 1, 3, 1, 3, LESS, SUFF, ANY)) {
 			// [1] 1 [3] 1 [3] -> [2] 1 [2] 1 [3]
 			(w[j] += 1), (y[k] -= 1), (w[k] -= 1);
-		} else if (tripletSatisifiesPattern(j, k, m, 2, 1, 3, ANY, LESS, SUFF)) {
+		} else if (tripletSatisifiesPattern(j, k, m, 2, 1, 1, 1, 3, ANY, LESS, SUFF)) {
 			// [2] 1 [1] 1 [3] -> [2] 1 [2] 1 [2]
 			(w[k] += 1), (w[m] -= 1), (y[m] -= 1);
-		} else if (tripletSatisifiesPattern(j, k, m, 2, 3, 1, ANY, SUFF, LESS)) {
+		} else if (tripletSatisifiesPattern(j, k, m, 2, 1, 3, 1, 1, ANY, SUFF, LESS)) {
 			// [2] 1 [3] 1 [1] -> [2] 1 [2] 1 [2]
 			(w[k] -= 1), (w[m] += 1), (y[m] += 1);
-		} else if (tripletSatisifiesPattern(j, k, m, 3, 3, 1, ANY, SUFF, LESS)) {
+		} else if (tripletSatisifiesPattern(j, k, m, 3, 1, 3, 1, 1, ANY, SUFF, LESS)) {
 			// [3] 1 [3] 1 [1] -> [2] 1 [2] 1 [2]
 			(w[k] -= 1), (w[m] += 1), (y[m] += 1);
-		} else if (tripletSatisifiesPattern(j, k, m, 3, 1, 2, SUFF, LESS, ANY)) {
+		} else if (tripletSatisifiesPattern(j, k, m, 3, 1, 1, 1, 2, SUFF, LESS, ANY)) {
 			// [3] 1 [1] 1 [2] -> [2] 1 [2] 1 [2]
 			(w[j] -= 1), (y[k] += 1), (w[k] += 1);
-		} else if (tripletSatisifiesPattern(j, k, m, 1, 2, 3, LESS, ANY, SUFF)) {
+		} else if (tripletSatisifiesPattern(j, k, m, 1, 1, 2, 1, 3, LESS, ANY, SUFF)) {
 			// [1] 1 [2] 1 [3] -> [2] 1 [2] 1 [2]
 			(w[j] += 1), (w[m] -= 1), (y[k] -= 1), (y[m] -= 1);
-		} else if (
-			tripletSatisifiesPattern(j, k, m, 1, 2, 2, LESS, SUFF, SUFF) &&
-			y[k] - w[k] - y[m] > 1
-		) {
+		} else if (tripletSatisifiesPattern(j, k, m, 1, 1, 2, 2, 2, LESS, SUFF, SUFF)) {
 			// [1] 1 [2] 2 [2] -> [2] 1 [2] 1 [2]
 			(w[j] += 1), (y[k] -= 1);
-		} else if (
-			tripletSatisifiesPattern(j, k, m, 2, 2, 1, SUFF, ANY, LESS) &&
-			y[j] - w[j] - y[k] > 1
-		) {
+		} else if (tripletSatisifiesPattern(j, k, m, 2, 2, 2, 1, 1, SUFF, ANY, LESS)) {
 			// [2] 2 [2] 1 [1] -> [2] 1 [2] 1 [2]
 			(y[k] += 1), (y[m] += 1), (w[m] += 1);
 		} else if (
 			avails[j].atGlyphTop &&
-			tripletSatisifiesPattern(j, k, m, 1, 1, 2, LESS, ANY, SUFF)
+			tripletSatisifiesPattern(j, k, m, 1, 1, 1, 1, 2, LESS, ANY, SUFF)
 		) {
 			// [1T] 1 [1] 1 [2] -> [2] 1 [1] 1 [1]
 			(w[m] -= 1), (w[j] += 1), (y[m] -= 1), (y[k] -= 1);
@@ -317,7 +293,8 @@ function allocateWidth(y0, env) {
 			avails[j].atGlyphTop &&
 			w[j] < properWidths[j] &&
 			w[k] >= properWidths[k] &&
-			properWidths[k] > 1
+			properWidths[k] > 1 &&
+			y[j] - w[j] - y[k] === 1
 		) {
 			// [1T] 1 [2] 1 [*] -> [2] 1 [1] 1 [*]
 			(w[k] -= 1), (y[k] -= 1), (w[j] += 1);

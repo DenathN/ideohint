@@ -22,8 +22,7 @@ function shouldSplit(hl, ll, hr, lr, strategy) {
 			Math.abs(ll.y - lr.y) >= strategy.Y_FUZZ_DIAG)
 	);
 }
-function contained(z1, z2, segs) {
-	const fuzz = 1;
+function contained(z1, z2, segs, fuzz) {
 	for (let seg of segs)
 		for (let z of seg) {
 			if (
@@ -35,25 +34,7 @@ function contained(z1, z2, segs) {
 		}
 	return true;
 }
-function linkIP(segs, hl, hr) {
-	let ans = [];
-	let unrel = [];
-	for (let seg of segs) {
-		let z = seg[0];
-		if (z !== hl && z !== hr) {
-			ans.push(z);
-		}
-		if (seg.length > 1 && seg[seg.length - 1] !== z) {
-			let z = seg[seg.length - 1];
-			if (z !== hl && z !== hr) {
-				ans.push(z);
-			}
-		}
-		for (let z of seg) if (z !== hl && z !== hr) unrel.push(z);
-	}
-	let res = { l: hl, r: hr, zs: ans, unrel: unrel };
-	return res;
-}
+
 function splitDiagonalStem(s, strategy, rid, results) {
 	let hl = leftmostZ(s.high);
 	let ll = leftmostZ(s.low);
@@ -62,8 +43,8 @@ function splitDiagonalStem(s, strategy, rid, results) {
 
 	if (
 		shouldSplit(hl, ll, hr, lr, strategy) &&
-		contained(ll, lr, s.low, strategy) &&
-		contained(hl, hr, s.high, strategy)
+		contained(ll, lr, s.low, strategy.Y_FUZZ) &&
+		contained(hl, hr, s.high, strategy.Y_FUZZ)
 	) {
 		let hmx = (hl.x + hr.x) / 2;
 		let lmx = (ll.x + lr.x) / 2;

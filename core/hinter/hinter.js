@@ -49,14 +49,14 @@ class YCache {
 }
 
 class Hinter {
-	constructor(strategy, fdefs, ppem) {
+	constructor(strategy, fdefs, ppem, margins) {
 		//// STRATEGY SPECIFIC
 		this.strategy = strategy;
 		this.upm = strategy.UPM || 1000;
 		this.ppem = ppem;
 		this.prepareParameters();
 
-		this.onePixelMatter = ppem <= 18;
+		this.onePixelMatter = ppem <= 16;
 
 		//// GLYPH SPECIFIC
 		this.A = fdefs.collisionMatrices.annexation;
@@ -81,12 +81,12 @@ class Hinter {
 		this.tightness = this.getTightness(fdefs);
 		this.nStems = fdefs.stems.length;
 		this.stems = fdefs.stems;
-		this.updateAvails(this.decideWidths(fdefs.stems));
+		this.updateAvails(this.decideWidths(fdefs.stems), margins);
 		this.symmetry = decideSymmetry.call(this);
 		this.xExpansion = 1 + Math.round(toVQ(strategy.X_EXPAND, ppem)) / 100;
 	}
-	updateAvails(tws) {
-		this.avails = decideAvails.call(this, this.stems, tws);
+	updateAvails(tws, margins) {
+		this.avails = decideAvails.call(this, this.stems, tws, margins);
 
 		this.availsByLength = function() {
 			let m = [];

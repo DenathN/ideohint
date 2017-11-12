@@ -7,7 +7,7 @@ const { parseOTD } = require("./otdParser");
 const { xclamp, toVQ } = require("../support/common");
 const roundings = require("../support/roundings");
 
-exports.version = 10901;
+exports.version = 10903;
 
 exports.hintSingleGlyph = function(contours, strategy) {
 	return exports.decideHints(
@@ -61,6 +61,7 @@ class SizeIndependentHints {
 		this.ipsacalls = getIpsaCalls(featData);
 		this.diagAligns = featData.diagAligns;
 		this.xIP = featData.xIP;
+		this.overlaps = featData.overlaps;
 		this.directOverlaps = featData.directOverlaps;
 		this.stems = featData.stems.map(function(s) {
 			return {
@@ -107,22 +108,30 @@ exports.decideHints = function(featData, strategy) {
 	let sd = [];
 
 	let initialY = null;
-	for (let ppem = strategy.PPEM_MAX; ppem >= strategy.PPEM_MIN; ppem--) {
-		const actions = hintForSize(featData, ppem, strategy, initialY);
+	let initialRanges = null;
+	for (let ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
+		const actions = hintForSize(featData, ppem, strategy, initialY, initialRanges);
 		sd[ppem] = actions;
 
 		// update initialY
-		const thatPPEM = ppem - 1;
+		const thatPPEM = ppem + 1;
 		const [bottomThis, topThis] = topbotOf(strategy, upm, ppem);
 		const [bottomThat, topThat] = topbotOf(strategy, upm, thatPPEM);
+		initialRanges = actions.y.map(([y, w]) => [y - w - bottomThis, topThis - y]);
 
 		initialY = actions.y.map(function(a) {
 			const y = a[0];
 			const w = a[1];
 			const w1 = Math.round(
 				w *
-					Math.round(toVQ(strategy.CANONICAL_STEM_WIDTH, thatPPEM) / (upm / thatPPEM)) /
-					Math.round(toVQ(strategy.CANONICAL_STEM_WIDTH, ppem) / (upm / ppem))
+					Math.max(
+						1,
+						Math.round(toVQ(strategy.CANONICAL_STEM_WIDTH, thatPPEM) / (upm / thatPPEM))
+					) /
+					Math.max(
+						1,
+						Math.round(toVQ(strategy.CANONICAL_STEM_WIDTH, ppem) / (upm / ppem))
+					)
 			);
 			const spaceBelow = y - w - bottomThis,
 				spaceAbove = topThis - y;

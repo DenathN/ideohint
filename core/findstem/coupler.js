@@ -175,7 +175,7 @@ function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strate
 			}
 			highEdge = highEdge.sort(by_xori);
 			lowEdge = lowEdge.sort(by_xori).reverse();
-			let segOverlap = overlapInfo(highEdge, lowEdge, radical);
+			let segOverlap = overlapInfo(highEdge, lowEdge, radical, radical);
 			let hasEnoughOverlap =
 				segOverlap.len / segOverlap.la >= strategy.STROKE_SEGMENTS_MIN_OVERLAP &&
 				segOverlap.len / segOverlap.lb >= strategy.STROKE_SEGMENTS_MIN_OVERLAP;
@@ -280,7 +280,10 @@ module.exports = function(radicals, strategy) {
 	ss = pairSymmetricStems(ss, strategy);
 	ss = splitDiagonalStems(ss, strategy);
 	for (let s of ss) {
-		s.calculateYW(strategy).calculateMinmax(radicals, strategy);
+		s
+			.calculateYW(strategy)
+			.calculateMinmax(radicals, strategy)
+			.calculateExp(radicals[s.belongRadical]);
 	}
 	return ss;
 };

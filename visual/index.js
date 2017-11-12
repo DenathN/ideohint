@@ -89,6 +89,7 @@ var strategyControlGroups = [
 	[
 		"ABSORPTION_LIMIT",
 		"SLOPE_FUZZ",
+		"SLOPE_FUZZ_R",
 		"SLOPE_FUZZ_POS",
 		"SLOPE_FUZZ_POST",
 		"SLOPE_FUZZ_NEG",
