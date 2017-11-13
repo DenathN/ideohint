@@ -5,6 +5,7 @@ const { xclamp } = require("../../../support/common");
 const DIAG_BIAS_PIXELS = 1 / 6;
 const DIAG_BIAS_PIXELS_NEG = 0.35;
 const PRETTY_FLAT = 0.4;
+const ALMOST_FLAT = 0.8;
 const ABLATION_MARK = 1 / 8192;
 class Individual {
 	constructor(y, env, unbalanced) {
@@ -133,8 +134,9 @@ class Individual {
 						p += C[j][k];
 					}
 					if (
-						y[j] > y[k] + (turningBack ? 1 : 0) &&
-						avails[j].y0px - avails[k].y0px < PRETTY_FLAT
+						(y[j] > y[k] + (turningBack ? 1 : 0) &&
+							avails[j].y0px - avails[k].y0px < PRETTY_FLAT) ||
+						(y[j] > y[k] + 1 && avails[j].y0px - avails[k].y0px < ALMOST_FLAT)
 					) {
 						p += S[j][k]; // severely broken!
 					}

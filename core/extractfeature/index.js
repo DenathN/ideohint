@@ -17,7 +17,6 @@ function byyori(a, b) {
 
 exports.extractFeature = function(glyph, strategy) {
 	const directOverlaps = analyzeDirectOverlaps(glyph, strategy, true);
-	const strictOverlaps = analyzeDirectOverlaps(glyph, strategy, false);
 	analyzeStemKeyPoints(
 		glyph.stems,
 		strategy,
@@ -30,10 +29,8 @@ exports.extractFeature = function(glyph, strategy) {
 	const iss = analyzeInterpolations(glyph, blueZonePoints, strategy);
 	const overlaps = transitionClosure(directOverlaps);
 	const blanks = analyzeBlanks(glyph.stems, directOverlaps);
-	const strictBlanks = analyzeBlanks(glyph.stems, strictOverlaps);
 	const triplets = analyzeTriplets(glyph.stems, directOverlaps, blanks);
 	const quartlets = analyzeQuartlets(triplets, directOverlaps, blanks);
-	const strictTriplets = analyzeTriplets(glyph.stems, strictOverlaps, strictBlanks);
 	const xIP = analyzeXInterpolate(glyph);
 
 	return {
@@ -42,11 +39,9 @@ exports.extractFeature = function(glyph, strategy) {
 		stemOverlaps: glyph.stemOverlaps,
 		stemOverlapLengths: glyph.stemOverlapLengths,
 		directOverlaps: directOverlaps,
-		strictOverlaps: strictOverlaps,
 		overlaps: overlaps,
 		triplets,
 		quartlets,
-		strictTriplets: strictTriplets,
 		collisionMatrices: glyph.collisionMatrices,
 		blueZoned: blueZonePoints,
 		interpolations: iss.interpolations,

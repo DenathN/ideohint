@@ -68,12 +68,10 @@ class Hinter {
 
 		this.overlaps = fdefs.overlaps;
 		this.directOverlaps = fdefs.directOverlaps;
-		this.strictOverlaps = fdefs.strictOverlaps;
 		this.stemOverlapLengths = fdefs.stemOverlapLengths;
 
 		this.triplets = fdefs.triplets;
 		this.quartlets = fdefs.quartlets;
-		this.strictTriplets = fdefs.strictTriplets;
 
 		this.stats = fdefs.stats;
 

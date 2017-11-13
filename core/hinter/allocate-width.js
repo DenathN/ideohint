@@ -24,7 +24,7 @@ function requiredSpaceBetween(env, j, k) {
 function spaceBelow(env, y, w, k, bottom) {
 	let space = y[k] - w[k] - bottom;
 	for (let j = k - 1; j >= 0; j--) {
-		if (env.strictOverlaps[k][j] && y[k] - y[j] - w[k] < space)
+		if (env.directOverlaps[k][j] && y[k] - y[j] - w[k] < space)
 			space = y[k] - y[j] - w[k] - requiredSpaceBetween(env, j, k);
 	}
 	return space;
@@ -32,7 +32,7 @@ function spaceBelow(env, y, w, k, bottom) {
 function spaceAbove(env, y, w, k, top) {
 	let space = top - y[k];
 	for (let j = k + 1; j < y.length; j++) {
-		if (env.strictOverlaps[j][k] && y[j] - y[k] - w[j] < space)
+		if (env.directOverlaps[j][k] && y[j] - y[k] - w[j] < space)
 			space = y[j] - y[k] - w[j] - requiredSpaceBetween(env, j, k);
 	}
 	return space;
@@ -52,8 +52,8 @@ function allocateWidth(y0, env) {
 		w = new Array(N),
 		properWidths = new Array(N);
 	const avails = env.avails,
-		strictOverlaps = env.strictOverlaps,
-		strictTriplets = env.strictTriplets,
+		directOverlaps = env.directOverlaps,
+		triplets = env.triplets,
 		F = env.F;
 	const onePixelMatter = env.onePixelMatter;
 	for (let j = 0; j < y0.length; j++) {
@@ -117,10 +117,17 @@ function allocateWidth(y0, env) {
 			if (!(applyToLowerOnly || !avails[j].hasGlyphStemAbove)) continue;
 			if (w[j] >= (!avails[j].hasGlyphStemAbove ? properWidths[j] : 2)) continue;
 			let able = true;
+			// Prevent increasing width of a stroke being stacked
+			for (let k = j + 1; k < N; k++) {
+				if (directOverlaps[k][j] && y[k] - w[k] - y[j] <= 0) {
+					able = false;
+				}
+			}
+			if (!able) continue;
 			// We search for strokes below,
 			for (let k = 0; k < j; k++) {
 				if (
-					strictOverlaps[j][k] &&
+					directOverlaps[j][k] &&
 					y[j] - w[j] - y[k] <= 1 + requiredSpaceBetween(env, j, k) &&
 					(onePixelMatter || // shifting strokes modifies glyph too much
 					y[k] <= avails[k].lowP || // the stroke is low enough
@@ -134,7 +141,7 @@ function allocateWidth(y0, env) {
 			if (!able) continue;
 			for (let k = 0; k < j; k++)
 				if (
-					strictOverlaps[j][k] &&
+					directOverlaps[j][k] &&
 					y[j] - w[j] - y[k] <= 1 + requiredSpaceBetween(env, j, k)
 				) {
 					y[k] -= 1;
@@ -152,7 +159,7 @@ function allocateWidth(y0, env) {
 			// We search for strokes above,
 			for (let k = j + 1; k < N; k++) {
 				if (
-					strictOverlaps[k][j] &&
+					directOverlaps[k][j] &&
 					y[k] - w[k] - y[j] <= 1 + requiredSpaceBetween(env, k, j) && // there is no stem below satisifies:
 					// with one pixel space, and prevent upward adjustment, if
 					(onePixelMatter || // shifting strokes modifies glyph too much
@@ -166,7 +173,7 @@ function allocateWidth(y0, env) {
 			if (!able) continue;
 			for (let k = j + 1; k < N; k++)
 				if (
-					strictOverlaps[k][j] &&
+					directOverlaps[k][j] &&
 					y[k] - w[k] - y[j] <= 1 + requiredSpaceBetween(env, k, j)
 				) {
 					w[k] -= 1;
@@ -325,7 +332,7 @@ function allocateWidth(y0, env) {
 			if (w[j] <= 1 && w[j] < properWidths[j] && y[j] > pixelBottom + 2) {
 				let able = true;
 				for (let k = 0; k < j; k++)
-					if (strictOverlaps[j][k] && !edgetouch(avails[j], avails[k])) {
+					if (directOverlaps[j][k] && !edgetouch(avails[j], avails[k])) {
 						able = false;
 					}
 				if (able) {
@@ -346,11 +353,11 @@ function allocateWidth(y0, env) {
 			}
 			for (let j = N - 1; j >= 0; j--) {
 				for (let k = j - 1; k >= 0; k--) {
-					if (!strictOverlaps[j][k]) continue;
+					if (!directOverlaps[j][k]) continue;
 					doubletBalance(j, k, pass);
 				}
 			}
-			for (let [j, k, m] of strictTriplets) {
+			for (let [j, k, m] of triplets) {
 				tripletBalance(j, k, m);
 			}
 			edgeTouchBalance();
@@ -359,7 +366,7 @@ function allocateWidth(y0, env) {
 
 	// Triplet whitespace balancing
 	for (let pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) {
-		for (let [j, k, m] of strictTriplets) {
+		for (let [j, k, m] of triplets) {
 			const su = spaceAbove(env, y, w, k, pixelTop + 2);
 			const sb = spaceBelow(env, y, w, k, pixelBottom - 2);
 			const d1 = y[j] - w[j] - y[k];

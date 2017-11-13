@@ -74,20 +74,43 @@ function overlapRatio(a, b, op) {
 }
 
 function stemOverlapRatio(a, b, op) {
-	return Math.max(
+	const ovr = Math.max(
 		overlapRatio(a.lowExp, b.lowExp, op),
 		overlapRatio(a.highExp, b.lowExp, op),
 		overlapRatio(a.lowExp, b.highExp, op),
 		overlapRatio(a.highExp, b.highExp, op)
 	);
+	const lenRaw = Math.max(
+		overlapInfo(a.low, b.low).len,
+		overlapInfo(a.high, b.low).len,
+		overlapInfo(a.low, b.high).len,
+		overlapInfo(a.high, b.high).len
+	);
+	if (!lenRaw) {
+		return 0;
+	} else {
+		return ovr;
+	}
 }
 function stemOverlapLength(a, b) {
-	return Math.max(
+	const len = Math.max(
 		overlapInfo(a.lowExp, b.lowExp).len,
 		overlapInfo(a.highExp, b.lowExp).len,
 		overlapInfo(a.lowExp, b.highExp).len,
 		overlapInfo(a.highExp, b.highExp).len
 	);
+	const lenRaw = Math.max(
+		overlapInfo(a.low, b.low).len,
+		overlapInfo(a.high, b.low).len,
+		overlapInfo(a.low, b.high).len,
+		overlapInfo(a.high, b.high).len
+	);
+
+	if (!lenRaw) {
+		return 0;
+	} else {
+		return len;
+	}
 }
 
 exports.overlapInfo = overlapInfo;
