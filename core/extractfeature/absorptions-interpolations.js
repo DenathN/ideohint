@@ -49,6 +49,9 @@ function cLT(key, pt, aux) {
 function cGT(key, pt, aux) {
 	return key.y - aux > pt.y;
 }
+function cEq(key, pt, aux) {
+	return Math.abs(pt.y - key.y) < aux;
+}
 
 const COEFF_EXT = 1;
 function interpolateByKeys(
@@ -68,6 +71,14 @@ function interpolateByKeys(
 			upperdist = 0xffff;
 		let lowerK = null,
 			lowerdist = 0xffff;
+		for (let m = keys.length - 1; m >= 0; m--) {
+			// adjancy exclusion
+			if (!compareZ(keys[m], pt, cEq, strategy.Y_FUZZ)) continue;
+			if (!adjacent(keys[m], pt) && !adjacentZ(keys[m], pt)) continue;
+			pt.donttouch = true;
+		}
+
+		if (pt.touched || pt.donttouch) continue;
 		for (let m = keys.length - 1; m >= 0; m--)
 			if (compareZ(keys[m], pt, cLT, strategy.Y_FUZZ)) {
 				if (
