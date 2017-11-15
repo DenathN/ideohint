@@ -71,6 +71,25 @@ function splitDiagonalStem(s, strategy, rid, results) {
 			sright.diagHigh = true;
 			sleft.diagLow = true;
 		}
+		// intermediate knots
+		const ipHigh = [];
+		const ipLow = [];
+		for (let sg of s.high) {
+			for (let z of [sg[0], sg[sg.length - 1]]) {
+				if (!(z.id >= 0)) continue;
+				if (z.id === hl.id || z.id === hr.id) continue;
+				ipHigh.push([hl, hr, z]);
+			}
+		}
+		for (let sg of s.low) {
+			for (let z of [sg[0], sg[sg.length - 1]]) {
+				if (!(z.id >= 0)) continue;
+				if (z.id === ll.id || z.id === lr.id) continue;
+				ipLow.push([ll, lr, z]);
+			}
+		}
+		sleft.ipHigh = ipHigh;
+		sleft.ipLow = ipLow;
 		results.push(sleft, sright);
 	} else {
 		results.push(s);

@@ -97,7 +97,7 @@ class Individual {
 			for (let k = 0; k < j; k++) {
 				const d = y[j] - avails[j].properWidth - y[k];
 				const d0 = avails[j].y0px - avails[j].w0px - avails[k].y0px;
-				if (d > 1 && d0 > 0.25 && d > d0 * 2) {
+				if (d > 1 && d0 > 0.25 && d >= d0 * 2) {
 					// Severely separated or compressed
 					// Treat as a collision
 					p += C[j][k];
@@ -226,6 +226,12 @@ class Individual {
 			p += adjust / 3;
 			if (sym) p += adjust * 32;
 		}
+		if (spacejk + spacekw < 0.6 * (d1 + d2)) {
+			p += adjust * 64;
+		}
+		if ((spacejk + spacekw) * 0.6 > d1 + d2) {
+			p += adjust * 64;
+		}
 		return p;
 	}
 
@@ -234,10 +240,7 @@ class Individual {
 
 		const y = this.gene,
 			avails = env.avails,
-			triplets = env.triplets,
-			uppx = env.uppx,
-			n = y.length,
-			dov = env.directOverlaps;
+			triplets = env.triplets;
 
 		let p = 0;
 

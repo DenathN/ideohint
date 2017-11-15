@@ -59,12 +59,7 @@ module.exports = function(stems, strategy) {
 			}
 		}
 		lownonkey = lownonkey.filter((v, j) => j !== jl);
-		if (s.linkedIPsHigh) {
-			for (let z of s.linkedIPsHigh.unrel) z.donttouch = true;
-		}
-		if (s.linkedIPsLow) {
-			for (let z of s.linkedIPsLow.unrel) z.donttouch = true;
-		}
+
 		s.posKey = posKeyShouldAtBottom ? lowkey : highkey;
 		s.advKey = posKeyShouldAtBottom ? highkey : lowkey;
 		s.advKey.linkedKey = s.posKey;

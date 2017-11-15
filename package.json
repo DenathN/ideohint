@@ -1,7 +1,7 @@
 {
   "name": "ideohint",
   "description": "Optimized gridfit generator for ideographs.",
-  "version": "1.9.5",
+  "version": "1.9.6",
   "main": "./main.js",
   "repository": {
     "type": "git",
@@ -17,6 +17,7 @@
     "node-static": "^0.7.8",
     "oboe": "^2.1.2",
     "opn": "^4.0.2",
+    "outlier": "0.0.1",
     "strip-bom": "^3.0.0",
     "toml": "^2.3.0",
     "toposort": "^1.0.0",

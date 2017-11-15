@@ -131,7 +131,7 @@ function allocateWidth(y0, env) {
 					y[j] - w[j] - y[k] <= 1 + requiredSpaceBetween(env, j, k) &&
 					(onePixelMatter || // shifting strokes modifies glyph too much
 					y[k] <= avails[k].lowP || // the stroke is low enough
-					y[k] <= y0[k] - 1 || // the stroke is low enough
+					(onePixelMatter && y[k] <= y0[k] - 1) || // the stroke is low enough
 					y[k] <= pixelBottom + w[k] || // or it is thin enough
 						w[k] < 2)
 				) {
@@ -152,7 +152,7 @@ function allocateWidth(y0, env) {
 		for (let j = N - 1; j >= 0; j--) {
 			if (w[j] >= (!avails[j].hasGlyphFoldBelow ? properWidths[j] : 2)) continue;
 			if (y[j] >= avails[j].highP) continue;
-			if (y[j] >= y0[j] + 1) continue;
+			if (onePixelMatter && y[j] >= y0[j] + 1) continue;
 			if (!avails[j].hasGlyphStemAbove && y[j] >= pixelTop - 2) continue;
 
 			let able = true;

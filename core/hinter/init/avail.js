@@ -210,7 +210,13 @@ function adjustAvails(avails, stems) {
 		const avail = avails[j],
 			stem = stems[j];
 		/// Locking bottom
-		if (!stem.hasGlyphStemBelow && !stem.diagHigh) {
+		if (
+			!stem.hasGlyphStemBelow &&
+			!stem.diagHigh &&
+			(avail.atGlyphBottom ||
+				this.onePixelMatter ||
+				avail.high - avail.properWidth - bottomPx < 3)
+		) {
 			avail.high = Math.round(
 				Math.max(
 					avail.low,

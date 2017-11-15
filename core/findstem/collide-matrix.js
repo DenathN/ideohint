@@ -168,7 +168,11 @@ exports.computeACS = function(strategy, stems, overlapRatios, overlapLengths, Q,
 			if (!nothingInBetween || (tb && strong)) {
 				coeffC *= strategy.COEFF_C_SHAPE_LOST_XX;
 			}
-			if (strong && (!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow)) {
+			if (
+				strong &&
+				(!stems[j].hasGlyphStemAbove || !stems[k].hasGlyphStemBelow) &&
+				!(jrbot && krtop)
+			) {
 				coeffC *= strategy.COEFF_C_SHAPE_LOST_XX * Math.pow(ovr, 3);
 			}
 			let symmetryCoeff = 1;

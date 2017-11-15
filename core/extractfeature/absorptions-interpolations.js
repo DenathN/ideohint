@@ -198,7 +198,6 @@ function linkSoleStemPoints(shortAbsorptions, strategy, glyph, priority) {
 module.exports = function(glyph, blues, strategy) {
 	let interpolations = [];
 	let shortAbsorptions = [];
-	let diagAligns = [];
 
 	const contours = glyph.contours;
 	let glyphKeypoints = [];
@@ -211,19 +210,21 @@ module.exports = function(glyph, blues, strategy) {
 		}
 
 	for (let s of glyph.stems) {
-		if (s.linkedIPsHigh) {
-			diagAligns.push({
-				l: s.linkedIPsHigh.l.id,
-				r: s.linkedIPsHigh.r.id,
-				zs: s.linkedIPsHigh.zs.map(z => z.id)
-			});
-		}
-		if (s.linkedIPsLow) {
-			diagAligns.push({
-				l: s.linkedIPsLow.l.id,
-				r: s.linkedIPsLow.r.id,
-				zs: s.linkedIPsLow.zs.map(z => z.id)
-			});
+		if (s.ipHigh) {
+			for (let g of s.ipHigh) {
+				const [z1, z2, z] = g;
+				if (z.touched || z.donttouch) continue;
+				interpolations.push([z1.id, z2.id, z.id, 20]);
+				z.touched = true;
+				z.keypoint = true;
+			}
+			for (let g of s.ipLow) {
+				const [z1, z2, z] = g;
+				if (z.touched || z.donttouch) continue;
+				interpolations.push([z1.id, z2.id, z.id, 20]);
+				z.touched = true;
+				z.keypoint = true;
+			}
 		}
 	}
 
@@ -405,6 +406,6 @@ module.exports = function(glyph, blues, strategy) {
 	return {
 		interpolations: interpolations.filter(x => x),
 		shortAbsorptions: shortAbsorptions.filter(a => a[0] !== a[1]),
-		diagAligns: diagAligns
+		diagAligns: []
 	};
 };

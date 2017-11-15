@@ -1,5 +1,6 @@
 "use strict";
 
+const outlier = require("outlier");
 const Hinter = require("./hinter");
 const stemPositionToActions = require("./actions");
 
@@ -37,21 +38,29 @@ function hint(gd, ppem, strg, y0, margins) {
 	const pass1Idv = choose(hinter, spNT, spUncol);
 	let { y, w } = hinter.allocateWidth(pass1Idv.gene);
 
+	// filter out outliers
+	const otl = outlier(w);
+	const avgw = Math.round(w.reduce((a, b) => a + b, 0) / w.length);
+	let w1 = w.map(x => (otl.testOutlier(x) ? Math.max(x, avgw) : x));
+
 	// The width allocator may alter the initial width
 	// do the second pass if necessary
 	let doSecondPass = false;
-	for (let j = 0; j < w.length; j++) {
-		if (w[j] !== initWidths[j]) doSecondPass = true;
+	for (let j = 0; j < w1.length; j++) {
+		if (w1[j] !== initWidths[j]) doSecondPass = true;
 	}
 	if (doSecondPass) {
-		hinter.updateAvails([...w]);
-		const spUncol1 = hinter.uncollide(hinter.decideInitHint());
-		const pass2Idv = choose(hinter, y, spNT, spUncol1);
-		if (pass2Idv.better(pass1Idv)) {
-			const a = hinter.allocateWidth(pass2Idv.gene);
-			y = a.y;
-			w = a.w;
-		}
+		hinter.updateAvails([...w1]);
+		const spUncol1 = hinter.uncollide(hinter.balance(hinter.decideInitHint()));
+		const pass2Idv = choose(
+			hinter,
+			hinter.balance([...y]),
+			hinter.balance([...spNT]),
+			spUncol1
+		);
+		const a = hinter.allocateWidth(pass2Idv.gene);
+		y = a.y;
+		w = a.w;
 	}
 	// results
 	return new HintDecision(hinter.xExpansion, stemPositionToActions.call(hinter, y, w, gd.stems));
