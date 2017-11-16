@@ -1,11 +1,10 @@
 "use strict";
 
-const { xclamp } = require("../../../support/common");
-
 const DIAG_BIAS_PIXELS = 1 / 6;
 const DIAG_BIAS_PIXELS_NEG = 0.35;
-const PRETTY_FLAT = 0.4;
-const ALMOST_FLAT = 0.8;
+const PRETTY_FLAT = 1 / 3;
+const NOT_REALLY_FLAT = 4 / 5;
+const SLIGHTLY_SLANTED = 6 / 5;
 const ABLATION_MARK = 1 / 8192;
 class Individual {
 	constructor(y, env, unbalanced) {
@@ -91,13 +90,14 @@ class Individual {
 		const y = this.gene,
 			avails = env.avails,
 			n = y.length,
-			C = env.C;
+			C = env.C,
+			A = env.A;
 		let p = 0;
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
 				const d = y[j] - avails[j].properWidth - y[k];
-				const d0 = avails[j].y0px - avails[j].w0px - avails[k].y0px;
-				if (d > 1 && d0 > 0.25 && d >= d0 * 2) {
+				const d0 = avails[j].y0px - avails[j].properWidth - avails[k].y0px;
+				if (d > 1 && d0 > 0.25 && d >= d0 * 1.75) {
 					// Severely separated or compressed
 					// Treat as a collision
 					p += C[j][k];
@@ -136,7 +136,10 @@ class Individual {
 					if (
 						(y[j] > y[k] + (turningBack ? 1 : 0) &&
 							avails[j].y0px - avails[k].y0px < PRETTY_FLAT) ||
-						(y[j] > y[k] + 1 && avails[j].y0px - avails[k].y0px < ALMOST_FLAT)
+						(y[j] <= y[k] + (turningBack ? 1 : 0) &&
+							avails[j].y0px - avails[k].y0px > NOT_REALLY_FLAT) ||
+						(y[j] > y[k] + 1 + (turningBack ? 1 : 0) &&
+							avails[j].y0px - avails[k].y0px < SLIGHTLY_SLANTED)
 					) {
 						p += S[j][k]; // severely broken!
 					}

@@ -92,6 +92,21 @@ function udMatchable(sj, sk, radical, strategy) {
 	return true;
 }
 
+function segOverlapIsValid(highEdge, lowEdge, strategy, radical) {
+	const segOverlap = overlapInfo(highEdge, lowEdge, radical, radical);
+	const hasEnoughOverlap =
+		segOverlap.len / segOverlap.la >= strategy.STROKE_SEGMENTS_MIN_OVERLAP &&
+		segOverlap.len / segOverlap.lb >= strategy.STROKE_SEGMENTS_MIN_OVERLAP;
+	const segOverlap0 = overlapInfo(highEdge, lowEdge);
+	const hasEnoughOverlap0 =
+		segOverlap0.len / segOverlap0.la >= strategy.STROKE_SEGMENTS_MIN_OVERLAP &&
+		segOverlap0.len / segOverlap0.lb >= strategy.STROKE_SEGMENTS_MIN_OVERLAP;
+	const hasEnoughOverlapK =
+		segOverlap0.len / segOverlap0.la >= strategy.STROKE_SEGMENTS_MIN_OVERLAP_K &&
+		segOverlap0.len / segOverlap0.lb >= strategy.STROKE_SEGMENTS_MIN_OVERLAP_K;
+	return (hasEnoughOverlap && hasEnoughOverlapK) || hasEnoughOverlap0;
+}
+
 function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strategy) {
 	let candidate = { high: [], low: [] };
 	const maxh =
@@ -175,26 +190,15 @@ function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strate
 			}
 			highEdge = highEdge.sort(by_xori);
 			lowEdge = lowEdge.sort(by_xori).reverse();
-			let segOverlap = overlapInfo(highEdge, lowEdge, radical, radical);
-			let hasEnoughOverlap =
-				segOverlap.len / segOverlap.la >= strategy.STROKE_SEGMENTS_MIN_OVERLAP &&
-				segOverlap.len / segOverlap.lb >= strategy.STROKE_SEGMENTS_MIN_OVERLAP;
-			if (!hasEnoughOverlap) {
-				let segOverlap = overlapInfo(highEdge, lowEdge);
-				hasEnoughOverlap =
-					segOverlap.len / segOverlap.la >= strategy.STROKE_SEGMENTS_MIN_OVERLAP &&
-					segOverlap.len / segOverlap.lb >= strategy.STROKE_SEGMENTS_MIN_OVERLAP;
-			}
-			if (
-				hasEnoughOverlap &&
-				!stemShapeIsIncorrect(radical, strategy, highEdge, lowEdge, maxh)
-			) {
-				succeed = true;
-				candidates.push({
-					high: highEdge,
-					low: lowEdge
-				});
-			}
+
+			if (!segOverlapIsValid(highEdge, lowEdge, strategy, radical)) continue;
+			if (stemShapeIsIncorrect(radical, strategy, highEdge, lowEdge, maxh)) continue;
+
+			succeed = true;
+			candidates.push({
+				high: highEdge,
+				low: lowEdge
+			});
 		}
 
 		if (foundMatch && !succeed) {
