@@ -116,7 +116,9 @@ class VTTCompiler {
 					...this.aux.SWDs.map((x, j) => ({ width: x, cvtid: this.cvt.cvtCSWD + j }))
 				],
 				canonicalSW: this.aux.canonicalSW,
-				minSW: this.strategy.MINIMAL_STROKE_WIDTH_PIXELS || 1 / 8
+				minSW: this.strategy.MINIMAL_STROKE_WIDTH_PIXELS || 1 / 8,
+				maxSWOverflowCpxs: this.strategy.MAX_SW_OVERFLOW_CPXS,
+				maxSWShrinkCpxs: this.strategy.MAX_SW_SHRINK_CPXS
 			});
 		}
 		return this._encoder;

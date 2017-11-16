@@ -1,7 +1,7 @@
 "use strict";
 
 const roundings = require("../support/roundings");
-const { xclamp } = require("../support/common");
+const { xclamp, toVQ } = require("../support/common");
 
 const STRICT_CUTOFF = 1 / 8;
 
@@ -35,21 +35,22 @@ function decideDeltaShift(
 	upm,
 	ppem,
 	addpxs,
-	minsw
+	swcfg
 ) {
-	var uppx = upm / ppem;
-	var y1 = base0 + sign * dist0;
-	var y2 = base1 + sign * dist1;
-	var yDesired = isStacked ? base1 : base1 + sign * dist0;
-	var deltaStart = Math.round(gear * (y2 - y1) / uppx);
-	var deltaDesired = Math.round(gear * (yDesired - y1) / uppx);
-	var delta = deltaStart - deltaDesired;
+	const { minSW, maxOverflow, maxShrink } = swcfg || {};
+	const uppx = upm / ppem;
+	const y1 = base0 + sign * dist0;
+	const y2 = base1 + sign * dist1;
+	const yDesired = isStacked ? base1 : base1 + sign * dist0;
+	const deltaStart = Math.round(gear * (y2 - y1) / uppx);
+	const deltaDesired = Math.round(gear * (yDesired - y1) / uppx);
+	let delta = deltaStart - deltaDesired;
 	// We will try to reduce delta to 0 when there is "enough space".
 	while (delta) {
 		const delta1 = delta > 0 ? delta - 1 : delta + 1;
 		const y2a = y1 + (deltaDesired + delta1) * uppx / gear;
 		const d = Math.abs(base1 - y2a);
-		if (!isStacked && d < (minsw || 0) * uppx) break;
+		if (!isStacked && d < (minSW || 0) * uppx) break;
 		if (roundings.rtgDiff(y2, base1, upm, ppem) !== roundings.rtgDiff(y2a, base1, upm, ppem))
 			break; // wrong pixel!
 		// if (Math.abs(y2a - roundings.rtg(y2, upm, ppem)) > ROUNDING_CUTOFF * uppx) break;
@@ -59,6 +60,16 @@ function decideDeltaShift(
 			(sign > 0 || Math.abs(y2a - roundings.rtg(y2, upm, ppem)) > STRICT_CUTOFF * uppx)
 		)
 			break;
+		if (
+			!isStacked &&
+			Math.abs(y2a - base1) - Math.abs(y2 - base1) > (maxOverflow || 1 / 2) * uppx
+		)
+			break;
+		if (
+			!isStacked &&
+			Math.abs(y2 - base1) - Math.abs(y2a - base1) > (maxShrink || 1 / 2) * uppx
+		)
+			break;
 		delta = delta > 0 ? delta - 1 : delta + 1;
 	}
 	return delta + deltaDesired + Math.floor(addpxs * gear * xclamp(0, 8 / ppem, 1 / 2)) * sign;
@@ -66,3 +77,11 @@ function decideDeltaShift(
 
 exports.decideDelta = decideDelta;
 exports.decideDeltaShift = decideDeltaShift;
+
+exports.getSWCFG = function(ctx, darkness, ppem) {
+	return {
+		minSW: toVQ(ctx.minSW || 3 / 4, ppem) * darkness,
+		maxOverflow: xclamp(1 / 32, toVQ(ctx.maxSWOverflowCpxs || 50, ppem) / 100, 1 / 2),
+		maxShrink: xclamp(1 / 32, toVQ(ctx.maxSWShrinkCpxs || 50, ppem) / 100, 1 / 2)
+	};
+};

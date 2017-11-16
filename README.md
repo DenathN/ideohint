@@ -127,6 +127,10 @@ The hinting parameters are stored in `hinting` section. They include:
     * **STEM_CENTER_MIN_DESCENT** : The maximum depth of decorative shapes placed below a hotizontal stem's lower edge.
     * **STEM_SIDE_MIN_DIST_RISE** : The maximum height of distanced decorative shapes placed aside a hotizontal stem's upper edge.
     * **STEM_SIDE_MIN_DIST_DESCENT** : The maximum depth of distanced decorative shapes placed aside a hotizontal stem's lower edge.
+* **Intensity Control Parameters** (VTT target only)
+    * **MINIMAL_STROKE_WIDTH_PIXELS** : The minimal stroke width of strokes being wide as **CANONICAL_STEM_WIDTH**. 5/8 pixels by default.
+    * **MAX_SW_OVERFLOW_CPXS** : The maximal overflow of stroke widths on their soft edge when its original width is wider than its hinted integral width. 1/2 pixels (amount 50) by default.
+    * **MAX_SW_SHRINK_CPXS** : The maximal shrink of of stoke widths on their soft edge when its original width is narrower than its hinted integral width. 1/2 pixels (amount 50) by default.
 
 #### CVT padding
 

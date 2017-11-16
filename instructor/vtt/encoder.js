@@ -1,6 +1,6 @@
 "use strict";
-const { decideDelta, decideDeltaShift } = require("../delta.js");
-const { xclamp } = require("../../support/common");
+const { decideDelta, decideDeltaShift, getSWCFG } = require("../delta.js");
+const { xclamp, toVQ } = require("../../support/common");
 const roundings = require("../../support/roundings");
 const { fpgmShiftOf } = require("./vttenv");
 
@@ -371,6 +371,8 @@ function clampAdvDelta(sign, isStrict, isLess, delta) {
 
 class VTTECompiler {
 	constructor(_) {
+		this.maxSWOverflowCpxs = _.maxSWOverflowCpxs;
+		this.maxSWShrinkCpxs = _.maxSWShrinkCpxs;
 		this.canonicalSW = _.canonicalSW;
 		this.minSW = _.minSW;
 		this.deltaEncoder = _.deltaEncoder;
@@ -389,9 +391,7 @@ class VTTECompiler {
 		}
 		return this.deltaEncoder.encode(z, deltas);
 	}
-	_calculateMinSW(sw) {
-		return sw / this.canonicalSW * this.minSW;
-	}
+
 	_encodeStemAdvance(upm, s, sid, sd) {
 		const wsrc = s.posKeyAtTop
 			? s.posKey.y - s.advKey.y + (s.advKey.x - s.posKey.x) * s.slope
@@ -419,6 +419,7 @@ class VTTECompiler {
 			if (!sd[ppem] || !sd[ppem].y || !sd[ppem].y[sid]) continue;
 			const [, wtouch, isHard, isStacked, addpxs] = sd[ppem].y[sid];
 			const wdst = wtouch * (upm / ppem);
+			const swcfg = getSWCFG(this, wsrc / this.canonicalSW, ppem);
 
 			if (s.posKeyAtTop) {
 				for (let adg of advDeltaGroups) {
@@ -434,7 +435,7 @@ class VTTECompiler {
 						upm,
 						ppem,
 						addpxs,
-						this._calculateMinSW(wsrc)
+						swcfg
 					);
 					const advDelta = clampAdvDelta(
 						-1,
@@ -458,7 +459,7 @@ class VTTECompiler {
 						upm,
 						ppem,
 						addpxs,
-						this._calculateMinSW(wsrc)
+						swcfg
 					);
 					const advDelta = clampAdvDelta(
 						1,

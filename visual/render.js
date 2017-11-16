@@ -1,5 +1,6 @@
 const roundings = require("../support/roundings");
-const { decideDeltaShift } = require("../instructor/delta");
+const { toVQ, xclamp } = require("../support/common");
+const { decideDeltaShift, getSWCFG } = require("../instructor/delta");
 const BG_COLOR = "white";
 
 function interpolate(a, b, c) {
@@ -63,7 +64,7 @@ function untouchAll(contours) {
 		}
 }
 
-function calculateYW(upm, ppem, stem, action) {
+function calculateYW(upm, ppem, stem, action, swcfgCtx) {
 	const uppx = upm / ppem;
 	var h, l;
 	if (stem.posKeyAtTop) {
@@ -77,6 +78,9 @@ function calculateYW(upm, ppem, stem, action) {
 	let [y, w, strict, stacked] = action;
 	const h_ytouch = y * uppx;
 	const l_ytouch = (y - w) * uppx - keyDX * stem.slope;
+
+	const swcfg = getSWCFG(swcfgCtx, 1, ppem);
+
 	if (stem.posKeyAtTop) {
 		const delta = decideDeltaShift(
 			8,
@@ -90,7 +94,7 @@ function calculateYW(upm, ppem, stem, action) {
 			upm,
 			ppem,
 			0,
-			3 / 4
+			swcfg
 		);
 		return { h, l, h_ytouch, l_ytouch: h_ytouch - (h.y - l.y) + delta / 8 * uppx };
 	} else {
@@ -106,7 +110,7 @@ function calculateYW(upm, ppem, stem, action) {
 			upm,
 			ppem,
 			0,
-			3 / 4
+			swcfg
 		);
 		return { h, l, l_ytouch, h_ytouch: l_ytouch + (h.y - l.y) + delta / 8 * uppx };
 	}
@@ -141,7 +145,12 @@ function interpretTT(glyphs, strategy, ppem) {
 				strategy.UPM,
 				ppem,
 				features.stems[j],
-				action
+				action,
+				{
+					minSW: strategy.MINIMAL_STROKE_WIDTH_PIXELS || 1 / 8,
+					maxSWOverflowCpxs: strategy.MAX_SW_OVERFLOW_CPXS,
+					maxSWShrinkCpxs: strategy.MAX_SW_SHRINK_CPXS
+				}
 			);
 			glyph.indexedPoints[h.id].touched = glyph.indexedPoints[l.id].touched = true;
 			glyph.indexedPoints[h.id].ytouch = h_ytouch;
@@ -280,12 +289,12 @@ function RenderPreviewForPPEM(glyphs, strategy, hdc, basex, basey, ppem) {
 	hTemp.fillRect(0, 0, eTemp.width, eTemp.height);
 
 	function txp(x, m) {
-		const v = (x + m * strategy.UPM) / uppx * 3 * SUPERSAMPLING;
+		let v = (x + m * strategy.UPM) / uppx * 3 * SUPERSAMPLING;
 		if (!isFinite(v)) v = 0;
 		return v;
 	}
 	function typ(y) {
-		const v = (-y / uppx + Math.round(strategy.BLUEZONE_TOP_CENTER / uppx) + 1) * SAMPLING_Y;
+		let v = (-y / uppx + Math.round(strategy.BLUEZONE_TOP_CENTER / uppx) + 1) * SAMPLING_Y;
 		if (!isFinite(v)) v = 0;
 		return v;
 	}
