@@ -96,11 +96,14 @@ class Individual {
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
 				const d = y[j] - avails[j].properWidth - y[k];
-				const d0 = avails[j].y0px - avails[j].properWidth - avails[k].y0px;
+				const d0 =
+					avails[j].y0px -
+					Math.max(avails[0].w0px, avails[j].properWidth) -
+					avails[k].y0px;
 				if (d > 1 && d0 > 0.25 && d >= d0 * 1.75) {
 					// Severely separated or compressed
 					// Treat as a collision
-					p += C[j][k];
+					p += C[j][k] / d0;
 				}
 			}
 		}
