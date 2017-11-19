@@ -12,22 +12,6 @@ function canBeAdjustedDown(y, k, env, distance) {
 	}
 	return true;
 }
-function spaceBelow1(env, y, k, bottom) {
-	let space = y[k] - env.avails[k].properWidth - bottom;
-	for (let j = k - 1; j >= 0; j--) {
-		if (env.directOverlaps[k][j] && y[k] - y[j] - env.avails[k].properWidth < space)
-			space = y[k] - y[j] - env.avails[k].properWidth;
-	}
-	return space;
-}
-function spaceAbove1(env, y, k, top) {
-	let space = top - y[k];
-	for (let j = k + 1; j < y.length; j++) {
-		if (env.directOverlaps[j][k] && y[j] - y[k] - env.avails[j].properWidth < space)
-			space = y[j] - y[k] - env.avails[j].properWidth;
-	}
-	return space;
-}
 
 const ANNEXED = 0;
 const COLLIDING = 1;
@@ -115,20 +99,12 @@ function balanceTriplets1(y, env, pass) {
 		) {
 			mark = 1;
 			if (P[j][k] < 4) checkImprove = true;
-		} else if (y[j] - y[k] === COLLIDING && y[k] - y[m] === COLLIDING) {
-			if (env.A[j][k] <= env.A[k][m] && y[k] < avails[k].high) {
-				mark = 1;
-			} else if (env.A[j][k] >= env.A[k][m] && y[k] > avails[k].low) {
-				mark = -1;
-			} else if (y[k] < avails[k].high) {
-				mark = 1;
-			} else if (y[k] > avails[k].low) {
-				mark = -1;
-			}
 		}
 		if (checkImprove) {
-			if (tryImprove(env, y, k, mark, 0, 0)) stable = false;
-		} else {
+			if (tryImprove(env, y, k, mark, 0, 0)) {
+				stable = false;
+			}
+		} else if (mark) {
 			y[k] += mark;
 			stable = false;
 		}

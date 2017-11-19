@@ -70,14 +70,15 @@ exports.computeACS = function(strategy, stems, overlapRatios, overlapLengths, Q,
 	let A = [],
 		C = [],
 		S = [],
+		D = [],
 		n = stems.length;
 	for (let j = 0; j < n; j++) {
 		A[j] = [];
 		C[j] = [];
 		S[j] = [];
-
+		D[j] = [];
 		for (let k = 0; k < n; k++) {
-			A[j][k] = C[j][k] = S[j][k] = 0;
+			A[j][k] = C[j][k] = S[j][k] = D[j][k] = 0;
 		}
 	}
 	let slopes = stems.map(function(s) {
@@ -191,6 +192,7 @@ exports.computeACS = function(strategy, stems, overlapRatios, overlapLengths, Q,
 				C[j][k] = 0;
 			}
 			S[j][k] = strategy.COEFF_S;
+			D[j][k] = D[k][j] = ovr;
 		}
 	}
 	for (let j = 0; j < n; j++) {
@@ -239,6 +241,7 @@ exports.computeACS = function(strategy, stems, overlapRatios, overlapLengths, Q,
 		annexation: A,
 		collision: C,
 		swap: S,
+		darkness: D,
 		flips: flipMatrix
 	};
 };

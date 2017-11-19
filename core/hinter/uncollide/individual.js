@@ -5,7 +5,8 @@ const DIAG_BIAS_PIXELS_NEG = 0.35;
 const PRETTY_FLAT = 1 / 3;
 const NOT_REALLY_FLAT = 4 / 5;
 const SLIGHTLY_SLANTED = 6 / 5;
-const ABLATION_MARK = 1 / 8192;
+const ABLATION_MARK = 1 / 65536;
+
 class Individual {
 	constructor(y, env, unbalanced) {
 		if (y) {
@@ -30,14 +31,11 @@ class Individual {
 		);
 	}
 	compare(that) {
-		const f1 = this.getFitness();
-		const f2 = that.getFitness();
-		return f1 - f2;
-		// if (this.collidePotential < that.collidePotential) return 1;
-		// if (this.collidePotential > that.collidePotential) return -1;
-		// if (this.ablationPotential < that.ablationPotential) return 1;
-		// if (this.ablationPotential > that.ablationPotential) return -1;
-		// return 0;
+		if (this.collidePotential < that.collidePotential) return 1;
+		if (this.collidePotential > that.collidePotential) return -1;
+		if (this.ablationPotential < that.ablationPotential) return 1;
+		if (this.ablationPotential > that.ablationPotential) return -1;
+		return 0;
 	}
 	better(that) {
 		return this.compare(that) > 0;
@@ -80,36 +78,101 @@ class Individual {
 
 	getSevereDistortionPotential(env) {
 		return (
+			this._getSevereOversepP(env, true) +
 			this._getDiagonalBreakP(env) +
 			this._getSwapAndSymBreakP(env) +
-			this._getSoftBreakP(env) +
-			this._getSevereOversepP(env)
+			this._getSoftBreakP(env)
 		);
 	}
-	_getSevereOversepP(env) {
+	_getSevereOversepP(env, severe) {
 		const y = this.gene,
 			avails = env.avails,
 			n = y.length,
+			D = env.D,
 			C = env.C,
-			A = env.A;
+			P = env.P;
 		let p = 0;
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
 				const d = y[j] - avails[j].properWidth - y[k];
-				const d0 =
-					avails[j].y0px -
-					Math.max(avails[0].w0px, avails[j].properWidth) -
-					avails[k].y0px;
-				if (d > 1 && d0 > 0.25 && d >= d0 * 1.75) {
+				const d0 = avails[j].y0px - Math.max(avails[j].w0px, 1) - avails[k].y0px;
+				if (d > 1 && d0 > 0.25 && d > d0) {
 					// Severely separated or compressed
 					// Treat as a collision
-					p += C[j][k] / d0;
+					p += D[j][k] / (1 + P[j][k]) * (d / d0 - 1) * (d / d0 - 1);
+					if (severe && d >= 1.75 * d0) {
+						p += C[j][k];
+					}
+				} else if (d > 0.25 && d0 > 1 && d0 > d) {
+					p += D[j][k] * (1 + P[j][k]) * (d0 / d - 1) * (d0 / d - 1);
+					if (severe && d0 >= 2 * d) {
+						p += C[j][k];
+					}
 				}
 			}
 		}
 		return p;
 	}
+	_measureTripletDistort(d1, d2, spacejk, spacekw, adjust) {
+		let p = 0;
+		const finelimit = 1 / 8;
+		const dlimit = 1 / 3;
+		const dlimitx = 2 / 3;
+		const compressLimit = 3 / 4;
 
+		const d = d1 - d2;
+		const expanded = spacejk > d1 + compressLimit && spacekw > d2 + compressLimit;
+		const compressed = spacejk < d1 - compressLimit && spacekw < d2 - compressLimit;
+		if (
+			(d >= dlimitx && spacejk <= spacekw) ||
+			(d >= dlimit && spacejk < spacekw) ||
+			(d <= -dlimitx && spacejk >= spacekw) ||
+			(d <= -dlimit && spacejk > spacekw) ||
+			(d < dlimit && d > -dlimit && (spacejk - spacekw > 1 || spacejk - spacekw < -1)) ||
+			(d < dlimit && d > -dlimit && (compressed || expanded))
+		) {
+			p += adjust;
+		}
+		if (d < finelimit && d > -finelimit && spacejk !== spacekw) {
+			p += adjust / 3;
+		}
+		if (spacejk + spacekw < 0.6 * (d1 + d2)) {
+			p += adjust * 64;
+		}
+		if ((spacejk + spacekw) * 0.6 > d1 + d2) {
+			p += adjust * 64;
+		}
+		return p;
+	}
+
+	_getTripletBreakP(env) {
+		if (env.noAblation) return 0;
+
+		const y = this.gene,
+			avails = env.avails,
+			triplets = env.triplets,
+			D = env.D;
+
+		let p = 0;
+
+		// Triplet distortion
+		for (let _t = 0; _t < triplets.length; _t++) {
+			const [j, k, w] = triplets[_t];
+			if (!(y[j] > y[k] && y[k] > y[w])) continue;
+			p += this._measureTripletDistort(
+				avails[j].y0px - avails[j].w0px - avails[k].y0px,
+				avails[k].y0px - avails[k].w0px - avails[w].y0px,
+				y[j] - y[k] - avails[j].properWidth,
+				y[k] - y[w] - avails[k].properWidth,
+				(D[j][k] + D[k][w]) / 2,
+				avails[j].xmin === avails[k].xmin &&
+					avails[k].xmin === avails[w].xmin &&
+					avails[j].xmax === avails[k].xmax &&
+					avails[k].xmax === avails[w].xmax
+			);
+		}
+		return p;
+	}
 	_getDiagonalBreakP(env) {
 		const y = this.gene,
 			avails = env.avails,
@@ -202,97 +265,10 @@ class Individual {
 
 	getAblationPotential(env) {
 		return (
-			this._getOverseparationP(env) * env.COEFF_OVERSEP +
-			this._getTripletBreakP(env) +
-			this._getShiftP(env)
+			this._getSevereOversepP(env, false) + this._getTripletBreakP(env) + this._getShiftP(env)
 		);
 	}
 
-	_measureTripletDistort(d1, d2, spacejk, spacekw, adjust, sym) {
-		let p = 0;
-		const finelimit = 1 / 8;
-		const dlimit = 1 / 3;
-		const dlimitx = 2 / 3;
-		const compressLimit = 3 / 4;
-
-		const d = d1 - d2;
-		const expanded = spacejk > d1 + compressLimit && spacekw > d2 + compressLimit;
-		const compressed = spacejk < d1 - compressLimit && spacekw < d2 - compressLimit;
-		if (
-			(d >= dlimitx && spacejk <= spacekw) ||
-			(d >= dlimit && spacejk < spacekw) ||
-			(d <= -dlimitx && spacejk >= spacekw) ||
-			(d <= -dlimit && spacejk > spacekw) ||
-			(d < dlimit && d > -dlimit && (spacejk - spacekw > 1 || spacejk - spacekw < -1)) ||
-			(d < dlimit && d > -dlimit && (compressed || expanded))
-		) {
-			p += adjust;
-		}
-		if (d < finelimit && d > -finelimit && spacejk !== spacekw) {
-			p += adjust / 3;
-			if (sym) p += adjust * 32;
-		}
-		if (spacejk + spacekw < 0.6 * (d1 + d2)) {
-			p += adjust * 64;
-		}
-		if ((spacejk + spacekw) * 0.6 > d1 + d2) {
-			p += adjust * 64;
-		}
-		return p;
-	}
-
-	_getTripletBreakP(env) {
-		if (env.noAblation) return 0;
-
-		const y = this.gene,
-			avails = env.avails,
-			triplets = env.triplets;
-
-		let p = 0;
-
-		// Triplet distortion
-		for (let _t = 0; _t < triplets.length; _t++) {
-			const [j, k, w] = triplets[_t];
-			if (!(y[j] > y[k] && y[k] > y[w])) continue;
-			p += this._measureTripletDistort(
-				avails[j].y0px - avails[j].w0px - avails[k].y0px,
-				avails[k].y0px - avails[k].w0px - avails[w].y0px,
-				y[j] - y[k] - avails[j].properWidth,
-				y[k] - y[w] - avails[k].properWidth,
-				(env.C[j][k] + env.C[k][w]) * env.strategy.COEFF_DISTORT,
-				avails[j].xmin === avails[k].xmin &&
-					avails[k].xmin === avails[w].xmin &&
-					avails[j].xmax === avails[k].xmax &&
-					avails[k].xmax === avails[w].xmax
-			);
-		}
-		return p;
-	}
-	_measureDistort(d, d0, pCompress, pSeparation) {
-		if (d0 <= 0 || d < 0) return 0;
-		if (d < d0) {
-			const overCompression = d0 / (d + 1) - d / (d + 1);
-			return overCompression * overCompression * pCompress;
-		} else {
-			const overSeparation = d / (d0 + 1) - d0 / (d0 + 1);
-			return overSeparation * overSeparation * pSeparation;
-		}
-	}
-	_getOverseparationP(env) {
-		const y = this.gene,
-			avails = env.avails,
-			n = y.length,
-			P = env.P;
-		let p = 0;
-		for (let j = 0; j < n; j++) {
-			for (let k = 0; k < j; k++) {
-				const d = y[j] - avails[j].properWidth - y[k];
-				const d0 = avails[j].y0px - avails[j].w0px - avails[k].y0px;
-				p += this._measureDistort(d, d0, P[j][k] + 1, 1);
-			}
-		}
-		return p;
-	}
 	_getShiftP(env) {
 		let p = 0;
 		const avails = env.avails,

@@ -30,7 +30,6 @@ function hint(gd, ppem, strg, y0, margins) {
 
 	const spInit = hinter.balance(hinter.decideInitHint(y0));
 	const spNT = hinter.balance(hinter.decideInitHintNT(y0));
-
 	// Y pass
 	let initWidths = hinter.avails.map(a => a.properWidth);
 	const spUncol = hinter.uncollide(spInit);

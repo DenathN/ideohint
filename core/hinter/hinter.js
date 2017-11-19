@@ -62,6 +62,7 @@ class Hinter {
 		this.A = fdefs.collisionMatrices.annexation;
 		this.C = fdefs.collisionMatrices.collision;
 		this.S = fdefs.collisionMatrices.swap;
+		this.D = fdefs.collisionMatrices.darkness;
 		this.P = fdefs.collisionMatrices.promixity;
 		this.Q = fdefs.collisionMatrices.spatialPromixity;
 		this.F = fdefs.collisionMatrices.flips;
@@ -259,13 +260,10 @@ class Hinter {
 	}
 
 	uncollide(y) {
-		const { strategy, ppem } = this;
-		const stages = //xclamp(
-			//2,
-			//Math.round(this.nStems / strategy.STEADY_STAGES_X * this.nStems / ppem),
-			strategy.STEADY_STAGES_MAX;
-		//);
-		const population = strategy.POPULATION_LIMIT; // * Math.max(1, this.nStems);
+		const { strategy } = this;
+		const stages = strategy.STEADY_STAGES_MAX;
+
+		const population = strategy.POPULATION_LIMIT;
 		const y1 = uncollide(y, this, stages, population, true);
 		const y2 = uncollide(y1, this, stages, population, false);
 		return y2;
