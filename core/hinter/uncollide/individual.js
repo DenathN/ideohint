@@ -2,6 +2,7 @@
 
 const DIAG_BIAS_PIXELS = 1 / 6;
 const DIAG_BIAS_PIXELS_NEG = 0.35;
+const REALLY_FLAT = 1 / 10;
 const PRETTY_FLAT = 1 / 3;
 const NOT_REALLY_FLAT = 4 / 5;
 const SLIGHTLY_SLANTED = 6 / 5;
@@ -93,6 +94,7 @@ class Individual {
 			bpx = env.glyphBottomPixels;
 		let p = 0;
 		for (let j = 0; j < n; j++) {
+			if (avails[j].hasGlyphStemAbove) continue;
 			const d = y[j] - avails[j].properWidth - bpx;
 			const d0 = avails[j].y0px - Math.max(avails[j].w0px, 1) - bpx;
 			if (d > 0 && d0 > 0.25 && d > d0) {
@@ -215,20 +217,15 @@ class Individual {
 					p += C[j][k]; // diagonal break
 
 					// Avoid this situation: Stem L and H are both pos-at-bottom, and L's width bring larger than H's. If so, then y[L] === y[H] is a swap.
-					const turningBack =
-						!avails[j].posKeyAtTop &&
-						avails[k].w0px > avails[j].w0px &&
-						avails[j].y0px - avails[j].w0px - (avails[k].y0px - avails[k].w0px) > 1 / 2;
-					if (turningBack && y[j] === y[k]) {
-						p += C[j][k];
-					}
+
 					if (
-						(y[j] > y[k] + (turningBack ? 1 : 0) &&
-							avails[j].y0px - avails[k].y0px < PRETTY_FLAT) ||
-						(y[j] <= y[k] + (turningBack ? 1 : 0) &&
-							avails[j].y0px - avails[k].y0px > NOT_REALLY_FLAT) ||
-						(y[j] > y[k] + 1 + (turningBack ? 1 : 0) &&
-							avails[j].y0px - avails[k].y0px < SLIGHTLY_SLANTED)
+						(y[j] > y[k] &&
+							avails[j].y0px - avails[k].y0px <
+								(avails[j].atGlyphTop || avails[k].atGlyphTop
+									? PRETTY_FLAT
+									: REALLY_FLAT)) ||
+						(y[j] <= y[k] && avails[j].y0px - avails[k].y0px > NOT_REALLY_FLAT) ||
+						(y[j] > y[k] + 1 && avails[j].y0px - avails[k].y0px < SLIGHTLY_SLANTED)
 					) {
 						p += S[j][k]; // severely broken!
 					}

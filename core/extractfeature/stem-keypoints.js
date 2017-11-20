@@ -14,7 +14,9 @@ module.exports = function(stems, strategy) {
 		// - is below half of the character frame, or
 		// - has a stem above it and not being the top frame of enclosed radical
 		const posKeyShouldAtBottom =
-			!s.hasGlyphStemBelow && !(s.hasGlyphFoldBelow || s.hasEntireContourBelow);
+			!s.hasGlyphStemBelow &&
+			!(s.hasGlyphFoldBelow || s.hasEntireContourBelow) &&
+			!(s.diagLow || s.diagHigh);
 
 		// get non-key points
 		let highnonkey = [],
