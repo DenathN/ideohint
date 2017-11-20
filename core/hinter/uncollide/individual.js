@@ -89,9 +89,20 @@ class Individual {
 			avails = env.avails,
 			n = y.length,
 			D = env.D,
-			C = env.C,
-			P = env.P;
+			P = env.P,
+			bpx = env.glyphBottomPixels;
 		let p = 0;
+		for (let j = 0; j < n; j++) {
+			const d = y[j] - avails[j].properWidth - bpx;
+			const d0 = avails[j].y0px - Math.max(avails[j].w0px, 1) - bpx;
+			if (d > 0 && d0 > 0.25 && d > d0) {
+				// Severely separated or compressed
+				// Treat as a collision
+				const sep =
+					avails[j].plength / (1 + avails[j].plength) * (d / d0 - 1) * (d / d0 - 1);
+				p += sep * (severe && d >= 1.75 * d0 ? 100 : 1);
+			}
+		}
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
 				const d = y[j] - avails[j].properWidth - y[k];
@@ -99,15 +110,11 @@ class Individual {
 				if (d > 1 && d0 > 0.25 && d > d0) {
 					// Severely separated or compressed
 					// Treat as a collision
-					p += D[j][k] / (1 + P[j][k]) * (d / d0 - 1) * (d / d0 - 1);
-					if (severe && d >= 1.75 * d0) {
-						p += C[j][k];
-					}
+					const sep = D[j][k] / (1 + P[j][k]) * (d / d0 - 1) * (d / d0 - 1);
+					p += sep * (severe && d >= 1.75 * d0 ? 100 : 1);
 				} else if (d > 0.25 && d0 > 1 && d0 > d) {
-					p += D[j][k] * (1 + P[j][k]) * (d0 / d - 1) * (d0 / d - 1);
-					if (severe && d0 >= 2 * d) {
-						p += C[j][k];
-					}
+					const compress = D[j][k] * (1 + P[j][k]) * (d0 / d - 1) * (d0 / d - 1);
+					p += compress * (severe && d0 >= 2 * d ? 100 : 1);
 				}
 			}
 		}
@@ -151,6 +158,7 @@ class Individual {
 		const y = this.gene,
 			avails = env.avails,
 			triplets = env.triplets,
+			quartlets = env.quartlets,
 			D = env.D;
 
 		let p = 0;
@@ -169,6 +177,21 @@ class Individual {
 					avails[k].xmin === avails[w].xmin &&
 					avails[j].xmax === avails[k].xmax &&
 					avails[k].xmax === avails[w].xmax
+			);
+		}
+		for (let _t = 0; _t < quartlets.length; _t++) {
+			const t = quartlets[_t];
+			const j = t[0],
+				k = t[1],
+				m = t[2],
+				w = t[3];
+			p += this._measureTripletDistort(
+				avails[j].y0px - avails[j].w0px - avails[k].y0px,
+				avails[m].y0px - avails[m].w0px - avails[w].y0px,
+				y[j] - y[k] - avails[j].properWidth,
+				y[m] - y[w] - avails[m].properWidth,
+				(D[j][k] + D[m][w]) / 2,
+				false
 			);
 		}
 		return p;
