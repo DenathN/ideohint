@@ -27,10 +27,12 @@ onmessage = function(message) {
 				g.features.stems,
 				g.features.overlaps,
 				strategy.UPM / ppem,
-				Math.round(
-					roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, strategy.UPM, ppem) /
-						(strategy.UPM / ppem)
-				)
+				[
+					Math.round(
+						roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, strategy.UPM, ppem) /
+							(strategy.UPM / ppem)
+					)
+				]
 			);
 		}
 	}

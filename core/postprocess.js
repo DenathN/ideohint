@@ -44,7 +44,7 @@ function getMinmax(stems, k, a, sign) {
 		return [sk.xmin, sk.xmax, couple, 0];
 	}
 }
-function padSD(actions, stems, overlaps, uppx, bottom) {
+function padSD(actions, stems, overlaps, uppx, [bottom, top]) {
 	let stackrel = [];
 	for (let j = 0; j < stems.length; j++) {
 		actions[j][HARD] = false;
@@ -53,7 +53,15 @@ function padSD(actions, stems, overlaps, uppx, bottom) {
 		stackrel[j] = [];
 	}
 	for (let j = 0; j < stems.length; j++) {
+		const sj = stems[j];
 		actions[j][W] = Math.min(actions[j][W], actions[j][Y] - bottom);
+		if (
+			sj.posKeyAtTop &&
+			widthOf(sj) / uppx > actions[j][W] &&
+			actions[j][Y] - actions[j][W] <= bottom
+		) {
+			actions[j][HARD] = true;
+		}
 	}
 	// downward strictness/stackness detection
 	for (let j = 0; j < stems.length; j++) {
@@ -155,19 +163,20 @@ function padSD(actions, stems, overlaps, uppx, bottom) {
 	}
 	return actions;
 }
-
+function calculateTB(si, ppem) {
+	const uppx = si.upm / ppem;
+	const rtg = roundings.Rtg(si.upm, ppem);
+	const rBottomPos = rtg(si.blue.bottomPos) / uppx;
+	const rTopPos = (rtg(si.blue.bottomPos) + rtg(si.blue.topPos - si.blue.bottomPos)) / uppx;
+	return [rBottomPos, rTopPos, si.blue.bottomPos, si.blue.topPos];
+}
 module.exports = function(data) {
 	if (!data) return;
 	const { si, sd, pmin, pmax } = data;
 	for (let ppem = pmin; ppem <= pmax; ppem++) {
 		if (!sd[ppem]) continue;
-		padSD(
-			sd[ppem].y,
-			si.stems,
-			si.overlaps,
-			si.upm / ppem,
-			Math.round(roundings.rtg(si.blue.bottomPos, si.upm, ppem) / (si.upm / ppem))
-		);
+		const [bot, top] = calculateTB(si, ppem);
+		padSD(sd[ppem].y, si.stems, si.overlaps, si.upm / ppem, [bot, top]);
 	}
 };
 module.exports.for = padSD;
