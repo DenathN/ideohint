@@ -63,7 +63,7 @@ exports.computePQ = function(strategy, stems, flipMatrix) {
 	return { P, Q };
 };
 
-exports.computeACS = function(strategy, stems, overlapRatios, overlapLengths, Q, flipMatrix) {
+exports.computeACS = function(strategy, stems, overlapRatios, overlapLengths, Q, F, dov) {
 	// A : Annexation operator
 	// C : Collision operator
 	// S : Swap operator
@@ -88,7 +88,7 @@ exports.computeACS = function(strategy, stems, overlapRatios, overlapLengths, Q,
 		const jrbot = atRadicalBottom(stems[j], strategy) && !isCapShape(stems[j], strategy);
 		for (let k = 0; k < j; k++) {
 			const krtop = atRadicalTop(stems[k], strategy);
-			const nothingInBetween = flipMatrix[j][k] <= 3;
+			const nothingInBetween = F[j][k] <= 3 || (dov && !dov[j][k]);
 			// Overlap weight
 			let ovr = overlapLengths[j][k];
 			const tb =
@@ -98,7 +98,7 @@ exports.computeACS = function(strategy, stems, overlapRatios, overlapLengths, Q,
 				overlapRatios[j][k] > 0.85 ||
 				overlapRatios[k][j] > 0.85 ||
 				ovr > 1 / 3 ||
-				(tb && (overlapRatios[j][k] > 0.3 || overlapRatios[k][j] > 0.3));
+				(tb && (overlapRatios[j][k] > 0.4 || overlapRatios[k][j] > 0.4));
 			let isSideTouch =
 				(stems[j].xmin < stems[k].xmin && stems[j].xmax < stems[k].xmax) ||
 				(stems[j].xmin > stems[k].xmin && stems[j].xmax > stems[k].xmax);
@@ -142,8 +142,10 @@ exports.computeACS = function(strategy, stems, overlapRatios, overlapLengths, Q,
 					Math.abs(stems[j].xmin - stems[k].xmin) < strategy.Y_FUZZ &&
 					Math.abs(stems[j].xmax - stems[k].xmax) < strategy.Y_FUZZ &&
 					!(
-						stems[j].promixityDown > stems[j].promixityUp &&
-						stems[k].promixityUp > stems[k].promixityDown
+						(stems[j].promixityDown > stems[j].promixityUp &&
+							stems[k].promixityUp >= stems[k].promixityDown) ||
+						(stems[j].promixityDown >= stems[j].promixityUp &&
+							stems[k].promixityUp > stems[k].promixityDown)
 					)
 				) {
 					coeffA /= strategy.COEFF_A_SAME_RADICAL * strategy.COEFF_A_SHAPE_LOST;
@@ -190,6 +192,9 @@ exports.computeACS = function(strategy, stems, overlapRatios, overlapLengths, Q,
 			if (!ovr) C[j][k] = 0;
 			if (stems[j].rid && stems[j].rid === stems[k].rid) {
 				C[j][k] = 0;
+			}
+			if (!C[j][k] || !A[j][k]) {
+				C[j][k] = A[j][k] = 0;
 			}
 			S[j][k] = strategy.COEFF_S;
 			D[j][k] = D[k][j] = ovr;
@@ -242,6 +247,6 @@ exports.computeACS = function(strategy, stems, overlapRatios, overlapLengths, Q,
 		collision: C,
 		swap: S,
 		darkness: D,
-		flips: flipMatrix
+		flips: F
 	};
 };

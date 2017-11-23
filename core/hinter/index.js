@@ -27,6 +27,7 @@ function choose(hinter, first, ...sps) {
 function hint(gd, ppem, strg, y0, margins) {
 	const hinter = new Hinter(strg, gd, ppem, margins);
 	if (!hinter.avails.length) return new HintDecision(hinter.xExpansion, [], false);
+
 	const spInit = hinter.balance(hinter.decideInitHint(y0));
 	const spNT = hinter.balance(hinter.decideInitHintNT(y0));
 	// Y pass
@@ -48,7 +49,7 @@ function hint(gd, ppem, strg, y0, margins) {
 		if (w1[j] !== initWidths[j]) doSecondPass = true;
 	}
 	if (doSecondPass) {
-		hinter.updateAvails([...w1]);
+		hinter.updateAvails([...w1], margins);
 		const spUncol1 = hinter.uncollide(hinter.balance(hinter.decideInitHint()));
 		const pass2Idv = choose(
 			hinter,

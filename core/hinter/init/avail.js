@@ -198,8 +198,8 @@ class Avail {
 
 /**
  * Adjust avail list to unify top/bottom features
- * @param {*} avails 
- * @param {*} stems 
+ * @param {*} avails
+ * @param {*} stems
  */
 function adjustAvails(avails, stems) {
 	const { uppx } = this;
@@ -226,6 +226,9 @@ function adjustAvails(avails, stems) {
 						(avail.atGlyphBottom && avail.isHangingHook ? 1 : 0)
 				)
 			);
+			if (avail.atGlyphBottom && !avail.isHangingHook && !avail.diagHigh && !avail.diagLow) {
+				avail.high = avail.low;
+			}
 		}
 		/// lock top
 		if (

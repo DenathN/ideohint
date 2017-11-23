@@ -82,7 +82,8 @@ function padSD(actions, stems, overlaps, uppx, [bottom, top]) {
 				sjmax >= skmax - wk / 2 * uppx &&
 				sjmin <= skmin + wk / 2 * uppx &&
 				!(sjmax < skmax && sjmin > skmin) &&
-				!(sj.rid === sk.rid && sj.rid)
+				!(sj.rid === sk.rid && sj.rid) &&
+				(sk.hasGlyphStemBelow && sk.hasGlyphStemAbove)
 			) {
 				stackrel[j][k] = ABOVE;
 				stackrel[k][j] = BELOW;
@@ -119,7 +120,8 @@ function padSD(actions, stems, overlaps, uppx, [bottom, top]) {
 				sjmax >= skmax - wk / 2 * uppx &&
 				sjmin <= skmin + wk / 2 * uppx &&
 				!(skmax > sjmax && skmin < sjmin) &&
-				!(sj.rid === sk.rid && sj.rid)
+				!(sj.rid === sk.rid && sj.rid) &&
+				(sk.hasGlyphStemBelow && sk.hasGlyphStemAbove)
 			) {
 				stackrel[j][k] = BELOW;
 				stackrel[k][j] = ABOVE;
@@ -152,15 +154,15 @@ function padSD(actions, stems, overlaps, uppx, [bottom, top]) {
 			}
 		}
 	}
-	for (let j = 0; j < stems.length; j++) {
-		for (let k = 0; k < j; k++) {
-			for (let m = 0; m < k; m++) {
-				if (stackrel[j][k] && stackrel[j][k] === stackrel[k][m] && overlaps[j][k]) {
-					actions[k][W] = 0;
-				}
-			}
-		}
-	}
+	// for (let j = 0; j < stems.length; j++) {
+	// 	for (let k = 0; k < j; k++) {
+	// 		for (let m = 0; m < k; m++) {
+	// 			if (stackrel[j][k] && stackrel[j][k] === stackrel[k][m] && overlaps[j][k]) {
+	// 				actions[k][W] = 0;
+	// 			}
+	// 		}
+	// 	}
+	// }
 	return actions;
 }
 function calculateTB(si, ppem) {

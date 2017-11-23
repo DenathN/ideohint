@@ -278,9 +278,17 @@ function pairSegments(radicals, strategy) {
 	return stems;
 }
 
+function byY(a, b) {
+	if (a.y < b.y) return -1;
+	if (a.y > b.y) return 1;
+	if (a.width > b.width) return -1;
+	if (a.width < b.width) return 1;
+	return 0;
+}
+
 module.exports = function(radicals, strategy) {
 	findHorizontalSegments(radicals, strategy);
-	let ss = pairSegments(radicals, strategy).sort((a, b) => a.y - b.y);
+	let ss = pairSegments(radicals, strategy).sort(byY);
 	ss = pairSymmetricStems(ss, strategy);
 	ss = splitDiagonalStems(ss, strategy);
 	for (let s of ss) {
@@ -289,5 +297,5 @@ module.exports = function(radicals, strategy) {
 			.calculateMinmax(radicals, strategy)
 			.calculateExp(radicals[s.belongRadical]);
 	}
-	return ss;
+	return ss.sort(byY);
 };

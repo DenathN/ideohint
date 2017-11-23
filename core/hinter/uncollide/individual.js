@@ -1,5 +1,7 @@
 "use strict";
 
+const { xclamp } = require("../../../support/common");
+
 const DIAG_BIAS_PIXELS = 1 / 6;
 const DIAG_BIAS_PIXELS_NEG = 0.35;
 const REALLY_FLAT = 1 / 10;
@@ -7,6 +9,21 @@ const PRETTY_FLAT = 1 / 3;
 const NOT_REALLY_FLAT = 4 / 5;
 const SLIGHTLY_SLANTED = 6 / 5;
 const ABLATION_MARK = 1 / 65536;
+
+function clampOverflow(delta) {
+	return xclamp(-0.5, Math.round(delta * 8) / 8, 0.5);
+}
+
+function calSpaceBetween(y, avails, j, k) {
+	const aj = avails[j],
+		ak = avails[k],
+		space0 = y[j] - aj.properWidth - y[k];
+	return (
+		space0 -
+		(aj.posKeyAtTop ? clampOverflow(Math.max(1, aj.w0px) - aj.properWidth) : 0) -
+		(ak.posKeyAtTop ? 0 : clampOverflow(Math.max(1, ak.w0px) - ak.properWidth))
+	);
+}
 
 class Individual {
 	constructor(y, env, unbalanced) {
@@ -64,7 +81,7 @@ class Individual {
 					if (C[j][k]) nCol += sol[j][k] * ppem * ppem * 0.04;
 				}
 				if (y[j] === y[k]) {
-					if (dov[j][k]) pA += A[j][k]; // Annexation
+					pA += A[j][k]; // Annexation
 				} else if (y[j] <= y[k] + avails[j].properWidth) {
 					const d = 1 - (y[j] - avails[j].properWidth - y[k]);
 					pC += C[j][k] * d * d; // Collide
@@ -91,32 +108,46 @@ class Individual {
 			n = y.length,
 			D = env.D,
 			P = env.P,
-			bpx = env.glyphBottomPixels;
+			bpx = env.glyphBottomPixels,
+			dov = env.directOverlaps;
+
+		let nA = 0;
+		for (let j = 0; j < n; j++) {
+			for (let k = 0; k < j; k++) {
+				if (y[j] === y[k]) nA += D[j][k];
+			}
+		}
+		const severeCoeff = 100 + 10000 * nA;
 		let p = 0;
+		// Overseparation of bottommost strokes
 		for (let j = 0; j < n; j++) {
 			if (avails[j].hasGlyphStemAbove) continue;
 			const d = y[j] - avails[j].properWidth - bpx;
 			const d0 = avails[j].y0px - Math.max(avails[j].w0px, 1) - bpx;
 			if (d > 0 && d0 > 0.25 && d > d0) {
-				// Severely separated or compressed
-				// Treat as a collision
 				const sep =
-					avails[j].plength / (1 + avails[j].plength) * (d / d0 - 1) * (d / d0 - 1);
-				p += sep * (severe && d >= 1.75 * d0 ? 100 : 1);
+					avails[j].plength /
+					(1 + avails[j].plength) *
+					(d / d0 - 1) *
+					(d / d0 - 1) *
+					(12 / env.ppem);
+				p += sep * (severe && d >= 1.75 * d0 ? severeCoeff : 1);
 			}
 		}
+		// Overseparation of di-strokes
 		for (let j = 0; j < n; j++) {
 			for (let k = 0; k < j; k++) {
+				if (!dov[j][k]) continue;
 				const d = y[j] - avails[j].properWidth - y[k];
 				const d0 = avails[j].y0px - Math.max(avails[j].w0px, 1) - avails[k].y0px;
-				if (d > 1 && d0 > 0.25 && d > d0) {
+				if (d > 0 && d0 > 0 && d > d0) {
 					// Severely separated or compressed
 					// Treat as a collision
-					const sep = D[j][k] / (1 + P[j][k]) * (d / d0 - 1) * (d / d0 - 1);
-					p += sep * (severe && d >= 1.75 * d0 ? 100 : 1);
-				} else if (d > 0.25 && d0 > 1 && d0 > d) {
-					const compress = D[j][k] * (1 + P[j][k]) * (d0 / d - 1) * (d0 / d - 1);
-					p += compress * (severe && d0 >= 2 * d ? 100 : 1);
+					const sep = D[j][k] / (1 + P[j][k]) * (d - d0) * (d - d0);
+					p += sep * (severe && d >= 1.75 * d0 && d > 1 ? severeCoeff : 1);
+				} else if (d > 0 && d0 > 0 && d0 > d) {
+					const compress = D[j][k] * (1 + P[j][k]) * (d - d0) * (d - d0);
+					p += compress * (severe && d0 >= 2 * d && d0 > 0.75 ? severeCoeff : 1);
 				}
 			}
 		}
@@ -221,7 +252,7 @@ class Individual {
 					if (
 						(y[j] > y[k] &&
 							avails[j].y0px - avails[k].y0px <
-								(avails[j].atGlyphTop || avails[k].atGlyphTop
+								(avails[j].hasGlyphStemBelow || avails[k].hasGlyphStemBelow
 									? PRETTY_FLAT
 									: REALLY_FLAT)) ||
 						(y[j] <= y[k] && avails[j].y0px - avails[k].y0px > NOT_REALLY_FLAT) ||

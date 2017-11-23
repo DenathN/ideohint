@@ -21,6 +21,9 @@ function cover(s, t) {
 function requiredSpaceBetween(env, j, k) {
 	return env.F[j][k] > 4 ? env.WIDTH_GEAR_PROPER : env.F[j][k] > 3 ? 1 : 0;
 }
+function dominate(aj, ak) {
+	return aj.xminX < ak.xminX && aj.xmaxX > ak.xmaxX;
+}
 function spaceBelow(env, y, w, k, bottom) {
 	let space = y[k] - w[k] - bottom;
 	for (let j = k - 1; j >= 0; j--) {
@@ -230,14 +233,17 @@ function allocateWidth(y0, env) {
 			w = w1;
 		}
 	}
-	function tripletBalance(j, k, m) {
+	function tripletBalance(pass, j, k, m) {
 		// Triplet balancing
 
 		let y1 = y.slice(0),
 			w1 = w.slice(0);
-		if (tripletSatisifiesPattern(j, k, m, 1, 0, 1, 2, 2, ANY, ANY, ANY)) {
-			(y[k] -= 1), (y[m] -= 1), (w[m] -= 1);
-		} else if (tripletSatisifiesPattern(j, k, m, 2, 2, 1, 0, 1, ANY, ANY, ANY)) {
+		if (tripletSatisifiesPattern(j, k, m, 1, 0, 1, 1, 2, ANY, ANY, ANY)) {
+			// [1] 0 [1] 1 [2] -> [1] 1 [1] 1 [1]
+			y[k] -= 1;
+			y[m] -= 1;
+			w[m] -= 1;
+		} else if (tripletSatisifiesPattern(j, k, m, 2, 1, 1, 0, 1, ANY, ANY, ANY)) {
 			// [2] 1 [1] 0 [1] -> [1] 1 [1] 1 [1]
 			w[j] -= 1;
 			y[k] += 1;
@@ -290,6 +296,18 @@ function allocateWidth(y0, env) {
 		} else if (tripletSatisifiesPattern(j, k, m, 2, 2, 2, 1, 1, SUFF, ANY, LESS)) {
 			// [2] 2 [2] 1 [1] -> [2] 1 [2] 1 [2]
 			(y[k] += 1), (y[m] += 1), (w[m] += 1);
+		} else if (
+			(tripletSatisifiesPattern(j, k, m, 2, 1, 1, 1, 2, SUFF, ANY, ANY) ||
+				tripletSatisifiesPattern(j, k, m, 2, 1, 1, 1, 2, ANY, ANY, SUFF)) &&
+			dominate(avails[k], avails[j]) &&
+			dominate(avails[k], avails[m])
+		) {
+			// [2] 1 [1D] 1 [2] -> [1] 1 [2] 1 [2] or [2] 1 [2] 1 [1]
+			if (pass % 2) {
+				(w[j] -= 1), (y[k] += 1), (w[k] += 1);
+			} else {
+				(w[k] += 1), (w[m] -= 1), (y[m] -= 1);
+			}
 		} else if (
 			avails[j].atGlyphTop &&
 			tripletSatisifiesPattern(j, k, m, 1, 1, 1, 1, 2, LESS, ANY, SUFF)
@@ -358,7 +376,7 @@ function allocateWidth(y0, env) {
 				}
 			}
 			for (let [j, k, m] of triplets) {
-				tripletBalance(j, k, m);
+				tripletBalance(pass, j, k, m);
 			}
 			edgeTouchBalance();
 		}

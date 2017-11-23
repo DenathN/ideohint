@@ -76,7 +76,8 @@ function findStems(glyph, strategy) {
 		glyph.stemOverlaps,
 		glyph.stemOverlapLengths,
 		Q,
-		F
+		F,
+		directOverlaps
 	);
 	glyph.collisionMatrices.promixity = P;
 	glyph.collisionMatrices.spatialPromixity = Q;
