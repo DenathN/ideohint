@@ -253,27 +253,17 @@ class Individual {
 					y[j] - y[k] < avails[j].y0px - avails[k].y0px - DIAG_BIAS_PIXELS_NEG
 				) {
 					p += C[j][k]; // diagonal break
-
-					// Avoid this situation: Stem L and H are both pos-at-bottom, and L's width bring larger than H's. If so, then y[L] === y[H] is a swap.
-					const turningBack =
-						!avails[j].posKeyAtTop &&
-						avails[k].w0px > avails[j].w0px &&
-						avails[j].y0px - avails[j].w0px - (avails[k].y0px - avails[k].w0px) > 1 / 3;
-					if (turningBack && y[j] === y[k]) {
-						p += C[j][k];
-					}
-
-					if (
-						(y[j] > y[k] &&
-							avails[j].y0px - avails[k].y0px <
-								(avails[j].hasGlyphStemBelow || avails[k].hasGlyphStemBelow
-									? PRETTY_FLAT
-									: REALLY_FLAT)) ||
-						(y[j] <= y[k] && avails[j].y0px - avails[k].y0px > NOT_REALLY_FLAT) ||
-						(y[j] > y[k] + 1 && avails[j].y0px - avails[k].y0px < SLIGHTLY_SLANTED)
-					) {
-						p += S[j][k]; // severely broken!
-					}
+				}
+				if (
+					(y[j] > y[k] &&
+						avails[j].y0px - avails[k].y0px <
+							(avails[j].hasGlyphStemBelow || avails[k].hasGlyphStemBelow
+								? PRETTY_FLAT
+								: REALLY_FLAT)) ||
+					(y[j] <= y[k] && avails[j].y0px - avails[k].y0px > NOT_REALLY_FLAT) ||
+					(y[j] > y[k] + 1 && avails[j].y0px - avails[k].y0px < SLIGHTLY_SLANTED)
+				) {
+					p += S[j][k]; // severely broken!
 				}
 			}
 		}
