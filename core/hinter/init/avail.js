@@ -226,7 +226,13 @@ function adjustAvails(avails, stems) {
 						(avail.atGlyphBottom && avail.isHangingHook ? 1 : 0)
 				)
 			);
-			if (avail.atGlyphBottom && !avail.isHangingHook && !avail.diagHigh && !avail.diagLow) {
+			if (
+				avail.atGlyphBottom &&
+				!avail.atGlyphTop &&
+				!avail.isHangingHook &&
+				!avail.diagHigh &&
+				!avail.diagLow
+			) {
 				avail.high = avail.low;
 			}
 		}
