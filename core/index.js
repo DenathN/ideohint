@@ -7,7 +7,7 @@ const { parseOTD } = require("./otdParser");
 const { xclamp, toVQ } = require("../support/common");
 const roundings = require("../support/roundings");
 
-exports.version = 10914;
+exports.version = 10915;
 
 exports.hintSingleGlyph = function(contours, strategy) {
 	return exports.decideHints(
@@ -117,10 +117,7 @@ exports.decideHints = function(featData, strategy) {
 		const thatPPEM = ppem + 1;
 		const [bottomThis, topThis] = topbotOf(strategy, upm, ppem);
 		const [bottomThat, topThat] = topbotOf(strategy, upm, thatPPEM);
-		initialRanges = actions.y.map(([y, w], j) => [
-			featData.stems[j].diagHigh ? (y - w - bottomThis > 0 ? 1 : 0) : y - w - bottomThis,
-			featData.stems[j].diagLow ? (topThis - y > 0 ? 1 : 0) : topThis - y
-		]);
+		initialRanges = actions.y.map(([y, w], j) => [y - w - bottomThis, topThis - y]);
 
 		initialY = actions.y.map(function(a) {
 			const y = a[0];

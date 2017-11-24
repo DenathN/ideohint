@@ -97,6 +97,7 @@ class Individual {
 	getSevereDistortionPotential(env) {
 		return (
 			this._getSevereOversepP(env, true) +
+			this._getTripletBreakP(env, true) +
 			this._getDiagonalBreakP(env) +
 			this._getSwapAndSymBreakP(env) +
 			this._getSoftBreakP(env)
@@ -118,6 +119,7 @@ class Individual {
 			}
 		}
 		const severeCoeff = 100 + 10000 * nA;
+		const nonSevereCoeff = severe ? 0 : 1;
 		let p = 0;
 		// Overseparation of bottommost strokes
 		for (let j = 0; j < n; j++) {
@@ -131,7 +133,7 @@ class Individual {
 					(d / d0 - 1) *
 					(d / d0 - 1) *
 					(12 / env.ppem);
-				p += sep * (severe && d >= 1.75 * d0 ? severeCoeff : 1);
+				p += sep * (severe && d >= 1.75 * d0 ? severeCoeff : nonSevereCoeff);
 			}
 		}
 		// Overseparation of di-strokes
@@ -153,8 +155,9 @@ class Individual {
 		}
 		return p;
 	}
-	_measureTripletDistort(d1, d2, spacejk, spacekw, adjust) {
+	_measureTripletDistort(d1, d2, spacejk, spacekw, adjust, severe) {
 		let p = 0;
+		let pS = 0;
 		const finelimit = 1 / 8;
 		const dlimit = 1 / 3;
 		const dlimitx = 2 / 3;
@@ -175,6 +178,9 @@ class Individual {
 		}
 		if (d < finelimit && d > -finelimit && spacejk !== spacekw) {
 			p += adjust / 3;
+			if (spacejk >= 2.25 * spacekw || spacekw >= 2.25 * spacejk) {
+				pS += adjust * 64;
+			}
 		}
 		if (spacejk + spacekw < 0.6 * (d1 + d2)) {
 			p += adjust * 64;
@@ -182,10 +188,14 @@ class Individual {
 		if ((spacejk + spacekw) * 0.6 > d1 + d2) {
 			p += adjust * 64;
 		}
-		return p;
+		if (severe) {
+			return pS;
+		} else {
+			return p;
+		}
 	}
 
-	_getTripletBreakP(env) {
+	_getTripletBreakP(env, severe) {
 		if (env.noAblation) return 0;
 
 		const y = this.gene,
@@ -206,10 +216,7 @@ class Individual {
 				y[j] - y[k] - avails[j].properWidth,
 				y[k] - y[w] - avails[k].properWidth,
 				(D[j][k] + D[k][w]) / 2,
-				avails[j].xmin === avails[k].xmin &&
-					avails[k].xmin === avails[w].xmin &&
-					avails[j].xmax === avails[k].xmax &&
-					avails[k].xmax === avails[w].xmax
+				severe
 			);
 		}
 		for (let _t = 0; _t < quartlets.length; _t++) {
@@ -224,7 +231,7 @@ class Individual {
 				y[j] - y[k] - avails[j].properWidth,
 				y[m] - y[w] - avails[m].properWidth,
 				(D[j][k] + D[m][w]) / 2,
-				false
+				severe
 			);
 		}
 		return p;
@@ -248,6 +255,13 @@ class Individual {
 					p += C[j][k]; // diagonal break
 
 					// Avoid this situation: Stem L and H are both pos-at-bottom, and L's width bring larger than H's. If so, then y[L] === y[H] is a swap.
+					const turningBack =
+						!avails[j].posKeyAtTop &&
+						avails[k].w0px > avails[j].w0px &&
+						avails[j].y0px - avails[j].w0px - (avails[k].y0px - avails[k].w0px) > 1 / 3;
+					if (turningBack && y[j] === y[k]) {
+						p += C[j][k];
+					}
 
 					if (
 						(y[j] > y[k] &&

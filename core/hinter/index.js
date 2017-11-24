@@ -35,7 +35,7 @@ function hint(gd, ppem, strg, y0, margins) {
 	const spUncol = hinter.uncollide(spInit);
 	// width pass
 	const pass1Idv = choose(hinter, spNT, spUncol);
-	let { y, w } = hinter.allocateWidth(pass1Idv.gene);
+	let { y, w } = hinter.allocateWidth([...pass1Idv.gene]);
 
 	// filter out outliers
 	const otl = outlier(w);
@@ -46,6 +46,7 @@ function hint(gd, ppem, strg, y0, margins) {
 	// do the second pass if necessary
 	let doSecondPass = false;
 	for (let j = 0; j < w1.length; j++) {
+		if (y[j] !== pass1Idv.gene[j]) doSecondPass = true;
 		if (w1[j] !== initWidths[j]) doSecondPass = true;
 	}
 	if (doSecondPass) {

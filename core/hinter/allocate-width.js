@@ -382,64 +382,6 @@ function allocateWidth(y0, env) {
 		}
 	}
 
-	// Triplet whitespace balancing
-	for (let pass = 0; pass < env.strategy.REBALANCE_PASSES; pass++) {
-		for (let [j, k, m] of triplets) {
-			const su = spaceAbove(env, y, w, k, pixelTop + 2);
-			const sb = spaceBelow(env, y, w, k, pixelBottom - 2);
-			const d1 = y[j] - w[j] - y[k];
-			const d2 = y[k] - w[k] - y[m];
-			const o1 = avails[j].y0 - avails[j].w0 - avails[k].y0;
-			const o2 = avails[k].y0 - avails[k].w0 - avails[m].y0;
-			const o1o2 = o1 / o2;
-			if (
-				su > 1 &&
-				(sb < 1 || d1 >= d2 * 1.66) &&
-				o1o2 <= 0.9 &&
-				y[k] < avails[k].highW &&
-				(k === N + 1 || y[k] + 1 <= y[k + 1]) &&
-				env.P[j][k] <= env.P[k][m]
-			) {
-				// A distorted triplet space, but we can adjust this stem up.
-				y[k] += 1;
-				if (
-					properWidths[k] > w[k] &&
-					Math.abs((d1 - 1) / (d2 + 1) - o1o2) > Math.abs((d1 - 1) / d2 - o1o2)
-				) {
-					w[k] += 1;
-				}
-			} else if (
-				sb > 1 &&
-				(su < 1 || d2 >= d1 * 1.66) &&
-				o1o2 >= 1.1 &&
-				env.P[j][k] >= env.P[k][m]
-			) {
-				if (w[k] < properWidths[k]) {
-					// A distorted triplet space, but we increase the middle stem’s weight
-					w[k] += 1;
-				} else if (
-					y[k] > avails[k].lowW &&
-					(k === 0 || y[k] - 1 >= y[k - 1]) &&
-					!(
-						d2 < 3 &&
-						avails[j].posKeyAtTop &&
-						avails[k].posKeyAtTop &&
-						!avails[m].posKeyAtTop
-					)
-				) {
-					// A distorted triplet space, but we can adjust this stem down.
-					y[k] -= 1;
-					if (
-						w[j] < properWidths[j] &&
-						Math.abs((d1 + 1) / (d2 - 1) - o1o2) > Math.abs(d1 / (d2 - 1) - o1o2) &&
-						spaceBelow(env, y, w, j, pixelBottom - 2) > 1
-					) {
-						w[j] += 1;
-					}
-				}
-			}
-		}
-	}
 	// Prevent swap
 	for (let j = y.length - 2; j >= 0; j--) {
 		if (y[j] > y[j + 1]) {
