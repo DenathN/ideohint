@@ -13,10 +13,12 @@ const pairSymmetricStems = require("./pair-symmetric-stems");
 const { splitDiagonalStems } = require("./split-diagonal-stems");
 
 function by_yori(a, b) {
-	return a[0].y - b[0].y;
+	if (a[0].y !== b[0].y) return a[0].y - b[0].y;
+	return a[0].x - b[0].x;
 }
 function by_xori(a, b) {
-	return a[0].x - b[0].x;
+	if (a[0].x !== b[0].x) return a[0].x - b[0].x;
+	return a[0].y - b[0].y;
 }
 
 const PROPORTION = 1.25;
