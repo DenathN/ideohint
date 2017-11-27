@@ -76,7 +76,9 @@ function chooseTBPos0(stemKind, stem, cvtCutin, choices) {
 	if (Math.abs(stem.pOrg - y) > cvtCutin) return null;
 
 	return {
-		posInstr: `/* !!IDH!! StemDef ${stem.sid} ${stemKind} ABSORB */\nYAnchor(${stem.ipz},${cvt})`,
+		posInstr: `/* !!IDH!! StemDef ${stem.sid} ${stemKind} ABSORB */\nYAnchor(${stem.ipz},${
+			cvt
+		})`,
 		pos0s
 	};
 }
@@ -129,9 +131,14 @@ class VTTCompiler {
 	get hintedPositions() {
 		if (!this._hintedPositions) {
 			let hp = {};
-			const { upm, pmin, pmax, strategy } = this;
-			hp.bot = table(pmin, pmax, ppem =>
-				roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
+			const { sd, upm, pmin, pmax, strategy } = this;
+			hp.bot = table(
+				pmin,
+				pmax,
+				ppem =>
+					sd[ppem] && sd[ppem].y_tb
+						? sd[ppem].y_tb.bottom * upm / ppem
+						: roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
 			);
 			hp.top0 = table(pmin, pmax, ppem =>
 				roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem)
@@ -140,12 +147,14 @@ class VTTCompiler {
 				pmin,
 				pmax,
 				ppem =>
-					roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem) +
-					roundings.rtg(
-						strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER,
-						upm,
-						ppem
-					)
+					sd[ppem] && sd[ppem].y_tb
+						? sd[ppem].y_tb.top * upm / ppem
+						: roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem) +
+							roundings.rtg(
+								strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER,
+								upm,
+								ppem
+							)
 			);
 			hp.botB = table(pmin, pmax, ppem => roundings.rtg(this.aux.yBotBar, upm, ppem));
 			hp.topB = table(pmin, pmax, ppem => roundings.rtg(this.aux.yTopBar, upm, ppem));
@@ -275,7 +284,9 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 			const bsHintingMethodList = [];
 			// Direct YAnchor
 			bsHintingMethodList.push({
-				posInstr: `/* !!IDH!! StemDef ${bottomStem.sid} BOTTOM Direct */\nYAnchor(${bottomStem.ipz})`,
+				posInstr: `/* !!IDH!! StemDef ${bottomStem.sid} BOTTOM Direct */\nYAnchor(${
+					bottomStem.ipz
+				})`,
 				pos0s: null
 			});
 			// CVT YAnchor
@@ -325,7 +336,9 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 			const tsHintingMethodList = [];
 			// Direct YAnchor
 			tsHintingMethodList.push({
-				posInstr: `/* !!IDH!! StemDef ${topStem.sid} TOP Direct */\nYAnchor(${topStem.ipz})`,
+				posInstr: `/* !!IDH!! StemDef ${topStem.sid} TOP Direct */\nYAnchor(${
+					topStem.ipz
+				})`,
 				pos0s: null
 			});
 			// CVT YAnchor

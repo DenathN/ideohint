@@ -1,7 +1,6 @@
 "use strict";
 
 const roundings = require("../support/roundings");
-const util = require("util");
 const pushargs = require("./invoke").pushargs;
 const invokesToInstrs = require("./invoke").invokesToInstrs;
 const pushInvokes = require("./invoke").pushInvokes;
@@ -12,7 +11,6 @@ const decideDeltaShift = require("./delta.js").decideDeltaShift;
 function ipsaInvokes(actions) {
 	if (!actions) return [];
 	var invokes = [];
-	var cur_rp0 = -1;
 	var cur_rp1 = -1;
 	var cur_rp2 = -1;
 	for (var k = 0; k < actions.length; k++) {
@@ -46,30 +44,113 @@ function ipsaInvokes(actions) {
 	return invokes;
 }
 
-function pushDeltaCalls(deltaCalls, invocations, STACK_DEPTH) {
-	if (!deltaCalls.length) return;
-	var currentDeltaCall = {
-		arg: deltaCalls[0].arg.slice(0),
-		instruction: deltaCalls[0].instruction
-	};
-	for (var j = 1; j < deltaCalls.length; j++) {
-		if (
-			deltaCalls[j].instruction === currentDeltaCall.instruction &&
-			currentDeltaCall.arg.length + deltaCalls[j].arg.length < STACK_DEPTH - 10
-		) {
-			// Same Instruction
-			currentDeltaCall.arg = currentDeltaCall.arg.concat(deltaCalls[j].arg);
+class DeltaEncoder {
+	constructor(sdb, stackDepth) {
+		this.gear = GEAR;
+		this.sds = SDS;
+		this.gearCoarse = GEAR_COARSE;
+		this.sdsCoarse = SDS_COARSE;
+		this.sdb = sdb;
+		this.stackDepth = stackDepth;
+
+		this.deltas = [];
+	}
+
+	encodeDeltaVal(d, ppem) {
+		if (!d) return [];
+		if (d < -8) {
+			return this.encodeDeltaVal(-8, ppem).concat(this.encodeDeltaVal(d + 8, ppem));
+		}
+		if (d > 8) {
+			return this.encodeDeltaVal(8, ppem).concat(this.encodeDeltaVal(d - 8, ppem));
+		}
+		var selector = d > 0 ? d + 7 : d + 8;
+		var deltappem = (ppem - this.sdb) % 16;
+		return [deltappem * 16 + selector];
+	}
+
+	encodeDelta(d, ppem) {
+		if (d >= 0) {
+			const dCoarse = (d / this.gearCoarse) | 0;
+			const dFine = d % this.gearCoarse;
+			return {
+				coarse: this.encodeDeltaVal(dCoarse, ppem),
+				fine: this.encodeDeltaVal(dFine, ppem)
+			};
 		} else {
-			currentDeltaCall.arg.push(currentDeltaCall.arg.length >> 1);
-			invocations.push([currentDeltaCall.arg, [currentDeltaCall.instruction]]);
-			currentDeltaCall = {
-				arg: deltaCalls[j].arg.slice(0),
-				instruction: deltaCalls[j].instruction
+			const dCoarse = (-d / this.gearCoarse) | 0;
+			const dFine = -d % this.gearCoarse;
+			return {
+				coarse: this.encodeDeltaVal(-dCoarse, ppem),
+				fine: this.encodeDeltaVal(-dFine, ppem)
 			};
 		}
 	}
-	currentDeltaCall.arg.push(currentDeltaCall.arg.length >> 1);
-	invocations.push([currentDeltaCall.arg, [currentDeltaCall.instruction]]);
+
+	pushDelta(ppem, pointID, shift) {
+		this.deltas.push({
+			id: pointID,
+			ppem,
+			deltas: this.encodeDelta(shift, ppem)
+		});
+	}
+
+	_pushDeltaCalls(deltaCalls, invocations, STACK_DEPTH) {
+		if (!deltaCalls.length) return;
+		var currentDeltaCall = {
+			arg: deltaCalls[0].arg.slice(0),
+			instruction: deltaCalls[0].instruction
+		};
+		for (var j = 1; j < deltaCalls.length; j++) {
+			if (
+				deltaCalls[j].instruction === currentDeltaCall.instruction &&
+				currentDeltaCall.arg.length + deltaCalls[j].arg.length < STACK_DEPTH - 10
+			) {
+				// Same Instruction
+				currentDeltaCall.arg = currentDeltaCall.arg.concat(deltaCalls[j].arg);
+			} else {
+				currentDeltaCall.arg.push(currentDeltaCall.arg.length >> 1);
+				invocations.push([currentDeltaCall.arg, [currentDeltaCall.instruction]]);
+				currentDeltaCall = {
+					arg: deltaCalls[j].arg.slice(0),
+					instruction: deltaCalls[j].instruction
+				};
+			}
+		}
+		currentDeltaCall.arg.push(currentDeltaCall.arg.length >> 1);
+		invocations.push([currentDeltaCall.arg, [currentDeltaCall.instruction]]);
+	}
+
+	formDeltaCall() {
+		const deltaCalls = { coarse: [], fine: [] };
+		const _deltas = this.deltas.sort((a, b) => a.ppem - b.ppem);
+		for (let { deltas: { coarse, fine }, ppem, id } of _deltas) {
+			let instr = "DELTAP" + (1 + Math.floor((ppem - this.sdb) / 16));
+			for (let d of coarse) {
+				deltaCalls.coarse.push({
+					arg: [d, id],
+					instruction: instr
+				});
+			}
+			for (let d of fine) {
+				deltaCalls.fine.push({
+					arg: [d, id],
+					instruction: instr
+				});
+			}
+		}
+
+		const invokes = [];
+		if (deltaCalls.coarse.length) {
+			invokes.push([[this.sds - this.sdsCoarse], ["SDS"]]);
+			this._pushDeltaCalls(deltaCalls.coarse, invokes, this.stackDepth);
+		}
+		if (deltaCalls.fine.length) {
+			invokes.push([[this.sds], ["SDS"]]);
+			this._pushDeltaCalls(deltaCalls.fine, invokes, this.stackDepth);
+		}
+		return invokes;
+	}
 }
 
 const SDS = 4;
@@ -83,45 +164,10 @@ function instruct(record, strategy, padding) {
 	const pmin = record.pmin;
 	const pmax = record.pmax;
 
-	var padding = padding || 0;
+	padding = padding || 0;
 	var upm = strategy.UPM || 1000;
 	var cvtTopID = padding + 1;
 	var cvtBottomID = padding + 2;
-
-	function encodeDeltaVal(d, ppem) {
-		if (!d) return [];
-		if (d < -8) {
-			return encodeDeltaVal(-8, ppem).concat(encodeDeltaVal(d + 8, ppem));
-		}
-		if (d > 8) {
-			return encodeDeltaVal(8, ppem).concat(encodeDeltaVal(d - 8, ppem));
-		}
-		var selector = d > 0 ? d + 7 : d + 8;
-		var deltappem = (ppem - pmin) % 16;
-		return [deltappem * 16 + selector];
-	}
-
-	function encodeDelta(d, ppem) {
-		if (d >= 0) {
-			var dCoarse = (d / GEAR_COARSE) | 0;
-			var dFine = d % GEAR_COARSE;
-			return {
-				coarse: encodeDeltaVal(dCoarse, ppem),
-				fine: encodeDeltaVal(dFine, ppem)
-			};
-		} else {
-			var dCoarse = (-d / GEAR_COARSE) | 0;
-			var dFine = -d % GEAR_COARSE;
-			return {
-				coarse: encodeDeltaVal(-dCoarse, ppem),
-				fine: encodeDeltaVal(-dFine, ppem)
-			};
-		}
-	}
-
-	function pushDelta(deltas, id, d) {
-		deltas.push({ id, delta: d });
-	}
 
 	var STACK_DEPTH = strategy.STACK_DEPTH || 200;
 	var invocations = [];
@@ -129,55 +175,89 @@ function instruct(record, strategy, padding) {
 	// if(!si.stems.length) return;
 	var tt = ["SVTCA[y-axis]", "RTG"];
 
-	// Blue zone annexation instructions
-	// Bottom
-	for (var k = 0; k < si.blue.bottomZs.length; k++) {
-		invocations.push([[si.blue.bottomZs[k].id, cvtBottomID], ["MIAP[rnd]"]]);
-	}
-	pushInvokes(tt, invocations, STACK_DEPTH);
-	// Top
-	// Normal cases:
-	// Padding + 3 + ppem is the CVT index of top blue zone center.
-	tt.push("PUSHB_1", pmin, "MPPEM", "LTEQ", "PUSHB_1", pmax, "MPPEM", "GTEQ", "AND", "IF");
-	tt.push("MPPEM");
-	pushargs(tt, padding + 3);
-	tt.push("ADD");
-	for (var k = 0; k < si.blue.topZs.length; k++) {
-		tt.push("DUP");
-		pushargs(tt, si.blue.topZs[k].id);
-		tt.push("SWAP", "MIAP[0]"); // Don't round top absorptions
-	}
-	tt.push("CLEAR");
-	tt.push("ELSE");
-	for (var k = 0; k < si.blue.topZs.length; k++) {
-		invocations.push([[si.blue.topZs[k].id, cvtTopID], ["MIAP[rnd]"]]);
-	}
-	pushInvokes(tt, invocations, STACK_DEPTH);
-	tt.push("EIF");
-
-	// Microsoft eats my deltas, I have to add additional MDAPs
-	// cf. http://www.microsoft.com/typography/cleartype/truetypecleartype.aspx#Toc227035721
-	if (si.stems.length) {
-		for (var k = 0; k < si.stems.length; k++) {
-			invocations.push([[si.stems[k].posKey.id], ["MDAP[rnd]"]]);
-			invocations.push([[si.stems[k].advKey.id], ["MDRP[0]"]]);
-		}
-	}
-
 	invocations.push([[pmin], ["SDB"]]);
-	var deltaCalls = {
-		coarse: [],
-		fine: []
-	};
-	var mirps = [];
-	if (si.stems.length)
+
+	// Blue zone alignment instructions
+	{
+		const de = new DeltaEncoder(pmin, STACK_DEPTH);
+
+		// Bottom
+		for (let k = 0; k < si.blue.bottomZs.length; k++) {
+			invocations.push([[si.blue.bottomZs[k].id, cvtBottomID], ["MIAP[rnd]"]]);
+		}
+		pushInvokes(tt, invocations, STACK_DEPTH);
+		// Top
+		// Normal cases:
+		// Padding + 3 + ppem is the CVT index of top blue zone center.
+		tt.push("PUSHB_1", pmin, "MPPEM", "LTEQ", "PUSHB_1", pmax, "MPPEM", "GTEQ", "AND", "IF");
+		tt.push("MPPEM");
+		pushargs(tt, padding + 3);
+		tt.push("ADD");
+		for (let k = 0; k < si.blue.topZs.length; k++) {
+			tt.push("DUP");
+			pushargs(tt, si.blue.topZs[k].id);
+			tt.push("SWAP", "MIAP[0]"); // Don't round top absorptions
+		}
+		tt.push("CLEAR");
+		tt.push("ELSE");
+		for (let k = 0; k < si.blue.topZs.length; k++) {
+			invocations.push([[si.blue.topZs[k].id, cvtTopID], ["MIAP[rnd]"]]);
+		}
+		pushInvokes(tt, invocations, STACK_DEPTH);
+		tt.push("EIF");
+
+		// Anchor deltas
+		for (let ppem = 0; ppem < sd.length; ppem++) {
+			if (!sd[ppem]) continue;
+			const uppx = upm / ppem;
+			const defaultBottomY = roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem);
+			const defaultTopY =
+				roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem) +
+				roundings.rtg(
+					strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER,
+					upm,
+					ppem
+				);
+			const targetBottomY = sd[ppem].y_tb ? sd[ppem].y_tb.bottom * ppem : defaultBottomY;
+			const targetTopY = sd[ppem].y_tb ? sd[ppem].y_tb.top * ppem : defaultTopY;
+			if (Math.abs(defaultBottomY - targetBottomY) >= uppx / GEAR) {
+				for (let z of si.blue.bottomZs) {
+					de.pushDelta(
+						ppem,
+						z.id,
+						Math.round(de.gear * (targetBottomY - defaultBottomY))
+					);
+				}
+			}
+			if (Math.abs(defaultTopY - targetTopY) >= uppx / GEAR) {
+				for (let z of si.blue.topZs) {
+					de.pushDelta(ppem, z.id, Math.round(de.gear * (targetTopY - defaultTopY)));
+				}
+			}
+		}
+		invocations = invocations.concat(de.formDeltaCall());
+	}
+
+	// Stem instructions
+	{
+		// Microsoft eats my deltas, I have to add additional MDAPs
+		// cf. http://www.microsoft.com/typography/cleartype/truetypecleartype.aspx#Toc227035721
+		if (si.stems.length) {
+			for (var k = 0; k < si.stems.length; k++) {
+				invocations.push([[si.stems[k].posKey.id], ["MDAP[rnd]"]]);
+				invocations.push([[si.stems[k].advKey.id], ["MDRP[0]"]]);
+			}
+		}
+
+		const de = new DeltaEncoder(pmin, STACK_DEPTH);
+
 		for (var ppem = 0; ppem < sd.length; ppem++) {
 			const uppx = upm / ppem;
 			if (!sd[ppem]) continue;
-			// The instes' length sould be exactly si.stems.length.
 			const instrs = sd[ppem].y;
-			let deltas = [];
-			for (var k = 0; k < instrs.length; k++) {
+			if (!instrs || !instrs.length) continue;
+
+			for (let k = 0; k < instrs.length; k++) {
 				if (!instrs[k]) continue;
 				const [y, w, isStrict, isStacked, addpxs] = instrs[k];
 				const stem = si.stems[k];
@@ -195,74 +275,37 @@ function instruct(record, strategy, padding) {
 					ypos0 = roundings.rtg(y0 - w0 - keyDX * stem.slope, upm, ppem);
 				}
 
-				deltas.push({
-					id: stem.posKey.id,
-					deltas: encodeDelta(decideDelta(GEAR, ypos0, ypos, upm, ppem), ppem)
-				});
+				de.pushDelta(ppem, stem.posKey.id, decideDelta(de.gear, ypos0, ypos, upm, ppem));
 
-				var originalAdvance = w0;
-				var targetAdvance = w * (upm / ppem);
+				const originalAdvance = w0;
+				const targetAdvance = w * (upm / ppem);
 
-				deltas.push({
-					id: stem.advKey.id,
-					deltas: encodeDelta(
-						decideDeltaShift(
-							GEAR,
-							stem.posKeyAtTop ? -1 : 1,
-							isStrict,
-							isStacked,
-							ypos0,
-							originalAdvance,
-							ypos,
-							targetAdvance,
-							upm,
-							ppem,
-							addpxs
-						),
-						ppem
+				de.pushDelta(
+					ppem,
+					stem.advKey.id,
+					decideDeltaShift(
+						de.gear,
+						stem.posKeyAtTop ? -1 : 1,
+						isStrict,
+						isStacked,
+						ypos0,
+						originalAdvance,
+						ypos,
+						targetAdvance,
+						upm,
+						ppem,
+						addpxs
 					)
-				});
-			}
-			if (!deltas.length) continue;
-			for (var j = 0; j < deltas.length; j++) {
-				let { deltas: { coarse, fine }, id } = deltas[j];
-				let instr = "DELTAP" + (1 + Math.floor((ppem - pmin) / 16));
-				for (let d of coarse) {
-					deltaCalls.coarse.push({
-						arg: [d, id],
-						instruction: instr
-					});
-				}
-				for (let d of fine) {
-					deltaCalls.fine.push({
-						arg: [d, id],
-						instruction: instr
-					});
-				}
+				);
 			}
 		}
 
-	invocations.push([[SDS - SDS_COARSE], ["SDS"]]);
-	pushDeltaCalls(deltaCalls.coarse, invocations, STACK_DEPTH);
-	invocations.push([[SDS], ["SDS"]]);
-	pushDeltaCalls(deltaCalls.fine, invocations, STACK_DEPTH);
-
-	mirps.push("PUSHB_1", pmax, "MPPEM", "LT", "IF");
-	var largeMdrpInvokes = [];
-	if (si.stems.length) {
-		for (var k = 0; k < si.stems.length; k++) {
-			largeMdrpInvokes.push(
-				[[si.stems[k].posKey.id], ["SRP0"]],
-				[[si.stems[k].advKey.id], ["MDRP[0]"]]
-			);
-		}
+		invocations = invocations.concat(de.formDeltaCall());
 	}
-	pushInvokes(mirps, largeMdrpInvokes, STACK_DEPTH);
-	mirps.push("EIF");
 
 	// In-stem alignments
-	var isalInvocations = [];
-	for (var j = 0; j < si.stems.length; j++) {
+	let isalInvocations = [];
+	for (let j = 0; j < si.stems.length; j++) {
 		[
 			[si.stems[j].posKey.id, si.stems[j].posAlign],
 			[si.stems[j].advKey.id, si.stems[j].advAlign]
@@ -274,7 +317,7 @@ function instruct(record, strategy, padding) {
 			]);
 		});
 	}
-	var isks = [];
+	let isks = [];
 	for (let da of si.diagAligns) {
 		if (!da.zs || !da.zs.length) continue;
 		for (let z of da.zs) {
@@ -285,7 +328,6 @@ function instruct(record, strategy, padding) {
 	// Interpolations
 	tt = tt.concat(
 		invokesToInstrs(invocations, STACK_DEPTH),
-		mirps,
 		invokesToInstrs(
 			[].concat(isalInvocations, ipsaInvokes(isks.concat(si.ipsacalls))),
 			STACK_DEPTH
