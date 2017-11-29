@@ -15,6 +15,12 @@ class HintingElement {
 	talk() {
 		return ``;
 	}
+	below() {
+		return false;
+	}
+	above() {
+		return false;
+	}
 }
 class BottomAnchorHintingElement extends HintingElement {
 	constructor(id, y, _) {
@@ -33,6 +39,12 @@ YAnchor(${this.ipz},${this.cvtID})
 ${this.deltas || ""}
 `;
 	}
+	below(z) {
+		return z.y < this.pOrg;
+	}
+	above(z) {
+		return z.y > this.pOrg;
+	}
 }
 class TopAnchorHintingElement extends HintingElement {
 	constructor(id, y, _) {
@@ -47,7 +59,8 @@ class TopAnchorHintingElement extends HintingElement {
 	talk($, bottomAnchor) {
 		const isValidLink =
 			bottomAnchor &&
-			Math.abs(this.pOrg - bottomAnchor.pOrg - this.topBotRefDist) < $.cvtCutin / 2;
+			Math.abs(this.pOrg - bottomAnchor.pOrg - this.topBotRefDist) <
+				$.cvtCutin / 2;
 		if (isValidLink) {
 			return `
 /* !!IDH!! Top Anchor Kind Linked */
@@ -61,16 +74,30 @@ ${this.deltas || ""}
 `;
 		}
 	}
+	below(z) {
+		return z.y < this.pOrg;
+	}
+	above(z) {
+		return z.y > this.pOrg;
+	}
 }
 class StemHintingElement extends HintingElement {
-	constructor(id, y, _) {
+	constructor(zpos, zadv, _) {
 		super();
-		this.ipz = id;
-		this.pOrg = y;
+		this.ipz = zpos.id;
+		this.pOrg = zpos.y;
+		this.advZ = zadv.id;
+		this.pAdv = zadv.y;
 		Object.assign(this, _);
 	}
 	get kind() {
 		return KEY_ITEM_STEM;
+	}
+	below(z) {
+		return z.y < this.pOrg && z.y < this.pAdv;
+	}
+	above(z) {
+		return z.y > this.pOrg && z.y > this.pAdv;
 	}
 }
 exports.Bottom = BottomAnchorHintingElement;

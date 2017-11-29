@@ -26,7 +26,8 @@ function choose(hinter, first, ...sps) {
 
 function hint(gd, ppem, strg, y0, margins) {
 	const hinter = new Hinter(strg, gd, ppem, margins);
-	if (!hinter.avails.length) return new HintDecision(hinter.xExpansion, [], false);
+	if (!hinter.avails.length)
+		return new HintDecision(hinter.xExpansion, [], false);
 
 	const spInit = hinter.balance(hinter.decideInitHint(y0));
 	const spNT = hinter.balance(hinter.decideInitHintNT(y0));
@@ -51,7 +52,9 @@ function hint(gd, ppem, strg, y0, margins) {
 	}
 	if (doSecondPass) {
 		hinter.updateAvails([...w1], margins);
-		const spUncol1 = hinter.uncollide(hinter.balance(hinter.decideInitHint()));
+		const spUncol1 = hinter.uncollide(
+			hinter.balance(hinter.decideInitHint())
+		);
 		const pass2Idv = choose(
 			hinter,
 			hinter.balance([...y]),
@@ -63,6 +66,9 @@ function hint(gd, ppem, strg, y0, margins) {
 		w = a.w;
 	}
 	// results
-	return new HintDecision(hinter.xExpansion, stemPositionToActions.call(hinter, y, w, gd.stems));
+	return new HintDecision(
+		hinter.xExpansion,
+		stemPositionToActions.call(hinter, y, w, gd.stems)
+	);
 }
 module.exports = hint;
