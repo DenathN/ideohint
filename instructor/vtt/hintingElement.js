@@ -59,8 +59,7 @@ class TopAnchorHintingElement extends HintingElement {
 	talk($, bottomAnchor) {
 		const isValidLink =
 			bottomAnchor &&
-			Math.abs(this.pOrg - bottomAnchor.pOrg - this.topBotRefDist) <
-				$.cvtCutin / 2;
+			Math.abs(this.pOrg - bottomAnchor.pOrg - this.topBotRefDist) < $.cvtCutin / 2;
 		if (isValidLink) {
 			return `
 /* !!IDH!! Top Anchor Kind Linked */
@@ -94,10 +93,20 @@ class StemHintingElement extends HintingElement {
 		return KEY_ITEM_STEM;
 	}
 	below(z) {
-		return z.y < this.pOrg && z.y < this.pAdv;
+		if (!(z.y < this.pOrg && z.y < this.pAdv)) return false;
+		if (this.stem) {
+			for (let zp of this.stem.posAlign) if (z.y >= zp.y) return false;
+			for (let zp of this.stem.advAlign) if (z.y >= zp.y) return false;
+		}
+		return true;
 	}
 	above(z) {
-		return z.y > this.pOrg && z.y > this.pAdv;
+		if (!(z.y > this.pOrg && z.y > this.pAdv)) return false;
+		if (this.stem) {
+			for (let zp of this.stem.posAlign) if (z.y <= zp.y) return false;
+			for (let zp of this.stem.advAlign) if (z.y <= zp.y) return false;
+		}
+		return true;
 	}
 }
 exports.Bottom = BottomAnchorHintingElement;
