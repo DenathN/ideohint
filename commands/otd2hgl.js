@@ -88,9 +88,28 @@ exports.handler = function(argv) {
 			}
 		});
 		sParseCmap.on("end", function() {
-			mapGlyf();
+			mapFrags();
 		});
 		instream.pipe(sParseCmap);
+	}
+	function mapFrags() {
+		var sParseGlyf = JSONStream.parse(["glyf", { emitKey: true }]);
+		var instream = fs.createReadStream(argv._[1], "utf-8");
+		sParseGlyf.on("data", function(data) {
+			var k = data.key,
+				glyph = data.value;
+			if (hasCmap && !keep[k]) return;
+			if (!glyph.references) return;
+			for (let r of glyph.references) {
+				if (r.y !== 0) continue;
+				keep[r.glyph] = true;
+				unicodes.set(r.glyph, unicodes.get(k));
+			}
+		});
+		sParseGlyf.on("end", function() {
+			mapGlyf();
+		});
+		instream.pipe(sParseGlyf);
 	}
 	function mapGlyf() {
 		var sParseGlyf = JSONStream.parse(["glyf", { emitKey: true }]);
@@ -99,6 +118,18 @@ exports.handler = function(argv) {
 			var k = data.key,
 				glyph = data.value;
 			if (!glyph.contours || !glyph.contours.length || (hasCmap && !keep[k])) return;
+
+			if (argv.minheight) {
+				let ymax = -0xffff;
+				let ymin = 0xffff;
+				for (let c of glyph.contours)
+					for (let z of c) {
+						if (ymax < z.y) ymax = z.y;
+						if (ymin > z.y) ymin = z.y;
+					}
+				if (ymax - ymin < argv.minheight - 0) return;
+			}
+
 			var h = hashContours(glyph.contours);
 
 			outstream.write(
@@ -109,8 +140,6 @@ exports.handler = function(argv) {
 					contours: glyph.contours
 				}) + "\n"
 			);
-			// outstream.write("\n");
-			//outstream.write(JSON.stringify([k, h, glyph.contours]) + "\n");
 		});
 		sParseGlyf.on("end", function() {
 			outstream.end();
