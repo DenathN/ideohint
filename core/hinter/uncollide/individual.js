@@ -14,6 +14,10 @@ function clampOverflow(delta) {
 	return xclamp(-0.5, Math.round(delta * 8) / 8, 0.5);
 }
 
+function twoPartsOfDiag(aa, ab) {
+	return aa.rid && aa.rid === ab.rid;
+}
+
 function calSpaceBetween(y, avails, j, k) {
 	const aj = avails[j],
 		ak = avails[k],
@@ -64,6 +68,7 @@ class Individual {
 			A = env.A,
 			C = env.C,
 			F = env.F,
+			S = env.S,
 			n = y.length,
 			avails = env.avails,
 			ppem = env.ppem,
@@ -72,18 +77,29 @@ class Individual {
 		let nCol = 0;
 		let pA = 0,
 			pC = 0,
-			pCompress = 0;
+			pB = 0;
 		for (let j = 0; j < n; j++) {
+			const aj = avails[j];
 			for (let k = 0; k < j; k++) {
-				if (dov[j][k] && F[j][k] > 4 && y[j] <= 1 + y[k] + avails[j].properWidth) {
-					const d = 2 - (y[j] - avails[j].properWidth - y[k]);
+				const ak = avails[k];
+				if (dov[j][k] && F[j][k] > 4 && y[j] <= 1 + y[k] + aj.properWidth) {
+					const d = 2 - (y[j] - aj.properWidth - y[k]);
 					pC += C[j][k] * d * d; // Collide
 					if (C[j][k]) nCol += sol[j][k] * ppem * ppem * 0.04;
 				}
+				if (
+					Math.abs(aj.y0px - ak.y0px) < 1 / 4 &&
+					y[j] !== y[k] &&
+					aj.atGlyphTop &&
+					ak.atGlyphTop &&
+					!twoPartsOfDiag(aj, ak)
+				) {
+					pB += S[j][k];
+				}
 				if (y[j] === y[k]) {
 					pA += A[j][k]; // Annexation
-				} else if (y[j] <= y[k] + avails[j].properWidth) {
-					const d = 1 - (y[j] - avails[j].properWidth - y[k]);
+				} else if (y[j] <= y[k] + aj.properWidth) {
+					const d = 1 - (y[j] - aj.properWidth - y[k]);
 					pC += C[j][k] * d * d; // Collide
 					if (C[j][k]) {
 						nCol += sol[j][k] * ppem * ppem * 0.04;
@@ -91,7 +107,7 @@ class Individual {
 				}
 			}
 		}
-		return pA + pC * nCol * nCol + pCompress;
+		return pA + pC * nCol * nCol + pB;
 	}
 
 	getSevereDistortionPotential(env) {
