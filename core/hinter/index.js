@@ -25,6 +25,7 @@ function choose(hinter, first, ...sps) {
 }
 
 function hint(gd, ppem, strg, y0, margins) {
+	if (ppem === 16) debugger;
 	const hinter = new Hinter(strg, gd, ppem, margins);
 	if (!hinter.avails.length) return new HintDecision(hinter.xExpansion, [], false);
 

@@ -41,7 +41,12 @@ function spaceAbove(env, y, w, k, top) {
 	return space;
 }
 function atValidPosition(top, bot, y, w, avail) {
-	return y >= avail.lowW && y <= avail.highW && y <= top && y >= w + avail.lowLimitW;
+	return (
+		y - w >= avail.lowW - avail.properWidth &&
+		y <= avail.highW &&
+		y <= top &&
+		y >= w + avail.lowLimitW
+	);
 }
 
 const ANY = 0;
@@ -56,8 +61,8 @@ function allocateWidth(y0, env) {
 		properWidths = new Array(N);
 	const avails = env.avails,
 		directOverlaps = env.directOverlaps,
-		triplets = env.triplets,
-		F = env.F;
+		triplets = env.triplets;
+
 	const onePixelMatter = env.onePixelMatter;
 	for (let j = 0; j < y0.length; j++) {
 		properWidths[j] = Math.round(avails[j].properWidth);
