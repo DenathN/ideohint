@@ -57,7 +57,7 @@ function tbtfm(y, [bottom, top, bottom0, top0]) {
 
 function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 	const uppx = upm / ppem;
-	const [bottom] = tb;
+	const [bottom, top] = tb;
 	let stackrel = [];
 	for (let j = 0; j < stems.length; j++) {
 		actions[j][HARD] = false;
@@ -75,7 +75,7 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 		y[j] = Math.round(actions[j][Y] - (actions[j][FLIP] || 0));
 		w[j] = Math.round(actions[j][W]);
 		up[j] =
-			!sj.hasGlyphStemAbove || !sj.hasGlyphStemBelow
+			(!sj.hasGlyphStemAbove && !sj.diagLow) || (!sj.hasGlyphStemBelow && !sj.diagHigh)
 				? sj.posKeyAtTop
 				: Math.abs(y[j] - tbtfm(high.y, tb)) < Math.abs(y[j] - w[j] - tbtfm(low.y, tb));
 	}
