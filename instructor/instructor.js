@@ -5,8 +5,7 @@ const pushargs = require("./invoke").pushargs;
 const invokesToInstrs = require("./invoke").invokesToInstrs;
 const pushInvokes = require("./invoke").pushInvokes;
 
-const decideDelta = require("./delta.js").decideDelta;
-const decideDeltaShift = require("./delta.js").decideDeltaShift;
+const { decideDelta, getSWCFG, decideDeltaShift } = require("./delta.js");
 
 function ipsaInvokes(actions) {
 	if (!actions) return [];
@@ -259,7 +258,7 @@ function instruct(record, strategy, padding) {
 
 			for (let k = 0; k < instrs.length; k++) {
 				if (!instrs[k]) continue;
-				const [y, w, isStrict, isStacked, addpxs] = instrs[k];
+				const [y, w, isStrict, isStacked] = instrs[k];
 				const stem = si.stems[k];
 				const y0 = stem.posKeyAtTop ? stem.posKey.y : stem.advKey.y;
 				const w0 = stem.posKeyAtTop
@@ -294,7 +293,15 @@ function instruct(record, strategy, padding) {
 						targetAdvance,
 						upm,
 						ppem,
-						addpxs
+						getSWCFG(
+							{
+								minSW: strategy.MINIMAL_STROKE_WIDTH_PIXELS || 1 / 8,
+								maxSWOverflowCpxs: strategy.MAX_SW_OVERFLOW_CPXS,
+								maxSWShrinkCpxs: strategy.MAX_SW_SHRINK_CPXS
+							},
+							1,
+							ppem
+						)
 					)
 				);
 			}

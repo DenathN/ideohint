@@ -419,7 +419,7 @@ class VTTECompiler {
 			if (!sd[ppem] || !sd[ppem].y || !sd[ppem].y[sid]) continue;
 			const [, wtouch, isHard, isStacked, addpxs] = sd[ppem].y[sid];
 			const wdst = wtouch * (upm / ppem);
-			const swcfg = getSWCFG(this, wsrc / this.canonicalSW, ppem);
+			const swcfg = getSWCFG(this, 1, ppem);
 
 			if (s.posKeyAtTop) {
 				for (let adg of advDeltaGroups) {
@@ -434,7 +434,7 @@ class VTTECompiler {
 						wdst,
 						upm,
 						ppem,
-						addpxs,
+
 						swcfg
 					);
 					const advDelta = clampAdvDelta(
@@ -458,7 +458,6 @@ class VTTECompiler {
 						wdst,
 						upm,
 						ppem,
-						addpxs,
 						swcfg
 					);
 					const advDelta = clampAdvDelta(

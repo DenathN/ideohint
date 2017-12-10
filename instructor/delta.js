@@ -11,17 +11,17 @@ function decideDelta(gear, original, target, upm, ppem) {
 
 /**
  * Decide the delta of a link
- * @param {number} gear 
- * @param {number} sign 
- * @param {boolean} isHard 
- * @param {boolean} isStacked 
- * @param {number} base0 
- * @param {number} dist0 
- * @param {number} base1 
- * @param {number} dist1 
- * @param {number} upm 
- * @param {number} ppem 
- * @param {number} addpxs 
+ * @param {number} gear
+ * @param {number} sign
+ * @param {boolean} isHard
+ * @param {boolean} isStacked
+ * @param {number} base0
+ * @param {number} dist0
+ * @param {number} base1
+ * @param {number} dist1
+ * @param {number} upm
+ * @param {number} ppem
+ * @param {number} addpxs
  */
 function decideDeltaShift(
 	gear,
@@ -34,7 +34,6 @@ function decideDeltaShift(
 	dist1,
 	upm,
 	ppem,
-	addpxs,
 	swcfg
 ) {
 	const { minSW, maxOverflow, maxShrink } = swcfg || {};
@@ -72,7 +71,7 @@ function decideDeltaShift(
 			break;
 		delta = delta > 0 ? delta - 1 : delta + 1;
 	}
-	return delta + deltaDesired + Math.floor(addpxs * gear * xclamp(0, 8 / ppem, 1 / 2)) * sign;
+	return delta + deltaDesired;
 }
 
 exports.decideDelta = decideDelta;

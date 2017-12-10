@@ -93,7 +93,6 @@ function calculateYW(upm, ppem, stem, action, swcfgCtx) {
 			w * uppx,
 			upm,
 			ppem,
-			0,
 			swcfg
 		);
 		return { h, l, h_ytouch, l_ytouch: h_ytouch - (h.y - l.y) + delta / 8 * uppx };
@@ -109,7 +108,6 @@ function calculateYW(upm, ppem, stem, action, swcfgCtx) {
 			w * uppx,
 			upm,
 			ppem,
-			0,
 			swcfg
 		);
 		return { h, l, l_ytouch, h_ytouch: l_ytouch + (h.y - l.y) + delta / 8 * uppx };

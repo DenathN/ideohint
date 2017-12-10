@@ -98,13 +98,13 @@ function doHints(_) {
 	progress(taskName, pendings, data => {
 		if (cache.has(data.hash)) {
 			const cached = cache.get(data.hash);
-			if (cached.ideohint_version !== "*") postprocess(cached.ideohint_decision);
+			if (cached.ideohint_version !== "*") postprocess(cached.ideohint_decision, strategy);
 			outStream.write(JSON.stringify(cached) + "\n");
 		} else {
 			const contours = data.contours;
 			if (!contours) return;
 			data.ideohint_decision = core.hintSingleGlyph(contours, strategy);
-			postprocess(data.ideohint_decision);
+			postprocess(data.ideohint_decision, strategy);
 			data.ideohint_version = core.version;
 			outStream.write(JSON.stringify(data) + "\n");
 		}

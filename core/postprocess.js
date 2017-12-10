@@ -1,12 +1,14 @@
 "use strict";
 
 const roundings = require("../support/roundings");
+const { decideDeltaShift, getSWCFG } = require("../instructor/delta");
 
 const Y = 0;
 const W = 1;
 const HARD = 2;
 const STACKED = 3;
 const ADDPXS = 4;
+const FLIP = 5;
 
 const BELOW = 1;
 const ABOVE = 2;
@@ -23,17 +25,13 @@ function twoPixelPack(uppx, yj, wj, yk, wk, sj, sk) {
 	);
 }
 
-function getMinmax(stems, k, a, sign) {
+function getMinmax(stems, k, y, w, sign) {
 	const sk = stems[k];
 	let couple = null;
 	let coKID = 0;
 	if (sk.rid) {
 		for (let m = 0; m < stems.length; m++)
-			if (
-				m !== k &&
-				stems[m].rid === sk.rid &&
-				a[k][Y] - a[k][W] * sign === a[m][Y] - a[m][W] * sign
-			) {
+			if (m !== k && stems[m].rid === sk.rid && y[k] - w[k] * sign === y[m] - w[m] * sign) {
 				couple = stems[m];
 				coKID = m;
 			}
@@ -44,7 +42,17 @@ function getMinmax(stems, k, a, sign) {
 		return [sk.xmin, sk.xmax, couple, 0];
 	}
 }
-function padSD(actions, stems, overlaps, uppx, [bottom, top]) {
+
+function stemOverlaps(ov, j, k, sj, sk) {
+	if (ov) {
+		return ov[j][k] || ov[k][j];
+	} else {
+		return !(sj.xmax <= sk.xmin || sk.xmax <= sj.xmin);
+	}
+}
+
+function padSD(actions, stems, overlaps, upm, ppem, [bottom, top], swcfg) {
+	const uppx = upm / ppem;
 	let stackrel = [];
 	for (let j = 0; j < stems.length; j++) {
 		actions[j][HARD] = false;
@@ -52,30 +60,40 @@ function padSD(actions, stems, overlaps, uppx, [bottom, top]) {
 		actions[j][ADDPXS] = 0;
 		stackrel[j] = [];
 	}
+	let up = [],
+		y = [],
+		w = [];
 	for (let j = 0; j < stems.length; j++) {
 		const sj = stems[j];
-		actions[j][W] = Math.min(actions[j][W], actions[j][Y] - bottom);
-		if (
-			sj.posKeyAtTop &&
-			widthOf(sj) / uppx > actions[j][W] &&
-			actions[j][Y] - actions[j][W] <= bottom
-		) {
+		const high = sj.posKeyAtTop ? sj.posKey : sj.advKey;
+		const low = sj.posKeyAtTop ? sj.advKey : sj.posKey;
+		y[j] = Math.round(actions[j][Y] - (actions[j][FLIP] || 0));
+		w[j] = Math.round(actions[j][W]);
+		up[j] =
+			!sj.hasGlyphStemAbove || !sj.hasGlyphStemBelow
+				? sj.posKeyAtTop
+				: Math.abs(y[j] - high.y / uppx) < Math.abs(y[j] - w[j] - low.y / uppx);
+	}
+	for (let j = 0; j < stems.length; j++) {
+		const sj = stems[j];
+		w[j] = Math.min(w[j], y[j] - bottom);
+		if (up[j] && widthOf(sj) / uppx > w[j] && y[j] - w[j] <= bottom) {
 			actions[j][HARD] = true;
 		}
 	}
 	// downward strictness/stackness detection
 	for (let j = 0; j < stems.length; j++) {
 		const sj = stems[j],
-			yj = actions[j][Y],
-			wj = actions[j][W];
+			yj = y[j],
+			wj = w[j];
 		for (let k = 0; k < j; k++) {
-			if (!(overlaps[j][k] || overlaps[k][j])) continue;
-
 			const sk = stems[k],
-				yk = actions[k][Y],
-				wk = actions[k][W];
-			const [skmin, skmax, coK, coKID] = getMinmax(stems, k, actions, 0);
-			const [sjmin, sjmax] = getMinmax(stems, j, actions, 1);
+				yk = y[k],
+				wk = w[k];
+			if (!stemOverlaps(overlaps, j, k, sk, sk)) continue;
+
+			const [skmin, skmax, coK, coKID] = getMinmax(stems, k, y, w, 0);
+			const [sjmin, sjmax] = getMinmax(stems, j, y, w, 1);
 			if (
 				yj - wj === yk &&
 				wk * uppx * 2 >= widthOf(sk) &&
@@ -90,11 +108,8 @@ function padSD(actions, stems, overlaps, uppx, [bottom, top]) {
 				actions[k][STACKED] = true;
 			}
 			if (wj * uppx > widthOf(sj)) continue;
-			if (!(overlaps[j][k] || overlaps[k][j])) continue;
 			if (
-				(yj - wj - yk === 1 &&
-					sj.posKeyAtTop &&
-					(!coK || (coK && actions[coKID][Y] === yk))) ||
+				(yj - wj - yk === 1 && up[j] && (!coK || (coK && y[coKID] === yk))) ||
 				(twoPixelPack(uppx, yj, wj, yk, wk, sj, sk) && sjmax - sjmin < skmax - skmin)
 			) {
 				actions[j][HARD] = true;
@@ -103,17 +118,17 @@ function padSD(actions, stems, overlaps, uppx, [bottom, top]) {
 	}
 	for (let j = 0; j < stems.length; j++) {
 		const sj = stems[j],
-			yj = actions[j][Y],
-			wj = actions[j][W];
+			yj = y[j],
+			wj = w[j];
 		for (let k = j + 1; k < stems.length; k++) {
-			if (!(overlaps[j][k] || overlaps[k][j])) continue;
-
 			const sk = stems[k],
-				yk = actions[k][Y],
-				wk = actions[k][W];
+				yk = y[k],
+				wk = w[k];
 
-			const [skmin, skmax, coK, coKID] = getMinmax(stems, k, actions, 1);
-			const [sjmin, sjmax] = getMinmax(stems, j, actions, 0);
+			if (!stemOverlaps(overlaps, j, k, sk, sk)) continue;
+
+			const [skmin, skmax, coK, coKID] = getMinmax(stems, k, y, w, 1);
+			const [sjmin, sjmax] = getMinmax(stems, j, y, w, 0);
 			if (
 				yk - wk === yj &&
 				wk * uppx * 2 >= widthOf(sk) &&
@@ -129,9 +144,7 @@ function padSD(actions, stems, overlaps, uppx, [bottom, top]) {
 			}
 			if (wj * uppx > widthOf(sj)) continue;
 			if (
-				(yk - wk - yj === 1 &&
-					!sj.posKeyAtTop &&
-					(!coK || (coK && actions[coKID][Y] === yk))) ||
+				(yk - wk - yj === 1 && !up[j] && (!coK || (coK && y[coKID] === yk))) ||
 				(twoPixelPack(uppx, yk, wk, yj, wj, sk, sj) && sjmax - sjmin <= skmax - skmin)
 			) {
 				actions[j][HARD] = true;
@@ -144,25 +157,48 @@ function padSD(actions, stems, overlaps, uppx, [bottom, top]) {
 		if (
 			!sj.hasGlyphStemBelow &&
 			(sj.hasGlyphFoldBelow || sj.hasGlyphSideFoldBelow) &&
-			sj.posKeyAtTop &&
-			actions[j][Y] <= bottom + Math.max(4, actions[j][W] * 3)
+			up[j] &&
+			y[j] <= bottom + Math.max(4, w[j] * 3)
 		) {
-			if (actions[j][W] * uppx < Math.abs(sj.posKey.y - sj.advKey.y)) {
+			if (w[j] * uppx < Math.abs(sj.posKey.y - sj.advKey.y)) {
 				actions[j][HARD] = true;
-			} else if (actions[j][W] > 1) {
+			} else if (w[j] > 1) {
 				actions[j][STACKED] = true;
 			}
 		}
 	}
-	// for (let j = 0; j < stems.length; j++) {
-	// 	for (let k = 0; k < j; k++) {
-	// 		for (let m = 0; m < k; m++) {
-	// 			if (stackrel[j][k] && stackrel[j][k] === stackrel[k][m] && overlaps[j][k]) {
-	// 				actions[k][W] = 0;
-	// 			}
-	// 		}
-	// 	}
-	// }
+	for (let j = 0; j < stems.length; j++) {
+		actions[j][Y] = y[j];
+		actions[j][W] = w[j];
+		actions[j][FLIP] = 0;
+
+		const stemWidth = Math.abs(stems[j].posKey.y - stems[j].advKey.y);
+		const [, , hard, stacked] = actions[j];
+
+		const delta = decideDeltaShift(
+			8,
+			1,
+			hard,
+			stacked,
+			0,
+			stemWidth,
+			0,
+			actions[j][W] * uppx,
+			upm,
+			ppem,
+			swcfg
+		);
+		const hintedStemWidthPixels = Math.round(8 * (stemWidth / uppx + delta / 8)) / 8;
+		const belowOnePixel = w[j] === 1 && hintedStemWidthPixels <= 1;
+		if (!hard && !belowOnePixel && up[j] && !stems[j].posKeyAtTop) {
+			actions[j][Y] -= hintedStemWidthPixels - actions[j][W];
+			actions[j][FLIP] -= hintedStemWidthPixels - actions[j][W];
+		} else if (!hard && !belowOnePixel && !up[j] && stems[j].posKeyAtTop) {
+			actions[j][Y] += hintedStemWidthPixels - actions[j][W];
+			actions[j][FLIP] += hintedStemWidthPixels - actions[j][W];
+		}
+	}
+
 	return actions;
 }
 function calculateTB(si, ppem) {
@@ -172,13 +208,38 @@ function calculateTB(si, ppem) {
 	const rTopPos = (rtg(si.blue.bottomPos) + rtg(si.blue.topPos - si.blue.bottomPos)) / uppx;
 	return [rBottomPos, rTopPos, si.blue.bottomPos, si.blue.topPos];
 }
-module.exports = function(data) {
+
+function swcfcCtxFor(strategy) {
+	if (strategy) {
+		return {
+			minSW: strategy.MINIMAL_STROKE_WIDTH_PIXELS || 1 / 8,
+			maxSWOverflowCpxs: strategy.MAX_SW_OVERFLOW_CPXS,
+			maxSWShrinkCpxs: strategy.MAX_SW_SHRINK_CPXS
+		};
+	} else {
+		return { minSW: 1 / 8, maxSWOverflowCpxs: 1 / 2, maxSWShrinkCpxs: 1 / 2 };
+	}
+}
+
+module.exports = function(data, strategy) {
 	if (!data) return;
 	const { si, sd, pmin, pmax } = data;
 	for (let ppem = pmin; ppem <= pmax; ppem++) {
 		if (!sd[ppem]) continue;
 		const [bot, top] = calculateTB(si, ppem);
-		padSD(sd[ppem].y, si.stems, si.overlaps, si.upm / ppem, [bot, top]);
+
+		padSD(
+			sd[ppem].y,
+			si.stems,
+			si.overlaps,
+			si.upm,
+			ppem,
+			[bot, top],
+			getSWCFG(swcfcCtxFor(strategy), 1, ppem)
+		);
 	}
 };
 module.exports.for = padSD;
+module.exports.getSwcfgFor = function(strategy, ppem) {
+	return getSWCFG(swcfcCtxFor(strategy), 1, ppem);
+};
