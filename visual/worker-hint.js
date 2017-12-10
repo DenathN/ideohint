@@ -22,18 +22,30 @@ onmessage = function(message) {
 		g.hints = core.decideHints(g.features, strategy).sd;
 		for (let ppem = 0; ppem < g.hints.length; ppem++) {
 			if (!g.hints[ppem]) continue;
+			const tb = [
+				Math.round(
+					roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, strategy.UPM, ppem) /
+						(strategy.UPM / ppem)
+				),
+				Math.round(
+					(roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, strategy.UPM, ppem) +
+						roundings.rtg(
+							strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER,
+							strategy.UPM,
+							ppem
+						)) /
+						(strategy.UPM / ppem)
+				),
+				strategy.BLUEZONE_BOTTOM_CENTER,
+				strategy.BLUEZONE_TOP_CENTER
+			];
 			postprocess.for(
 				g.hints[ppem].y,
 				g.features.stems,
 				g.features.overlaps,
 				strategy.UPM,
 				ppem,
-				[
-					Math.round(
-						roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, strategy.UPM, ppem) /
-							(strategy.UPM / ppem)
-					)
-				],
+				tb,
 				postprocess.getSwcfgFor(strategy, ppem)
 			);
 		}

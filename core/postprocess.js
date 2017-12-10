@@ -51,8 +51,13 @@ function stemOverlaps(ov, j, k, sj, sk) {
 	}
 }
 
-function padSD(actions, stems, overlaps, upm, ppem, [bottom, top], swcfg) {
+function tbtfm(y, [bottom, top, bottom0, top0]) {
+	return (y - bottom0) / (top0 - bottom0) * (top - bottom) + bottom;
+}
+
+function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 	const uppx = upm / ppem;
+	const [bottom] = tb;
 	let stackrel = [];
 	for (let j = 0; j < stems.length; j++) {
 		actions[j][HARD] = false;
@@ -72,7 +77,7 @@ function padSD(actions, stems, overlaps, upm, ppem, [bottom, top], swcfg) {
 		up[j] =
 			!sj.hasGlyphStemAbove || !sj.hasGlyphStemBelow
 				? sj.posKeyAtTop
-				: Math.abs(y[j] - high.y / uppx) < Math.abs(y[j] - w[j] - low.y / uppx);
+				: Math.abs(y[j] - tbtfm(high.y, tb)) < Math.abs(y[j] - w[j] - tbtfm(low.y, tb));
 	}
 	for (let j = 0; j < stems.length; j++) {
 		const sj = stems[j];
@@ -226,7 +231,6 @@ module.exports = function(data, strategy) {
 	const { si, sd, pmin, pmax } = data;
 	for (let ppem = pmin; ppem <= pmax; ppem++) {
 		if (!sd[ppem]) continue;
-		const [bot, top] = calculateTB(si, ppem);
 
 		padSD(
 			sd[ppem].y,
@@ -234,7 +238,7 @@ module.exports = function(data, strategy) {
 			si.overlaps,
 			si.upm,
 			ppem,
-			[bot, top],
+			calculateTB(si, ppem),
 			getSWCFG(swcfcCtxFor(strategy), 1, ppem)
 		);
 	}
