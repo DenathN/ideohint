@@ -195,12 +195,18 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 		);
 		const hintedStemWidthPixels = Math.round(8 * (stemWidth / uppx + delta / 8)) / 8;
 		const belowOnePixel = w[j] === 1 && hintedStemWidthPixels <= 1;
+		const wdiff = hintedStemWidthPixels - actions[j][W];
 		if (!hard && !belowOnePixel && up[j] && !stems[j].posKeyAtTop) {
-			actions[j][Y] -= hintedStemWidthPixels - actions[j][W];
-			actions[j][FLIP] -= hintedStemWidthPixels - actions[j][W];
+			actions[j][Y] -= wdiff;
+			actions[j][FLIP] -= wdiff;
 		} else if (!hard && !belowOnePixel && !up[j] && stems[j].posKeyAtTop) {
-			actions[j][Y] += hintedStemWidthPixels - actions[j][W];
-			actions[j][FLIP] += hintedStemWidthPixels - actions[j][W];
+			actions[j][Y] += wdiff;
+			actions[j][FLIP] += wdiff;
+		}
+		if (actions[j][Y] > top) {
+			const overflow = top - actions[j][Y];
+			actions[j][Y] -= overflow;
+			actions[j][FLIP] -= overflow;
 		}
 	}
 
