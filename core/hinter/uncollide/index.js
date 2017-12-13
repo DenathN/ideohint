@@ -15,34 +15,6 @@ function populate(y0, env, scale, allowUnbalanced) {
 		if (unbalIdv.better(initIdv)) population.push(unbalIdv);
 	}
 
-	// Generate initial population
-	// Movement
-	for (let j = 0; j < n; j++) {
-		for (let k = avails[j].low; k <= avails[j].high; k++) {
-			if (k === y0[j]) continue;
-
-			const y1 = [...y0];
-			y1[j] = k;
-			const idvBal = env.createIndividual(env.balance(y1));
-			population.push(idvBal);
-			if (allowUnbalanced) {
-				const idvUnbal = env.createIndividual(y1, true);
-				if (idvUnbal.better(idvBal)) population.push(idvUnbal);
-			}
-		}
-	}
-	// Derive
-	population.push(
-		env.createIndividual(
-			env.balance(y0.map((y, j) => xclamp(avails[j].low, y - 1, avails[j].high)))
-		)
-	);
-	population.push(
-		env.createIndividual(
-			env.balance(y0.map((y, j) => xclamp(avails[j].low, y + 1, avails[j].high)))
-		)
-	);
-	// Extreme
 	population.push(env.createIndividual(env.balance(y0.map((y, j) => avails[j].high))));
 	population.push(env.createIndividual(env.balance(y0.map((y, j) => avails[j].low))));
 	// Random
@@ -114,7 +86,9 @@ function uncollide(yInit, env, terminalStrictness, scale, allowUnbalanced) {
 		} else {
 			steadyStages += 1;
 		}
-		if (steadyStages > terminalStrictness) break;
+		if (steadyStages > terminalStrictness) {
+			break;
+		}
 	}
 
 	return balancize(best, env);

@@ -99,6 +99,10 @@ function segOverlapIsValid(highEdge, lowEdge, strategy, radical) {
 	const hasEnoughOverlap =
 		segOverlap.len / segOverlap.la >= strategy.STROKE_SEGMENTS_MIN_OVERLAP &&
 		segOverlap.len / segOverlap.lb >= strategy.STROKE_SEGMENTS_MIN_OVERLAP;
+	const hasVeryGoodOverlap =
+		segOverlap.len / segOverlap.la >= strategy.STROKE_SEGMENTS_GOOD_OVERLAP &&
+		segOverlap.len / segOverlap.lb >= strategy.STROKE_SEGMENTS_GOOD_OVERLAP;
+	if (hasVeryGoodOverlap) return true;
 	const segOverlap0 = overlapInfo(highEdge, lowEdge);
 	const hasEnoughOverlap0 =
 		segOverlap0.len / segOverlap0.la >= strategy.STROKE_SEGMENTS_MIN_OVERLAP &&

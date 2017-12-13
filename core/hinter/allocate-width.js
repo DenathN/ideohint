@@ -122,6 +122,7 @@ function allocateWidth(y0, env) {
 	function avoidThinStroke(y0, applyToLowerOnly) {
 		// push stems down to avoid thin strokes.
 		for (let j = N - 1; j >= 0; j--) {
+			if (avails[j].lowLimitW + w[j] <= y[j]) continue;
 			if (!(applyToLowerOnly || !avails[j].hasGlyphStemAbove)) continue;
 			if (w[j] >= (!avails[j].hasGlyphStemAbove ? properWidths[j] : 2)) continue;
 			let able = true;
@@ -158,6 +159,7 @@ function allocateWidth(y0, env) {
 			w[j] += 1;
 		}
 		for (let j = N - 1; j >= 0; j--) {
+			if (avails[j].lowLimitW + w[j] <= y[j]) continue;
 			if (w[j] >= (!avails[j].hasGlyphFoldBelow ? properWidths[j] : 2)) continue;
 			if (y[j] >= avails[j].highP) continue;
 			if (onePixelMatter && y[j] >= y0[j] + 1) continue;
@@ -352,7 +354,12 @@ function allocateWidth(y0, env) {
 	function edgeTouchBalance() {
 		// Edge touch balancing
 		for (let j = 0; j < N; j++) {
-			if (w[j] <= 1 && w[j] < properWidths[j] && y[j] > pixelBottom + 2) {
+			if (
+				w[j] <= 1 &&
+				w[j] < properWidths[j] &&
+				y[j] > pixelBottom + 2 &&
+				y[j] > w[j] + avails[j].lowLimitW
+			) {
 				let able = true;
 				for (let k = 0; k < j; k++)
 					if (directOverlaps[j][k] && !edgetouch(avails[j], avails[k])) {

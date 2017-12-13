@@ -74,10 +74,16 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 		const low = sj.posKeyAtTop ? sj.advKey : sj.posKey;
 		y[j] = Math.round(actions[j][Y] - (actions[j][FLIP] || 0));
 		w[j] = Math.round(actions[j][W]);
+		const estimatedHigh = tbtfm(high.y, tb);
+		const estimatedLow = tbtfm(low.y, tb);
 		up[j] =
 			(!sj.hasGlyphStemAbove && !sj.diagLow) || (!sj.hasGlyphStemBelow && !sj.diagHigh)
 				? sj.posKeyAtTop
-				: Math.abs(y[j] - tbtfm(high.y, tb)) < Math.abs(y[j] - w[j] - tbtfm(low.y, tb));
+				: y[j] - w[j] > estimatedHigh
+					? false
+					: y[j] < estimatedLow
+						? true
+						: Math.abs(y[j] - estimatedHigh) < Math.abs(y[j] - w[j] - estimatedLow);
 	}
 	for (let j = 0; j < stems.length; j++) {
 		const sj = stems[j];
