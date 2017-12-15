@@ -24,7 +24,7 @@ class Avail {
 	constructor(env, stem, tw, ir) {
 		const { upm, ppem, uppx, strategy, tightness } = env;
 		const halfway0 = (env.BLUEZONE_TOP_CENTER + env.BLUEZONE_BOTTOM_CENTER) / 2;
-		const halfway = (env.glyphBottom + env.glyphTop) / 2;
+		const halfway = (env.glyphTopPixels + env.glyphBottomPixels) / 2;
 		const y0 = stem.y,
 			w0 = stem.width,
 			w = tw * uppx;
@@ -96,11 +96,17 @@ class Avail {
 		const lowlimitP = lowlimit;
 		const highlimitP = highlimit;
 
+		if (y0 - w0 < halfway0) {
+			highlimit = xclamp(lowlimit, Math.round(halfway) * uppx + w, highlimit);
+		}
 		if (y0 < halfway0) {
-			highlimit = xclamp(lowlimit, Math.ceil(halfway / uppx) * uppx, highlimit);
+			highlimit = xclamp(lowlimit, Math.round(halfway) * uppx, highlimit);
 		}
 		if (y0 - w0 > halfway0) {
-			lowlimit = xclamp(lowlimit, Math.floor(halfway / uppx) * uppx + w, highlimit);
+			lowlimit = xclamp(lowlimit, Math.round(halfway) * uppx + w, highlimit);
+		}
+		if (y0 > halfway0) {
+			lowlimit = xclamp(lowlimit, Math.round(halfway) * uppx, highlimit);
 		}
 
 		const center0 = env.cy(
