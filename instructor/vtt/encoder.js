@@ -229,6 +229,18 @@ class AssemblyDeltaEncoder extends VTTTalkDeltaEncoder {
 	}
 }
 
+const TRY_INTEGERS = [
+	[fpgmShiftOf.comp_integral, 1, 4, 0],
+	[fpgmShiftOf.comp_integral_pos, 1, 2, 0],
+	[fpgmShiftOf.comp_integral_neg, 1, 2, 1]
+];
+const TRY_FRACTIONALS = [
+	[fpgmShiftOf.comp_octet, 1 / 8, 4, 2],
+	[fpgmShiftOf.comp_octet_neg, 1 / 8, 4, -1],
+	[fpgmShiftOf.comp_quart, 1 / 4, 4, 2],
+	[fpgmShiftOf.comp_quart_neg, 1 / 4, 4, -1]
+];
+
 class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
 	constructor(fpgmPad) {
 		super(fpgmPad);
@@ -313,17 +325,8 @@ class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
 		if (level >= 2) return r;
 		let bytes = r(0).bytes;
 		const shiftTries = this._deltaSetIsAllInt(d)
-			? [
-					[fpgmShiftOf.comp_integral, 1, 4, 0],
-					[fpgmShiftOf.comp_integral_pos, 1, 2, 0],
-					[fpgmShiftOf.comp_integral_neg, 1, 2, 1]
-				]
-			: [
-					[fpgmShiftOf.comp_octet, 1 / 8, 4, 2],
-					[fpgmShiftOf.comp_octet_neg, 1 / 8, 4, -1],
-					[fpgmShiftOf.comp_quart, 1 / 4, 4, 2],
-					[fpgmShiftOf.comp_quart_neg, 1 / 4, 4, -1]
-				];
+			? TRY_INTEGERS
+			: !level ? [...TRY_INTEGERS, ...TRY_FRACTIONALS] : TRY_FRACTIONALS;
 		for (let [fs, gear, bpa, shift] of shiftTries) {
 			let r1 = this.encodeIntDeltaInternal(
 				d,
@@ -417,7 +420,7 @@ class VTTECompiler {
 
 		for (let ppem = 0; ppem < sd.length; ppem++) {
 			if (!sd[ppem] || !sd[ppem].y || !sd[ppem].y[sid]) continue;
-			const [, wtouch, isHard, isStacked, addpxs] = sd[ppem].y[sid];
+			const [, wtouch, isHard, isStacked] = sd[ppem].y[sid];
 			const wdst = wtouch * (upm / ppem);
 			const swcfg = getSWCFG(this, 1, ppem);
 

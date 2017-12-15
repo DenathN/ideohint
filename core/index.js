@@ -117,7 +117,18 @@ exports.decideHints = function(featData, strategy) {
 		const thatPPEM = ppem + 1;
 		const [bottomThis, topThis] = topbotOf(strategy, upm, ppem);
 		const [bottomThat, topThat] = topbotOf(strategy, upm, thatPPEM);
-		initialRanges = actions.y.map(([y, w], j) => [y - w - bottomThis, topThis - y]);
+		initialRanges = actions.y.map(([y, w], j) => [
+			y - w - bottomThis,
+			Math.max(
+				topThis - y > 0 ? 1 : 0,
+				Math.min(
+					topThis - y,
+					Math.round(
+						(strategy.BLUEZONE_TOP_CENTER - featData.stems[j].y) / (upm / thatPPEM)
+					)
+				)
+			)
+		]);
 
 		initialY = actions.y.map(function(a) {
 			const y = a[0];

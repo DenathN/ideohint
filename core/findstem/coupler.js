@@ -96,24 +96,15 @@ function udMatchable(sj, sk, radical, strategy) {
 
 function segOverlapIsValid(highEdge, lowEdge, strategy, radical) {
 	const segOverlap = overlapInfo(highEdge, lowEdge, radical, radical);
-	const hasEnoughOverlap =
-		segOverlap.len / segOverlap.la >= strategy.STROKE_SEGMENTS_MIN_OVERLAP &&
-		segOverlap.len / segOverlap.lb >= strategy.STROKE_SEGMENTS_MIN_OVERLAP;
-	const hasVeryGoodOverlap =
-		segOverlap.len / segOverlap.la >= strategy.STROKE_SEGMENTS_GOOD_OVERLAP &&
-		segOverlap.len / segOverlap.lb >= strategy.STROKE_SEGMENTS_GOOD_OVERLAP;
-	if (hasVeryGoodOverlap) return true;
 	const segOverlap0 = overlapInfo(highEdge, lowEdge);
-	const hasEnoughOverlap0 =
-		segOverlap0.len / segOverlap0.la >= strategy.STROKE_SEGMENTS_MIN_OVERLAP &&
-		segOverlap0.len / segOverlap0.lb >= strategy.STROKE_SEGMENTS_MIN_OVERLAP;
-	const hasEnoughOverlapK =
-		segOverlap0.len / segOverlap0.la >= strategy.STROKE_SEGMENTS_MIN_OVERLAP_K &&
-		segOverlap0.len / segOverlap0.lb >= strategy.STROKE_SEGMENTS_MIN_OVERLAP_K;
-	return (hasEnoughOverlap && hasEnoughOverlapK) || hasEnoughOverlap0;
+
+	const ovlExt = Math.min(segOverlap.len / segOverlap.la, segOverlap.len / segOverlap.lb);
+	const ovlOri = Math.min(segOverlap0.len / segOverlap0.la, segOverlap0.len / segOverlap0.lb);
+
+	return ovlExt * ovlOri >= strategy.STROKE_SEGMENTS_MIN_OVERLAP;
 }
 
-function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strategy) {
+function identifyStem(radical, _used, segs, graph, ove, up, j, strategy) {
 	let candidate = { high: [], low: [] };
 	const maxh =
 		toVQ(strategy.CANONICAL_STEM_WIDTH, strategy.PPEM_MAX) *
@@ -123,12 +114,10 @@ function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strate
 	} else {
 		candidate.low.push(j);
 	}
+	let used = [..._used];
 	used[j] = true;
-	let rejected = [];
-	let succeed = false;
-	let foundMatch = false;
 	let rounds = 0;
-	while (!foundMatch && rounds < 3) {
+	while (rounds < 3) {
 		rounds += 1;
 		let expandingU = false;
 		let expandingD = true;
@@ -143,7 +132,8 @@ function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strate
 			let maxOve = -1;
 			let sk = null;
 			for (let k = 0; k < segs.length; k++) {
-				if (used[k] || (up[k] !== up[j]) !== !!(pass % 2)) continue;
+				if ((used[k] && (used[k] || 0) - 0 <= pass) || (up[k] !== up[j]) !== !!(pass % 2))
+					continue;
 				let sameSide, otherSide;
 				if (up[k]) {
 					sameSide = candidate.high;
@@ -181,11 +171,10 @@ function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strate
 				} else {
 					expandingU = true;
 				}
-				used[sk.sid] = true;
+				used[sk.sid] = pass;
 			}
 		}
 		if (candidate.high.length && candidate.low.length) {
-			foundMatch = true;
 			let highEdge = [];
 			let lowEdge = [];
 			for (let m = 0; m < candidate.high.length; m++) {
@@ -200,35 +189,12 @@ function identifyStem(radical, used, segs, candidates, graph, ove, up, j, strate
 			if (!segOverlapIsValid(highEdge, lowEdge, strategy, radical)) continue;
 			if (stemShapeIsIncorrect(radical, strategy, highEdge, lowEdge, maxh)) continue;
 
-			succeed = true;
-			candidates.push({
-				high: highEdge,
-				low: lowEdge
-			});
-		}
-
-		if (foundMatch && !succeed) {
-			// We found a stem match, but it is not good enough.
-			// We will "reject" the corresponded edge for now, and release them in the future
-			if (up[j]) {
-				for (let k = 0; k < candidate.low.length; k++) {
-					rejected[candidate.low[k]] = true;
-				}
-				candidate.low = [];
-			} else {
-				for (let k = 0; k < candidate.high.length; k++) {
-					rejected[candidate.high[k]] = true;
-				}
-				candidate.high = [];
-			}
-			foundMatch = false;
+			for (let s of candidate.high) _used[s] = true;
+			for (let s of candidate.low) _used[s] = true;
+			return { high: highEdge, low: lowEdge };
 		}
 	}
-	for (let k = 0; k < segs.length; k++) {
-		if (rejected[k]) {
-			used[k] = false;
-		}
-	}
+	return null;
 }
 
 function pairSegmentsForRadical(radicals, r, strategy) {
@@ -267,10 +233,11 @@ function pairSegmentsForRadical(radicals, r, strategy) {
 	}
 	let candidates = [];
 	let used = [];
-	for (let j = 0; j < segs.length; j++)
-		if (!used[j]) {
-			identifyStem(radical, used, segs, candidates, graph, ove, up, j, strategy);
-		}
+	for (let j = 0; j < segs.length; j++) {
+		if (used[j]) continue;
+		const stroke = identifyStem(radical, used, segs, graph, ove, up, j, strategy);
+		if (stroke) candidates.push(stroke);
+	}
 	return candidates.map(s => new Stem(s.high, s.low, r).calculateMinmax(radicals, strategy));
 }
 
