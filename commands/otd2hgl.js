@@ -113,7 +113,8 @@ exports.handler = function(argv) {
 	}
 	function mapGlyf() {
 		var sParseGlyf = JSONStream.parse(["glyf", { emitKey: true }]);
-		var instream = fs.createReadStream(argv._[1], "utf-8");
+		var srcfile = argv._[1];
+		var instream = fs.createReadStream(srcfile, "utf-8");
 		sParseGlyf.on("data", function(data) {
 			var k = data.key,
 				glyph = data.value;
@@ -136,6 +137,7 @@ exports.handler = function(argv) {
 				JSON.stringify({
 					name: k,
 					hash: h,
+					srcfile,
 					unicodes: unicodes.get(k) || [],
 					contours: glyph.contours
 				}) + "\n"
