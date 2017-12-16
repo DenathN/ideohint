@@ -99,7 +99,8 @@ function doHints(_) {
 		if (cache.has(data.hash)) {
 			const cached = cache.get(data.hash);
 			if (cached.ideohint_version !== "*") postprocess(cached.ideohint_decision, strategy);
-			outStream.write(JSON.stringify(cached) + "\n");
+			data.ideohint_decision = cached.ideohint_decision;
+			outStream.write(JSON.stringify(data) + "\n");
 		} else {
 			const contours = data.contours;
 			if (!contours) return;
