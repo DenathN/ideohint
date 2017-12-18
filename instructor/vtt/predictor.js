@@ -20,7 +20,14 @@ function iphintedPositions(bottomStem, r, topStem, pmin, pmax) {
 
 function distHintedPositions(rp0, r, upm, pmin, pmax) {
 	return table(pmin, pmax, ppem => {
-		return rp0.hintedPositions[ppem] + roundings.rtgDiff(r.pOrg, rp0.pOrg, upm, ppem);
+		return roundings.rtg(
+			rp0.hintedPositions[ppem] +
+				roundings.toF26D6P(r.pOrg, upm, ppem) * (upm / ppem) -
+				roundings.toF26D6P(rp0.pOrg, upm, ppem) * (upm / ppem),
+			upm,
+			ppem
+		);
+		//return rp0.hintedPositions[ppem] + roundings.rtgDiff(r.pOrg, rp0.pOrg, upm, ppem);
 	});
 }
 

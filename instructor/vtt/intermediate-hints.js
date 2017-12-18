@@ -1,53 +1,67 @@
 "use strict";
 
 const HE = require("./hintingElement");
-const { iphintedPositions } = require("./predictor");
+const { iphintedPositions, distHintedPositions } = require("./predictor");
 const StemInstructionCombiner = require("./stem-instruction-combiner");
 
 module.exports = function(boundary, sd, elements) {
 	let tdis = 0;
-	const { fpgmPadding, strategy, pmin, pmax } = this;
+	const { fpgmPadding, strategy, pmin, pmax, upm } = this;
 	const { bottomStem, bottomAnchor, topStem, topAnchor } = boundary;
 
 	this.talk(`\n\n/* !!IDH!! INTERMEDIATES */`);
 	const ipAnchorZs = [];
+	const linkTopZs = [];
+	const linkBottomZs = [];
 	const ipZs = [];
 	for (let r of elements) {
 		if (r.told) {
 			//pass
 		} else if (r.kind === HE.KEY_ITEM_STEM) {
-			if (r.pOrg > bottomStem.pOrg && r.pOrg < topStem.pOrg) {
-				ipAnchorZs.push(r.ipz);
-			}
+			// pass
 		} else {
 			ipZs.push(r.ipz);
 			r.told = true;
 		}
 	}
 
-	if (ipAnchorZs.length) {
-		this.talk(`YIPAnchor(${bottomStem.ipz},${ipAnchorZs.join(",")},${topStem.ipz})`);
-		tdis += 3;
-	}
-	if (ipZs.length) {
-		this.talk(`YInterpolate(${bottomAnchor.ipz},${ipZs.join(",")},${topAnchor.ipz})`);
-		tdis += 3;
-	}
-
 	const combiner = new StemInstructionCombiner(fpgmPadding);
 	for (let r of elements) {
 		if (r.told) continue;
 		// ASSERT: r.kind === KEY_ITEM_STEM
-		if (r.pOrg > bottomStem.pOrg && r.pOrg < topStem.pOrg) {
-			const g = this.encoder.encodeStem(
-				r.stem,
-				r.sid,
-				sd,
-				strategy,
-				iphintedPositions(bottomStem, r, topStem, pmin, pmax)
-			);
-			combiner.add(g.parts);
-			tdis += g.totalDeltaImpact;
+		let attempts = [];
+
+		attempts.push({
+			to: linkBottomZs,
+			addTDI: 4,
+			pos0: distHintedPositions(bottomStem, r, upm, pmin, pmax)
+		});
+		attempts.push({
+			to: linkTopZs,
+			addTDI: 4,
+			pos0: distHintedPositions(topStem, r, upm, pmin, pmax)
+		});
+		attempts.push({
+			to: ipAnchorZs,
+			addTDI: 3,
+			pos0: iphintedPositions(bottomStem, r, topStem, pmin, pmax)
+		});
+
+		let bestCost = 0xffff;
+		let bestG = null;
+		let bestA = null;
+		for (let a of attempts) {
+			const g = this.encoder.encodeStem(r.stem, r.sid, sd, strategy, a.pos0);
+			if (g.totalDeltaImpact + a.addTDI < bestCost) {
+				bestG = g;
+				bestA = a;
+				bestCost = g.totalDeltaImpact + a.addTDI;
+			}
+		}
+		if (bestG) {
+			bestA.to.push(r.ipz);
+			combiner.add(bestG.parts);
+			tdis += bestCost;
 		} else {
 			// Should not happen
 			this.talk(`/* !!IDH!! StemDef ${r.sid} DIRECT */`);
@@ -56,6 +70,23 @@ module.exports = function(boundary, sd, elements) {
 			combiner.add(g.parts);
 			tdis += g.totalDeltaImpact;
 		}
+	}
+	if (ipAnchorZs.length) {
+		this.talk(`YIPAnchor(${bottomStem.ipz},${ipAnchorZs.join(",")},${topStem.ipz})`);
+		tdis += 3;
+	}
+	for (let z of linkTopZs) {
+		this.talk(`YShift(${topStem.ipz},${z}) YAnchor(${z})`);
+		tdis += 2;
+	}
+	for (let z of linkBottomZs) {
+		this.talk(`YShift(${bottomStem.ipz},${z}) YAnchor(${z})`);
+		tdis += 2;
+	}
+
+	if (ipZs.length) {
+		this.talk(`YInterpolate(${bottomAnchor.ipz},${ipZs.join(",")},${topAnchor.ipz})`);
+		tdis += 3;
 	}
 	this.talk(combiner.combine());
 	return tdis;

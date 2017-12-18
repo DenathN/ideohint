@@ -410,12 +410,7 @@ class VTTECompiler {
 					deltas: [],
 					fn: SWAdvance(i.cvtid)
 				}))
-				.filter(
-					g =>
-						g.wsrc > wsrc
-							? (g.wsrc - wsrc) / wsrc < 1 / 12
-							: (wsrc - g.wsrc) / wsrc < 1 / 8
-				)
+				.filter(g => Math.abs(g.wsrc - wsrc) < upm / 80)
 		].sort((a, b) => Math.abs(a.wsrc - wsrc) - Math.abs(b.wsrc - wsrc));
 
 		for (let ppem = 0; ppem < sd.length; ppem++) {
