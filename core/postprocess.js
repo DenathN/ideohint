@@ -17,10 +17,10 @@ function widthOf(s) {
 		? s.posKey.y - s.advKey.y + (s.advKey.x - s.posKey.x) * s.slope
 		: s.advKey.y - s.posKey.y + (s.posKey.x - s.advKey.x) * s.slope;
 }
-function twoPixelPack(uppx, yj, wj, yk, wk, sj, sk) {
+function twoPixelPack(uppx, uj, uk, yj, wj, yk, wk, sj, sk) {
 	return (
-		sj.posKeyAtTop &&
-		!sk.posKeyAtTop &&
+		uj &&
+		!uk &&
 		(yj - wj - yk <= 2.05 && wk * uppx + wj * uppx < widthOf(sk) + widthOf(sj) - 0.25 * uppx)
 	);
 }
@@ -121,7 +121,7 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 			if (wj * uppx > widthOf(sj)) continue;
 			if (
 				(yj - wj - yk === 1 && up[j] && (!coK || (coK && y[coKID] === yk))) ||
-				(twoPixelPack(uppx, yj, wj, yk, wk, sj, sk) && sjmax - sjmin < skmax - skmin)
+				(twoPixelPack(uppx, up[j], up[k], yj, wj, yk, wk, sj, sk) && sjmax - sjmin < skmax - skmin)
 			) {
 				actions[j][HARD] = true;
 			}
@@ -156,7 +156,7 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 			if (wj * uppx > widthOf(sj)) continue;
 			if (
 				(yk - wk - yj === 1 && !up[j] && (!coK || (coK && y[coKID] === yk))) ||
-				(twoPixelPack(uppx, yk, wk, yj, wj, sk, sj) && sjmax - sjmin <= skmax - skmin)
+				(twoPixelPack(uppx, up[k], up[j], yk, wk, yj, wj, sk, sj) && sjmax - sjmin <= skmax - skmin)
 			) {
 				actions[j][HARD] = true;
 			}
@@ -238,7 +238,7 @@ function swcfcCtxFor(strategy) {
 	}
 }
 
-module.exports = function(data, strategy) {
+module.exports = function (data, strategy) {
 	if (!data) return;
 	const { si, sd, pmin, pmax } = data;
 	for (let ppem = pmin; ppem <= pmax; ppem++) {
@@ -256,6 +256,6 @@ module.exports = function(data, strategy) {
 	}
 };
 module.exports.for = padSD;
-module.exports.getSwcfgFor = function(strategy, ppem) {
+module.exports.getSwcfgFor = function (strategy, ppem) {
 	return getSWCFG(swcfcCtxFor(strategy), 1, ppem);
 };
