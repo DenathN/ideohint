@@ -68,7 +68,7 @@ function cEq(key, pt, aux) {
 }
 
 function ipWeight(key, pt) {
-	return Math.hypot(key.phantom ? 0.5 : 1 * (key.x - pt.x), (key.y - pt.y));
+	return Math.hypot(key.phantom ? 0.25 : 1 * (key.x - pt.x), (key.y - pt.y));
 }
 
 function interpolateByKeys(targets, pts, keys, priority, fuzz) {

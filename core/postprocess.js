@@ -79,11 +79,7 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 		up[j] =
 			(!sj.hasGlyphStemAbove && !sj.diagLow) || (!sj.hasGlyphStemBelow && !sj.diagHigh)
 				? sj.posKeyAtTop
-				: y[j] - w[j] > estimatedHigh
-					? false
-					: y[j] < estimatedLow
-						? true
-						: Math.abs(y[j] - estimatedHigh) < Math.abs(y[j] - w[j] - estimatedLow);
+				: y[j] - w[j] / 2 >= (estimatedHigh + estimatedLow) / 2;
 	}
 	for (let j = 0; j < stems.length; j++) {
 		const sj = stems[j];
