@@ -273,9 +273,9 @@ class Individual {
 				if (
 					(y[j] > y[k] &&
 						avails[j].y0px - avails[k].y0px <
-							(avails[j].hasGlyphStemBelow || avails[k].hasGlyphStemBelow
-								? PRETTY_FLAT
-								: REALLY_FLAT)) ||
+						(avails[j].hasGlyphStemBelow || avails[k].hasGlyphStemBelow
+							? PRETTY_FLAT
+							: REALLY_FLAT)) ||
 					(y[j] <= y[k] && avails[j].y0px - avails[k].y0px > NOT_REALLY_FLAT) ||
 					(y[j] > y[k] + 1 && avails[j].y0px - avails[k].y0px < SLIGHTLY_SLANTED)
 				) {
@@ -302,6 +302,8 @@ class Individual {
 					if (y[j] < y[k]) {
 						p += S[j][k]; // Swap
 					} else if (
+						(!avails[j].hasGlyphStemAbove && !avails[k].hasGlyphStemAbove
+							|| !avails[j].hasGlyphStemBelow && !avails[k].hasGlyphStemBelow) &&
 						avails[j].y0 - avails[j].w0 < avails[k].y0 &&
 						!(avails[j].rid && avails[j].rid === avails[k].rid) &&
 						(avails[j].properWidth > 1
