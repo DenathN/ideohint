@@ -9,7 +9,7 @@ function nearBot(z1, z2, d) {
 	return Math.abs(z1.y - z2.y) <= d;
 }
 
-module.exports = function(glyph, strategy) {
+module.exports = function (glyph, strategy) {
 	// Blue zone points
 	var topBluePoints = [];
 	var bottomBluePoints = [];
@@ -27,6 +27,7 @@ module.exports = function(glyph, strategy) {
 					nearTop(point, zm, strategy.STEM_SIDE_MIN_RISE)
 				) {
 					isDecoTop = true;
+					point.donttouch = true;
 				}
 				if (
 					(zm.touched || zm.donttouch) &&
@@ -35,6 +36,7 @@ module.exports = function(glyph, strategy) {
 					nearBot(point, zm, strategy.STEM_SIDE_MIN_RISE / 3)
 				) {
 					isDecoBot = true;
+					point.donttouch = true;
 				}
 			}
 			if (

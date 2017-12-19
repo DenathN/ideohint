@@ -5,7 +5,7 @@ const { adjacent, adjacentZ } = require("../types/point");
 function BY_YORI(p, q) {
 	return p.y - q.y;
 }
-let STEPS = 10;
+let STEPS = 32;
 function shortAbsorptionPointByKeys(targets, strategy, pt, keys, accept, priority) {
 	if (pt.touched || pt.donttouch || !pt.on || !strategy.DO_SHORT_ABSORPTION) return;
 	let minDist = 0xffff,
@@ -67,8 +67,11 @@ function cEq(key, pt, aux) {
 	return Math.abs(pt.y - key.y) < aux;
 }
 
-const COEFF_EXT = 1;
-function interpolateByKeys(targets, strategy, pts, keys, priority) {
+function ipWeight(key, pt) {
+	return Math.hypot(key.phantom ? 0.5 : 1 * (key.x - pt.x), (key.y - pt.y));
+}
+
+function interpolateByKeys(targets, pts, keys, priority, fuzz) {
 	for (let k = 0; k < pts.length; k++) {
 		let pt = pts[k];
 		if (pt.touched || pt.donttouch) continue;
@@ -79,30 +82,24 @@ function interpolateByKeys(targets, strategy, pts, keys, priority) {
 			lowerdist = 0xffff;
 		for (let m = keys.length - 1; m >= 0; m--) {
 			// adjancy exclusion
-			if (!compareZ(keys[m], pt, cEq, strategy.Y_FUZZ)) continue;
+			if (!compareZ(keys[m], pt, cEq, fuzz)) continue;
 			if (!adjacent(keys[m], pt) && !adjacentZ(keys[m], pt)) continue;
 			pt.donttouch = true;
 		}
 
 		if (pt.touched || pt.donttouch) continue;
 		for (let m = keys.length - 1; m >= 0; m--)
-			if (compareZ(keys[m], pt, cLT, strategy.Y_FUZZ)) {
-				if (
-					!lowerK ||
-					Math.hypot(keys[m].x - pt.x, COEFF_EXT * (keys[m].y - pt.y)) < lowerdist
-				) {
+			if (compareZ(keys[m], pt, cLT, fuzz)) {
+				if (!lowerK || ipWeight(keys[m], pt) < lowerdist) {
 					lowerK = keys[m];
-					lowerdist = Math.hypot(keys[m].x - pt.x, COEFF_EXT * (keys[m].y - pt.y));
+					lowerdist = ipWeight(keys[m], pt);
 				}
 			}
 		for (let m = keys.length - 1; m >= 0; m--)
-			if (compareZ(keys[m], pt, cGT, strategy.Y_FUZZ)) {
-				if (
-					!upperK ||
-					Math.hypot(keys[m].x - pt.x, COEFF_EXT * (keys[m].y - pt.y)) < upperdist
-				) {
+			if (compareZ(keys[m], pt, cGT, fuzz)) {
+				if (!upperK || ipWeight(keys[m], pt) < upperdist) {
 					upperK = keys[m];
-					upperdist = Math.hypot(keys[m].x - pt.x, COEFF_EXT * (keys[m].y - pt.y));
+					upperdist = ipWeight(keys[m], pt);
 				}
 			}
 		if (!lowerK || !upperK) continue;
@@ -113,7 +110,7 @@ function interpolateByKeys(targets, strategy, pts, keys, priority) {
 		while (upperK.linkedKey) upperK = upperK.linkedKey;
 		while (lowerK.linkedKey) lowerK = lowerK.linkedKey;
 		if (!upperK.phantom && !lowerK.phantom) {
-			if (upperK.y > lowerK.y + strategy.Y_FUZZ) {
+			if (upperK.y > lowerK.y + fuzz) {
 				pt.upperK0 = upperK0;
 				pt.lowerK0 = lowerK0;
 				pt.upperK = upperK;
@@ -132,7 +129,7 @@ function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalS
 	let radicalParts = [radical.outline].concat(radical.holes);
 	let radicalPoints = [].concat.apply(
 		[],
-		radicalParts.map(function(c) {
+		radicalParts.map(function (c) {
 			return c.points.slice(0, -1);
 		})
 	);
@@ -186,7 +183,7 @@ function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalS
 				sc &&
 				(!candidate ||
 					Math.hypot(z.y - candidate.y, z.x - candidate.x) >=
-						Math.hypot(z.y - sc.y, z.x - sc.x))
+					Math.hypot(z.y - sc.y, z.x - sc.x))
 			) {
 				candidate = sc;
 			}
@@ -203,13 +200,13 @@ function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalS
 function linkSoleStemPoints(shortAbsorptions, strategy, glyph, priority) {
 	for (let j = 0; j < glyph.radicals.length; j++) {
 		let radical = glyph.radicals[j];
-		let radicalStems = glyph.stems.filter(function(s) {
+		let radicalStems = glyph.stems.filter(function (s) {
 			return s.belongRadical === j;
 		});
 		linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalStems, priority);
 	}
 }
-module.exports = function(glyph, blues, strategy) {
+module.exports = function (glyph, blues, strategy) {
 	let interpolations = [];
 	let shortAbsorptions = [];
 
@@ -278,12 +275,12 @@ module.exports = function(glyph, blues, strategy) {
 	for (let j = 0; j < contours.length; j++) {
 		let contourpoints = contours[j].points.slice(0, -1);
 		let contourAlignPoints = contourpoints
-			.filter(function(p) {
+			.filter(function (p) {
 				return p.touched;
 			})
 			.sort(BY_YORI);
 		let contourExtrema = contourpoints
-			.filter(function(p) {
+			.filter(function (p) {
 				return p.xExtrema || p.yExtrema;
 			})
 			.sort(BY_YORI);
@@ -296,7 +293,7 @@ module.exports = function(glyph, blues, strategy) {
 		}
 
 		if (contourExtrema.length > 1) {
-			let extrema = contourExtrema.filter(function(z) {
+			let extrema = contourExtrema.filter(function (z) {
 				return (
 					z.id !== pmin.id &&
 					z.id !== pmax.id &&
@@ -323,10 +320,10 @@ module.exports = function(glyph, blues, strategy) {
 					midex.push(extrema[m]);
 				}
 			}
-			let blues = contourpoints.filter(function(p) {
+			let blues = contourpoints.filter(function (p) {
 				return p.blued;
 			});
-			let midexl = contourExtrema.filter(function(p) {
+			let midexl = contourExtrema.filter(function (p) {
 				return p.xExtrema || p.yExtrema;
 			});
 			records.push({
@@ -367,12 +364,14 @@ module.exports = function(glyph, blues, strategy) {
 	linkSoleStemPoints(shortAbsorptions, strategy, glyph, 7);
 	let b = [];
 	for (let j = 0; j < contours.length; j++) {
-		interpolateByKeys(targets, strategy, records[j].topbot, glyphKeypoints, 5);
+		interpolateByKeys(targets, records[j].topbot, glyphKeypoints, 5, strategy.Y_FUZZ);
+		interpolateByKeys(targets, records[j].topbot, glyphKeypoints, 5, 1);
 		b = b.concat(records[j].topbot.filter(z => z.touched));
 	}
 	glyphKeypoints = glyphKeypoints.concat(b).sort(BY_YORI);
 	for (let j = 0; j < contours.length; j++) {
-		interpolateByKeys(targets, strategy, records[j].midex, glyphKeypoints, 3);
+		interpolateByKeys(targets, records[j].midex, glyphKeypoints, 3, strategy.Y_FUZZ);
+		interpolateByKeys(targets, records[j].midex, glyphKeypoints, 3, 1);
 		shortAbsorptionByKeys(
 			targets,
 			strategy,
@@ -382,7 +381,7 @@ module.exports = function(glyph, blues, strategy) {
 			1
 		);
 	}
-	interpolations = interpolations.sort(function(u, v) {
+	interpolations = interpolations.sort(function (u, v) {
 		return glyph.indexedPoints[u[2]].x - glyph.indexedPoints[v[2]].x;
 	});
 	// cleanup
@@ -397,7 +396,7 @@ module.exports = function(glyph, blues, strategy) {
 				interpolations[j][3] !== 9 &&
 				Math.abs(
 					glyph.indexedPoints[interpolations[j][2]].y -
-						glyph.indexedPoints[interpolations[k][2]].y
+					glyph.indexedPoints[interpolations[k][2]].y
 				) <= strategy.Y_FUZZ
 			) {
 				shortAbsorptions.push([
