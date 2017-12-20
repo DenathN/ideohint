@@ -3,6 +3,8 @@
 const roundings = require("../support/roundings");
 const { decideDeltaShift, getSWCFG } = require("../instructor/delta");
 
+const GEAR = 8;
+
 const Y = 0;
 const W = 1;
 const HARD = 2;
@@ -55,45 +57,29 @@ function tbtfm(y, [bottom, top, bottom0, top0]) {
 	return (y - bottom0) / (top0 - bottom0) * (top - bottom) + bottom;
 }
 
+const PRE_ROUNDS = 3;
+const POST_ROUNDS = 3;
+
+// The size-dependent flipping is decided in this strategy:
+//   1. Make the hinted stroke closest to the unhinted, while preseving
+//      the integral position and width constraints;
+//   2. Avoid HARD strokes as more as possible.
+// Therefore we use a two-step strategy to decide the UP[] array:
+//   1. Run three PP rounds with up[] decided by promixity;
+//   2. Run three more PP rounds, and in each step, flip the entries
+//      that are harden in the previous round.
 function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
-	const uppx = upm / ppem;
-	const [bottom, top] = tb;
-	let hsw = [];
-	for (let j = 0; j < stems.length; j++) {
-		hsw[j] = actions[j][W];
+	function lockUp(sj) {
+		return (!sj.hasGlyphStemAbove && !sj.diagLow) || (!sj.hasGlyphStemBelow && !sj.diagHigh);
 	}
-	for (let round = 0; round < 4; round++) {
+	function ppRoundInternal(up, y, w) {
 		let stackrel = [];
-		let up = [],
-			y = [],
-			w = [];
+
 		for (let j = 0; j < stems.length; j++) {
 			actions[j][HARD] = false;
 			actions[j][STACKED] = false;
 			actions[j][ADDPXS] = 0;
 			stackrel[j] = [];
-
-			const sj = stems[j];
-			const high = sj.posKeyAtTop ? sj.posKey : sj.advKey;
-			const low = sj.posKeyAtTop ? sj.advKey : sj.posKey;
-			y[j] = Math.round(actions[j][Y] - (actions[j][FLIP] || 0));
-			w[j] = Math.round(actions[j][W]);
-
-			// The up[j] determines whether stem[j]'s hard edge should be the top edge
-			// under this pixel size. It is determined by either:
-			//  - Whether the (integral) hinted position is lower than the original position
-			//  - Whether the fractional hinted stem width is wider than the original width
-			// The <LOW-THINNER> and <HIGH-WIDTH> combination would lead up[j] to true
-			// ps. topmost and bottommost stems are not altered
-			const estimatedHigh = tbtfm(high.y, tb); // Estimated unrounded top-edge position
-			const estimatedLow = tbtfm(low.y, tb); // Estimated unrounded bottom-edge position
-			const midlineLower = y[j] - w[j] / 2 <= (estimatedHigh + estimatedLow) / 2;
-			const hintedThinner = hsw[j] <= w[j];
-			if ((!sj.hasGlyphStemAbove && !sj.diagLow) || (!sj.hasGlyphStemBelow && !sj.diagHigh)) {
-				up[j] = sj.posKeyAtTop;
-			} else {
-				up[j] = hintedThinner === midlineLower;
-			}
 		}
 		for (let j = 0; j < stems.length; j++) {
 			const sj = stems[j];
@@ -191,7 +177,7 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 			}
 		}
 
-		hsw = [];
+		let hsw = [];
 		for (let j = 0; j < stems.length; j++) {
 			actions[j][Y] = y[j];
 			actions[j][W] = w[j];
@@ -201,7 +187,7 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 			const [, , hard, stacked] = actions[j];
 
 			const delta = decideDeltaShift(
-				8,
+				GEAR,
 				1,
 				hard,
 				stacked,
@@ -230,7 +216,72 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 				actions[j][FLIP] -= overflow;
 			}
 		}
+		return hsw;
 	}
+	function initUpArray(y, w, hsw) {
+		up = [];
+		for (let j = 0; j < stems.length; j++) {
+			const sj = stems[j];
+			const high = sj.posKeyAtTop ? sj.posKey : sj.advKey;
+			const low = sj.posKeyAtTop ? sj.advKey : sj.posKey;
+
+			// The up[j] determines whether stem[j]'s hard edge should be the top edge
+			// under this pixel size. It is determined by either:
+			//  - Whether the (integral) hinted position is lower than the original position
+			//  - Whether the fractional hinted stem width is wider than the original width
+			// The <LOW-THINNER> and <HIGH-WIDTH> combination would lead up[j] to true
+			// ps. topmost and bottommost stems are not altered
+			const estimatedHigh = tbtfm(high.y, tb); // Estimated unrounded top-edge position
+			const estimatedLow = tbtfm(low.y, tb); // Estimated unrounded bottom-edge position
+			const midlineLower = y[j] - w[j] / 2 <= (estimatedHigh + estimatedLow) / 2;
+			const hintedThinner = hsw[j] <= w[j];
+			if (lockUp(sj)) {
+				up[j] = sj.posKeyAtTop;
+			} else {
+				up[j] =
+					Math.abs(hsw[j] - w[j]) < 1 / GEAR
+						? sj.posKeyAtTop
+						: hintedThinner === midlineLower;
+			}
+		}
+		return up;
+	}
+	function ppRound(up) {
+		let y = [],
+			w = [];
+		for (let j = 0; j < stems.length; j++) {
+			y[j] = Math.round(actions[j][Y] - (actions[j][FLIP] || 0));
+			w[j] = Math.round(actions[j][W]);
+		}
+		if (!up) {
+			up = initUpArray(y, w, hsw);
+		} else {
+			// Compressing down one pixel would heavily impact the apperance
+			// We'd like to flip the "up" array in this pass.
+			for (let j = 0; j < stems.length; j++) {
+				if (actions[j][HARD] && w[j] <= 1) up[j] = !up[j];
+			}
+		}
+		hsw = ppRoundInternal(up, y, w);
+		return up;
+	}
+
+	const uppx = upm / ppem;
+	const [bottom, top] = tb;
+	// this array records the stroke width of each stem,
+	// with the "true" width decided by the delta hinter.
+	// Initially it is set to the integral width and updated
+	// in each ppRound. That's why we need three rounds for each sub pass.
+	let hsw = [];
+	for (let j = 0; j < stems.length; j++) hsw[j] = actions[j][W];
+
+	// Pass 1: Decide by promixity
+	let up = null;
+	for (let j = 0; j < PRE_ROUNDS; j++) up = ppRound();
+
+	// Pass 2: De-hardening
+	for (let j = 0; j < POST_ROUNDS; j++) up = ppRound(up);
+
 	return actions;
 }
 function calculateTB(si, ppem) {
