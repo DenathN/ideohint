@@ -400,17 +400,19 @@ class VTTECompiler {
 			? s.posKey.y - s.advKey.y + (s.advKey.x - s.posKey.x) * s.slope
 			: s.advKey.y - s.posKey.y + (s.posKey.x - s.advKey.x) * s.slope;
 		const advDeltaGroups = [
-			{ wsrc, totalDeltaImpact: 0, deltas: [], fn: standardAdvance },
-			...this.cvtLinkEntries
-				.map(i => ({
-					wsrc: s.posKeyAtTop
-						? i.width + (s.advKey.x - s.posKey.x) * s.slope
-						: i.width + (s.posKey.x - s.advKey.x) * s.slope,
-					totalDeltaImpact: 0,
-					deltas: [],
-					fn: SWAdvance(i.cvtid)
-				}))
-				.filter(g => Math.abs(g.wsrc - wsrc) < upm / 80)
+			{ wsrc, totalDeltaImpact: 0, deltas: [], fn: standardAdvance }
+			// DISABLED DUE TO SD-FLIPPING
+			//
+			// ...this.cvtLinkEntries
+			// 	.map(i => ({
+			// 		wsrc: s.posKeyAtTop
+			// 			? i.width + (s.advKey.x - s.posKey.x) * s.slope
+			// 			: i.width + (s.posKey.x - s.advKey.x) * s.slope,
+			// 		totalDeltaImpact: 0,
+			// 		deltas: [],
+			// 		fn: SWAdvance(i.cvtid)
+			// 	}))
+			// 	.filter(g => Math.abs(g.wsrc - wsrc) < upm / 80)
 		].sort((a, b) => Math.abs(a.wsrc - wsrc) - Math.abs(b.wsrc - wsrc));
 
 		for (let ppem = 0; ppem < sd.length; ppem++) {
