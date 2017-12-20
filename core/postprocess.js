@@ -78,14 +78,22 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 			const low = sj.posKeyAtTop ? sj.advKey : sj.posKey;
 			y[j] = Math.round(actions[j][Y] - (actions[j][FLIP] || 0));
 			w[j] = Math.round(actions[j][W]);
-			const estimatedHigh = tbtfm(high.y, tb);
-			const estimatedLow = tbtfm(low.y, tb);
-			const midlineLower = y[j] - hsw[j] / 2 <= (estimatedHigh + estimatedLow) / 2;
+
+			// The up[j] determines whether stem[j]'s hard edge should be the top edge
+			// under this pixel size. It is determined by either:
+			//  - Whether the (integral) hinted position is lower than the original position
+			//  - Whether the fractional hinted stem width is wider than the original width
+			// The <LOW-THINNER> and <HIGH-WIDTH> combination would lead up[j] to true
+			// ps. topmost and bottommost stems are not altered
+			const estimatedHigh = tbtfm(high.y, tb); // Estimated unrounded top-edge position
+			const estimatedLow = tbtfm(low.y, tb); // Estimated unrounded bottom-edge position
+			const midlineLower = y[j] - w[j] / 2 <= (estimatedHigh + estimatedLow) / 2;
 			const hintedThinner = hsw[j] <= w[j];
-			up[j] =
-				(!sj.hasGlyphStemAbove && !sj.diagLow) || (!sj.hasGlyphStemBelow && !sj.diagHigh)
-					? sj.posKeyAtTop
-					: hintedThinner === midlineLower;
+			if ((!sj.hasGlyphStemAbove && !sj.diagLow) || (!sj.hasGlyphStemBelow && !sj.diagHigh)) {
+				up[j] = sj.posKeyAtTop;
+			} else {
+				up[j] = hintedThinner === midlineLower;
+			}
 		}
 		for (let j = 0; j < stems.length; j++) {
 			const sj = stems[j];
