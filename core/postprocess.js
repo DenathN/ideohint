@@ -259,7 +259,7 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 			// Compressing down one pixel would heavily impact the apperance
 			// We'd like to flip the "up" array in this pass.
 			for (let j = 0; j < stems.length; j++) {
-				if (actions[j][HARD] && w[j] <= 1) up[j] = !up[j];
+				if (!lockUp(stems[j]) && actions[j][HARD] && w[j] <= 1) up[j] = !up[j];
 			}
 		}
 		hsw = ppRoundInternal(up, y, w);
