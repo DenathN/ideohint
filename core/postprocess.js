@@ -280,7 +280,11 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 	for (let j = 0; j < PRE_ROUNDS; j++) up = ppRound();
 
 	// Pass 2: De-hardening
-	for (let j = 0; j < POST_ROUNDS; j++) up = ppRound(up);
+	for (let j = 0; j < POST_ROUNDS; j++) {
+		ppRound([...up]);
+		ppRound([...up]);
+		up = ppRound([...up]);
+	}
 
 	return actions;
 }
