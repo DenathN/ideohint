@@ -18,7 +18,8 @@ function findClash($$, ej, ek) {
 	for (let ppem = rangeMin; ppem < rangeMax; ppem++) {
 		const dist = $$.upm / ppem * LSH_DECLASH_FRACTION / 64;
 		if (sk.posKeyAtTop && !sj.posKeyAtTop) {
-			if (ek.hintedPositions[ppem] - wk - (ej.hintedPositions[ppem] + wj) < dist) return true;
+			if (ek.hintedPositions[ppem] - wk - (ej.hintedPositions[ppem] + wj) < dist * 2)
+				return true;
 		} else if (sk.posKeyAtTop && sj.posKeyAtTop) {
 			if (ek.hintedPositions[ppem] - wk - ej.hintedPositions[ppem] < dist) return true;
 		} else if (!sk.posKeyAtTop && !sj.posKeyAtTop) {
@@ -51,7 +52,7 @@ module.exports = function($$, elements) {
 				$$.talk(
 					`Call(${sk.advKey.id},${sj.advKey.id},${sk.posKey.id},${sj.posKey.id},${
 						$$.pmax
-					},${fid})`
+					},${fid + 1})`
 				);
 				tdi += 7;
 			} else if (sk.posKeyAtTop && sj.posKeyAtTop) {
