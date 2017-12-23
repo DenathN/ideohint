@@ -30,7 +30,8 @@ function findClash($$, ej, ek) {
 
 module.exports = function($$, elements) {
 	const si = $$.si;
-	if (!$$.fpgmPadding || !si.directOverlaps) return;
+	if (!$$.fpgmPadding || !si.directOverlaps) return 0;
+	let tdi = 0;
 	const fid = $$.fpgmPadding + fpgmShiftOf.quadstroke_f;
 	for (let j = 0; j < elements.length; j++) {
 		if (!(elements[j] instanceof HE.Stem)) continue;
@@ -52,19 +53,23 @@ module.exports = function($$, elements) {
 						$$.pmax
 					},${fid})`
 				);
+				tdi += 7;
 			} else if (sk.posKeyAtTop && sj.posKeyAtTop) {
 				$$.talk(
 					`Call(${sk.advKey.id},${sj.posKey.id},${sk.posKey.id},${sj.posKey.id},${
 						$$.pmax
 					},${fid})`
 				);
+				tdi += 7;
 			} else if (!sk.posKeyAtTop && !sj.posKeyAtTop) {
 				$$.talk(
 					`Call(${sk.posKey.id},${sj.advKey.id},${sk.posKey.id},${sj.posKey.id},${
 						$$.pmax
 					},${fid})`
 				);
+				tdi += 7;
 			}
 		}
 	}
+	return tdi;
 };

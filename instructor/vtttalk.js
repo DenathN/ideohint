@@ -343,7 +343,7 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 			elements
 		);
 
-		hintLS($$, elements);
+		$$.tdis += hintLS($$, elements);
 
 		if ($$.tdis < bestTDI) {
 			bestTalk = $$.buf;
