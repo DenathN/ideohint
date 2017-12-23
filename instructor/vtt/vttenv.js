@@ -37,7 +37,7 @@ const fpgmShiftOf = (exports.fpgmShiftOf = {
 	quadstroke_f: 16
 });
 
-const LSH_DECLASH_FRACTION = 48;
+const LSH_DECLASH_FRACTION = 128;
 exports.LSH_DECLASH_FRACTION = LSH_DECLASH_FRACTION;
 
 exports.generateFPGM = (function() {
