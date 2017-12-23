@@ -4,7 +4,7 @@ const roundings = require("../support/roundings");
 const product = require("../support/product");
 const { VTTTalkDeltaEncoder, AssemblyDeltaEncoder, VTTECompiler } = require("./vtt/encoder");
 
-const { getVTTAux, cvtIds, generateCVT, generateFPGM } = require("./vtt/vttenv");
+const { getVTTAux, cvtIds, generateCVT, generateFPGM, fpgmShiftOf } = require("./vtt/vttenv");
 const HE = require("./vtt/hintingElement");
 
 const StemInstructionCombiner = require("./vtt/stem-instruction-combiner");
@@ -12,6 +12,7 @@ const formOffhints = require("./vtt/off-hints");
 const formTrailHints = require("./vtt/trail-hints");
 const formIntermediateHints = require("./vtt/intermediate-hints");
 const { table, distHintedPositions } = require("./vtt/predictor");
+const hintLS = require("./vtt/largerSizeHints");
 
 const ABRefMethods = [
 	{
@@ -71,23 +72,6 @@ const ABRefMethods = [
 // 20171025: USE DUAL ONLY
 const rfCombinations = [...product([ABRefMethods[0]], [0, 1, 2], [0, 1, 2])];
 
-function chooseTBPos0(stemKind, stem, cvtCutin, choices) {
-	let chosen = choices[0];
-	for (let c of choices)
-		if (Math.abs(c.y - stem.pOrg) < Math.abs(chosen.y - stem.pOrg)) {
-			chosen = c;
-		}
-	let { cvt, y, pos0s } = chosen;
-	if (Math.abs(stem.pOrg - y) > cvtCutin) return null;
-
-	return {
-		posInstr: `/* !!IDH!! StemDef ${stem.sid} ${stemKind} ABSORB */\nYAnchor(${
-			stem.ipz
-		},${cvt})`,
-		pos0s
-	};
-}
-
 class VTTCompiler {
 	constructor(record, strategy, padding, fpgmPadding, contours) {
 		if (record) {
@@ -111,6 +95,9 @@ class VTTCompiler {
 	}
 	talk(s) {
 		this.buffer += s + "\n";
+	}
+	get pmaxC() {
+		return this.pmax * 3;
 	}
 	get encoder() {
 		if (!this._encoder) {
@@ -139,21 +126,22 @@ class VTTCompiler {
 	get hintedPositions() {
 		if (!this._hintedPositions) {
 			let hp = {};
-			const { sd, upm, pmin, pmax, strategy } = this;
+			const { sd, upm, pmin, pmaxC, strategy } = this;
+
 			hp.bot = table(
 				pmin,
-				pmax,
+				pmaxC,
 				ppem =>
 					sd[ppem] && sd[ppem].y_tb
 						? sd[ppem].y_tb.bottom * upm / ppem
 						: roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem)
 			);
-			hp.top0 = table(pmin, pmax, ppem =>
+			hp.top0 = table(pmin, pmaxC, ppem =>
 				roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem)
 			);
 			hp.top = table(
 				pmin,
-				pmax,
+				pmaxC,
 				ppem =>
 					sd[ppem] && sd[ppem].y_tb
 						? sd[ppem].y_tb.top * upm / ppem
@@ -164,13 +152,13 @@ class VTTCompiler {
 								ppem
 							)
 			);
-			hp.botB = table(pmin, pmax, ppem => roundings.rtg(this.aux.yBotBar, upm, ppem));
-			hp.topB = table(pmin, pmax, ppem => roundings.rtg(this.aux.yTopBar, upm, ppem));
-			hp.botD = table(pmin, pmax, ppem => roundings.rtg(this.aux.yBotD, upm, ppem));
-			hp.topD = table(pmin, pmax, ppem => roundings.rtg(this.aux.yTopD, upm, ppem));
+			hp.botB = table(pmin, pmaxC, ppem => roundings.rtg(this.aux.yBotBar, upm, ppem));
+			hp.topB = table(pmin, pmaxC, ppem => roundings.rtg(this.aux.yTopBar, upm, ppem));
+			hp.botD = table(pmin, pmaxC, ppem => roundings.rtg(this.aux.yBotD, upm, ppem));
+			hp.topD = table(pmin, pmaxC, ppem => roundings.rtg(this.aux.yTopD, upm, ppem));
 			hp.topDLinked = table(
 				pmin,
-				pmax,
+				pmaxC,
 				ppem =>
 					roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem) +
 					roundings.rtg(this.aux.yTopD - this.aux.yBotD, upm, ppem)
@@ -297,36 +285,7 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 				})`,
 				pos0s: null
 			});
-			// CVT YAnchor
-			// bsHintingMethodList.push(
-			// 	chooseTBPos0("BOTTOM", bottomStem, $$.cvtCutin, [
-			// 		{
-			// 			cvt: $$.cvt.cvtBottomBarId,
-			// 			y: $$.aux.yBotBar,
-			// 			pos0s: $$.hintedPositions.botB
-			// 		},
-			// 		{
-			// 			cvt: $$.cvt.cvtBottomDId,
-			// 			y: $$.aux.yBotD,
-			// 			pos0s: $$.hintedPositions.botD
-			// 		},
-			// 		{
-			// 			cvt: $$.cvt.cvtBottomId,
-			// 			y: strategy.BLUEZONE_BOTTOM_CENTER,
-			// 			pos0s: $$.hintedPositions.bot
-			// 		}
-			// 	])
-			// );
 
-			// **** PREDICTION BEING UNRELIABLE ****
-
-			// YDist to bottomAnchor knot
-			// if (bottomAnchor.told) {
-			// 	bsHintingMethodList.push({
-			// 		posInstr: `/* !!IDH!! StemDef ${topStem.sid} BOTTOM Dist */\nYDist(${bottomAnchor.ipz},${bottomStem.ipz})`,
-			// 		pos0s: distHintedPositions(bottomAnchor, bottomStem, $$.upm, $$.pmin, $$.pmax)
-			// 	});
-			// }
 			const bsParams = bsHintingMethodList[bsMethod];
 			if (!bsParams) continue;
 			const { totalDeltaImpact: tdi, parts, hintedPositions } = ec.encodeStem(
@@ -334,7 +293,8 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 				bottomStem.sid,
 				$$.sd,
 				$$.strategy,
-				bsParams.pos0s
+				bsParams.pos0s,
+				$$.pmaxC
 			);
 			$$.talk(bsParams.posInstr);
 			bottomStem.hintedPositions = hintedPositions;
@@ -353,37 +313,7 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 				})`,
 				pos0s: null
 			});
-			// CVT YAnchor
-			// tsHintingMethodList.push(
-			// 	chooseTBPos0("TOP", topStem, $$.cvtCutin, [
-			// 		{
-			// 			cvt: $$.cvt.cvtTopBarId,
-			// 			y: $$.aux.yTopBar,
-			// 			pos0s: $$.hintedPositions.topB
-			// 		},
-			// 		{
-			// 			cvt: $$.cvt.cvtTopDId,
-			// 			y: $$.aux.yTopD,
-			// 			pos0s: $$.hintedPositions.topD
-			// 		},
-			// 		{
-			// 			cvt: $$.cvt.cvtTopId,
-			// 			y: strategy.BLUEZONE_TOP_CENTER,
-			// 			pos0s: $$.hintedPositions.top0
-			// 		}
-			// 	])
-			// );
 
-			// **** PREDICTION BEING UNRELIABLE ****
-
-			// YDist to bottomStem
-			// YDist to topAnchor knot
-			// if (topAnchor.told) {
-			// 	tsHintingMethodList.push({
-			// 		posInstr: `/* !!IDH!! StemDef ${topStem.sid} TOP Dist */\nYDist(${topAnchor.ipz},${topStem.ipz})`,
-			// 		pos0s: distHintedPositions(topAnchor, topStem, $$.upm, $$.pmin, $$.pmax)
-			// 	});
-			// }
 			const tsParams = tsHintingMethodList[tsMethod];
 			if (!tsParams) continue;
 
@@ -392,7 +322,8 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 				topStem.sid,
 				$$.sd,
 				$$.strategy,
-				tsParams.pos0s
+				tsParams.pos0s,
+				$$.pmaxC
 			);
 			$$.talk(tsParams.posInstr);
 			topStem.hintedPositions = hintedPositions;
@@ -411,6 +342,8 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 			$$.sd,
 			elements
 		);
+
+		hintLS($$, elements);
 
 		if ($$.tdis < bestTDI) {
 			bestTalk = $$.buf;

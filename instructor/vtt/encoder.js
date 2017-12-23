@@ -236,9 +236,7 @@ const TRY_INTEGERS = [
 ];
 const TRY_FRACTIONALS = [
 	[fpgmShiftOf.comp_octet, 1 / 8, 4, 2],
-	[fpgmShiftOf.comp_octet_neg, 1 / 8, 4, -1],
-	[fpgmShiftOf.comp_quart, 1 / 4, 4, 2],
-	[fpgmShiftOf.comp_quart_neg, 1 / 4, 4, -1]
+	[fpgmShiftOf.comp_octet_neg, 1 / 8, 4, -1]
 ];
 
 class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
@@ -480,17 +478,13 @@ class VTTECompiler {
 		}
 		return advDeltaGroups.reduce((a, b) => (a.totalDeltaImpact <= b.totalDeltaImpact ? a : b));
 	}
-	encodeStem(s, sid, sd, strategy, pos0s) {
-		let buf = "";
+	encodeStem(s, sid, sd, strategy, pos0s, pmaxC) {
 		const upm = strategy.UPM;
-		function talk(s) {
-			buf += s + "\n";
-		}
 
 		let deltaPos = [];
 		let hintedPositions = [];
 
-		for (let ppem = 0; ppem < sd.length; ppem++) {
+		for (let ppem = 0; ppem < sd.length || (pmaxC && ppem < pmaxC); ppem++) {
 			const pos0 = pos0s ? pos0s[ppem] : s.posKey.y;
 			if (!sd[ppem] || !sd[ppem].y || !sd[ppem].y[sid]) {
 				hintedPositions[ppem] = roundings.rtg(pos0, upm, ppem);
@@ -526,13 +520,7 @@ class VTTECompiler {
 		const bufAdvLink = adg.fn(s.posKey.id, s.advKey.id, strategy);
 		const bufAdvDelta = adg.encodedDeltas;
 
-		// In-stem alignments
-		buf = "";
-		for (let zp of s.posAlign) talk(`YShift(${s.posKey.id},${zp.id})`);
-		for (let zp of s.advAlign) talk(`YShift(${s.advKey.id},${zp.id})`);
-		const bufIsal = buf;
-
-		const parts = [bufPosDelta, bufAdvLink, bufAdvDelta, bufIsal];
+		const parts = [bufPosDelta, bufAdvLink, bufAdvDelta];
 		return {
 			buf: parts.join("\n"),
 			parts,

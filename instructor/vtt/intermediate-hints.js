@@ -6,7 +6,7 @@ const StemInstructionCombiner = require("./stem-instruction-combiner");
 
 module.exports = function(boundary, sd, elements) {
 	let tdis = 0;
-	const { fpgmPadding, strategy, pmin, pmax, upm } = this;
+	const { fpgmPadding, strategy, pmin, pmaxC, upm } = this;
 	const { bottomStem, bottomAnchor, topStem, topAnchor } = boundary;
 
 	this.talk(`\n\n/* !!IDH!! INTERMEDIATES */`);
@@ -34,24 +34,24 @@ module.exports = function(boundary, sd, elements) {
 		attempts.push({
 			to: linkBottomZs,
 			addTDI: 4,
-			pos0: distHintedPositions(bottomStem, r, upm, pmin, pmax)
+			pos0: distHintedPositions(bottomStem, r, upm, pmin, pmaxC)
 		});
 		attempts.push({
 			to: linkTopZs,
 			addTDI: 4,
-			pos0: distHintedPositions(topStem, r, upm, pmin, pmax)
+			pos0: distHintedPositions(topStem, r, upm, pmin, pmaxC)
 		});
 		attempts.push({
 			to: ipAnchorZs,
 			addTDI: 3,
-			pos0: iphintedPositions(bottomStem, r, topStem, pmin, pmax)
+			pos0: iphintedPositions(bottomStem, r, topStem, pmin, pmaxC)
 		});
 
 		let bestCost = 0xffff;
 		let bestG = null;
 		let bestA = null;
 		for (let a of attempts) {
-			const g = this.encoder.encodeStem(r.stem, r.sid, sd, strategy, a.pos0);
+			const g = this.encoder.encodeStem(r.stem, r.sid, sd, strategy, a.pos0, pmaxC);
 			if (g.totalDeltaImpact + a.addTDI < bestCost) {
 				bestG = g;
 				bestA = a;
@@ -62,13 +62,15 @@ module.exports = function(boundary, sd, elements) {
 			bestA.to.push(r.ipz);
 			combiner.add(bestG.parts);
 			tdis += bestCost;
+			r.hintedPositions = bestG.hintedPositions;
 		} else {
 			// Should not happen
 			this.talk(`/* !!IDH!! StemDef ${r.sid} DIRECT */`);
 			this.talk(`YAnchor(${r.ipz})`);
-			const g = this.encoder.encodeStem(r.stem, r.sid, sd, strategy, null);
+			const g = this.encoder.encodeStem(r.stem, r.sid, sd, strategy, null, pmaxC);
 			combiner.add(g.parts);
 			tdis += g.totalDeltaImpact;
+			r.hintedPositions = g.hintedPositions;
 		}
 	}
 	if (ipAnchorZs.length) {

@@ -13,7 +13,8 @@ function mgmGroupRegex(group) {
 }
 
 function mgmGroup(group, ...s) {
-	return (`\n\n/*## !! MEGAMINX !! BEGIN SECTION ${group} ##*/\n` +
+	return (
+		`\n\n/*## !! MEGAMINX !! BEGIN SECTION ${group} ##*/\n` +
 		s.join("\n") +
 		`\n/*## !! MEGAMINX !! END SECTION ${group} ##*/\n\n`
 	).replace(/\t/g, "    ");
@@ -33,9 +34,11 @@ const fpgmShiftOf = (exports.fpgmShiftOf = {
 	comp_integral_neg: 10,
 	comp_octet: 12,
 	comp_octet_neg: 14,
-	comp_quart: 16,
-	comp_quart_neg: 18
+	quadstroke_f: 16
 });
+
+const LSH_DECLASH_FRACTION = 48;
+exports.LSH_DECLASH_FRACTION = LSH_DECLASH_FRACTION;
 
 exports.generateFPGM = (function() {
 	const interpreterF = fid => `
@@ -279,6 +282,61 @@ FDEF[], ${fid + 1}
 #END
 ENDF[]
 `;
+
+	const quadStrokePreventer = fid => `
+FDEF[], ${fid}
+#BEGIN
+#PUSHOFF
+	MPPEM[]
+	LTEQ[]
+	IF[]
+	#BEGIN
+	#PUSHOFF
+		SRP1[]
+		SRP2[]
+		/* y[c] <= y[d] ? */
+		DUP[]
+		ROLL[]
+		DUP[]
+		ROLL[]
+		GC[N]
+		SWAP[]
+		GC[N]
+		#PUSH, ${LSH_DECLASH_FRACTION}
+		SUB[]
+		GT[]
+		IF[]
+		#BEGIN
+		#PUSHOFF
+			IP[]
+			IP[]
+		#PUSHON
+		#END
+		ELSE[]
+		#BEGIN
+		#PUSHOFF
+			POP[]
+			POP[]
+		#PUSHON
+		#END
+		EIF[]
+	#PUSHON
+	#END
+	ELSE[]
+	#BEGIN
+	#PUSHOFF
+		POP[]
+		POP[]
+		POP[]
+		POP[]
+	#PUSHON
+	#END
+	EIF[]
+#PUSHON
+#END
+ENDF[]
+`;
+
 	return function(fpgm, padding, gid) {
 		if (!padding) return fpgm;
 		return (
@@ -293,10 +351,9 @@ ENDF[]
 				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral, 4, 1, 0),
 				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_octet, 4, 8, 2),
 				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_octet_neg, 4, 8, -1),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart, 4, 4, 2),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart_neg, 4, 4, -1),
 				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral_pos, 8, 1, 0),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral_neg, 8, 1, 1)
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral_neg, 8, 1, 1),
+				quadStrokePreventer(padding + fpgmShiftOf.quadstroke_f)
 			)
 		);
 	};

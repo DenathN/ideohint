@@ -79,6 +79,14 @@ function collectIPSAs(calls) {
 }
 
 module.exports = function formTrailHints(si) {
+	/// ISALs
+
+	let isalCalls = [];
+	for (let s of si.stems) {
+		for (let zp of s.posAlign) isalCalls.push([s.posKey.id, zp.id]);
+		for (let zp of s.advAlign) isalCalls.push([s.advKey.id, zp.id]);
+	}
+
 	/// Diagonal alignments
 	let diagAlignCalls = [];
 	for (let da of si.diagAligns) {
@@ -95,7 +103,7 @@ module.exports = function formTrailHints(si) {
 	}
 
 	/// Interpolations and Shifts
-	const calls = collectIPSAs([...diagAlignCalls, ...si.ipsacalls]);
+	const calls = collectIPSAs([...isalCalls, ...diagAlignCalls, ...si.ipsacalls]);
 	for (let c of calls) {
 		if (!c || c.length < 2) continue;
 		if (c.length >= 3) {
