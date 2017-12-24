@@ -7,18 +7,18 @@ const { parseOTD } = require("./otdParser");
 const { xclamp, toVQ } = require("../support/common");
 const roundings = require("../support/roundings");
 
-exports.version = 11018;
+exports.version = 11109;
 
-exports.hintSingleGlyph = function (contours, strategy) {
+exports.hintSingleGlyph = function(contours, strategy) {
 	return exports.decideHints(
 		exports.extractFeature(exports.parseOTD(contours), strategy),
 		strategy
 	);
 };
-exports.parseOTD = function (contours) {
+exports.parseOTD = function(contours) {
 	return parseOTD(contours);
 };
-exports.extractFeature = function (g, strategy) {
+exports.extractFeature = function(g, strategy) {
 	return extractFeature(findStems(g, strategy), strategy);
 };
 
@@ -63,7 +63,7 @@ class SizeIndependentHints {
 		this.xIP = featData.xIP;
 		this.overlaps = featData.overlaps;
 		this.directOverlaps = featData.directOverlaps;
-		this.stems = featData.stems.map(function (s) {
+		this.stems = featData.stems.map(function(s) {
 			return {
 				posKeyAtTop: s.posKeyAtTop,
 				posKey: s.posKey,
@@ -103,7 +103,7 @@ function topbotOf(strategy, upm, ppem) {
 	return [b, t];
 }
 
-exports.decideHints = function (featData, strategy) {
+exports.decideHints = function(featData, strategy) {
 	const upm = strategy.UPM;
 	let sd = [];
 
@@ -130,19 +130,19 @@ exports.decideHints = function (featData, strategy) {
 			)
 		]);
 
-		initialY = actions.y.map(function (a) {
+		initialY = actions.y.map(function(a) {
 			const y = a[0];
 			const w = a[1];
 			const w1 = Math.round(
 				w *
-				Math.max(
-					1,
-					Math.round(toVQ(strategy.CANONICAL_STEM_WIDTH, thatPPEM) / (upm / thatPPEM))
-				) /
-				Math.max(
-					1,
-					Math.round(toVQ(strategy.CANONICAL_STEM_WIDTH, ppem) / (upm / ppem))
-				)
+					Math.max(
+						1,
+						Math.round(toVQ(strategy.CANONICAL_STEM_WIDTH, thatPPEM) / (upm / thatPPEM))
+					) /
+					Math.max(
+						1,
+						Math.round(toVQ(strategy.CANONICAL_STEM_WIDTH, ppem) / (upm / ppem))
+					)
 			);
 			const spaceBelow = y - w - bottomThis,
 				spaceAbove = topThis - y;

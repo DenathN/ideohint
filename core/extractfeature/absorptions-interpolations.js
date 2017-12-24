@@ -68,7 +68,8 @@ function cEq(key, pt, aux) {
 }
 
 function ipWeight(key, pt) {
-	return Math.hypot(key.phantom ? 0.25 : 1 * (key.x - pt.x), (key.y - pt.y));
+	const xw = key.phantom ? (pt.x < key.xmin || pt.x > key.xmax ? 1000 : 0.1) : 10;
+	return Math.hypot(xw * (key.x - pt.x), key.y - pt.y);
 }
 
 function interpolateByKeys(targets, pts, keys, priority, fuzz) {
@@ -129,7 +130,7 @@ function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalS
 	let radicalParts = [radical.outline].concat(radical.holes);
 	let radicalPoints = [].concat.apply(
 		[],
-		radicalParts.map(function (c) {
+		radicalParts.map(function(c) {
 			return c.points.slice(0, -1);
 		})
 	);
@@ -183,7 +184,7 @@ function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalS
 				sc &&
 				(!candidate ||
 					Math.hypot(z.y - candidate.y, z.x - candidate.x) >=
-					Math.hypot(z.y - sc.y, z.x - sc.x))
+						Math.hypot(z.y - sc.y, z.x - sc.x))
 			) {
 				candidate = sc;
 			}
@@ -200,13 +201,13 @@ function linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalS
 function linkSoleStemPoints(shortAbsorptions, strategy, glyph, priority) {
 	for (let j = 0; j < glyph.radicals.length; j++) {
 		let radical = glyph.radicals[j];
-		let radicalStems = glyph.stems.filter(function (s) {
+		let radicalStems = glyph.stems.filter(function(s) {
 			return s.belongRadical === j;
 		});
 		linkRadicalSoleStemPoints(shortAbsorptions, strategy, radical, radicalStems, priority);
 	}
 }
-module.exports = function (glyph, blues, strategy) {
+module.exports = function(glyph, blues, strategy) {
 	let interpolations = [];
 	let shortAbsorptions = [];
 
@@ -241,7 +242,24 @@ module.exports = function (glyph, blues, strategy) {
 		}
 	}
 
-	// phantom points
+	// blue zone phantom points
+	for (let zoneid in blues) {
+		const zone = blues[zoneid];
+		if (!zone.length) continue;
+		for (let z of zone) {
+			for (let step = -STEPS; step <= 2 * STEPS; step++) {
+				glyphKeypoints.push({
+					x: strategy.UPM * step / STEPS,
+					xmin: strategy.UPM * (step - 1 / 2) / STEPS,
+					xmax: strategy.UPM * (step - 1 / 2) / STEPS,
+					y: z.y,
+					linkedKey: z,
+					phantom: true
+				});
+			}
+		}
+	}
+	// stem phantom points
 	for (let s = 0; s < glyph.stems.length; s++) {
 		let stem = glyph.stems[s];
 		for (let j = 0; j < stem.high.length; j++) {
@@ -250,6 +268,8 @@ module.exports = function (glyph, blues, strategy) {
 			for (let step = 1; step < STEPS; step++) {
 				glyphKeypoints.push({
 					x: l.x + step / STEPS * (r.x - l.x),
+					xmin: l.x + (step - 1 / 2) / STEPS * (r.x - l.x),
+					xmax: l.x + (step + 1 / 2) / STEPS * (r.x - l.x),
 					y: l.y + step / STEPS * (r.y - l.y),
 					linkedKey: l.linkedKey || r.linkedKey,
 					phantom: true
@@ -262,6 +282,8 @@ module.exports = function (glyph, blues, strategy) {
 			for (let step = 1; step < STEPS; step++) {
 				glyphKeypoints.push({
 					x: l.x + step / STEPS * (r.x - l.x),
+					xmin: l.x + (step - 1 / 2) / STEPS * (r.x - l.x),
+					xmax: l.x + (step + 1 / 2) / STEPS * (r.x - l.x),
 					y: l.y + step / STEPS * (r.y - l.y),
 					linkedKey: l.linkedKey || r.linkedKey,
 					phantom: true
@@ -275,12 +297,12 @@ module.exports = function (glyph, blues, strategy) {
 	for (let j = 0; j < contours.length; j++) {
 		let contourpoints = contours[j].points.slice(0, -1);
 		let contourAlignPoints = contourpoints
-			.filter(function (p) {
+			.filter(function(p) {
 				return p.touched;
 			})
 			.sort(BY_YORI);
 		let contourExtrema = contourpoints
-			.filter(function (p) {
+			.filter(function(p) {
 				return p.xExtrema || p.yExtrema;
 			})
 			.sort(BY_YORI);
@@ -293,7 +315,7 @@ module.exports = function (glyph, blues, strategy) {
 		}
 
 		if (contourExtrema.length > 1) {
-			let extrema = contourExtrema.filter(function (z) {
+			let extrema = contourExtrema.filter(function(z) {
 				return (
 					z.id !== pmin.id &&
 					z.id !== pmax.id &&
@@ -320,10 +342,10 @@ module.exports = function (glyph, blues, strategy) {
 					midex.push(extrema[m]);
 				}
 			}
-			let blues = contourpoints.filter(function (p) {
+			let blues = contourpoints.filter(function(p) {
 				return p.blued;
 			});
-			let midexl = contourExtrema.filter(function (p) {
+			let midexl = contourExtrema.filter(function(p) {
 				return p.xExtrema || p.yExtrema;
 			});
 			records.push({
@@ -381,7 +403,7 @@ module.exports = function (glyph, blues, strategy) {
 			1
 		);
 	}
-	interpolations = interpolations.sort(function (u, v) {
+	interpolations = interpolations.sort(function(u, v) {
 		return glyph.indexedPoints[u[2]].x - glyph.indexedPoints[v[2]].x;
 	});
 	// cleanup
@@ -396,7 +418,7 @@ module.exports = function (glyph, blues, strategy) {
 				interpolations[j][3] !== 9 &&
 				Math.abs(
 					glyph.indexedPoints[interpolations[j][2]].y -
-					glyph.indexedPoints[interpolations[k][2]].y
+						glyph.indexedPoints[interpolations[k][2]].y
 				) <= strategy.Y_FUZZ
 			) {
 				shortAbsorptions.push([

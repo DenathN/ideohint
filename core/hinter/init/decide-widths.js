@@ -1,12 +1,19 @@
 "use strict";
 
+// GDI and DW uses a 6×5 filter for antialiasing
+// Therefore we use a up-rounding by 1/5px to make strokes
+// more consistent
+function roundWpx(x) {
+	return Math.round(Math.ceil(x * 5) / 5);
+}
+
 // decide the proper width of given stem locally
 function calculateWidthOfStem(s, w) {
 	if (this.WIDTH_GEAR_PROPER <= 1) return 1;
 	return Math.max(
 		1,
 		!s.hasGlyphStemAbove || !s.hasGlyphStemBelow ? Math.min(2, this.WIDTH_GEAR_PROPER) : 0,
-		Math.round(w / this.uppx)
+		roundWpx(w / this.uppx)
 	);
 }
 
