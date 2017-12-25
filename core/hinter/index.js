@@ -28,7 +28,6 @@ function hint(gd, ppem, strg, y0, margins) {
 	const hinter = new Hinter(strg, gd, ppem, margins);
 	if (!hinter.avails.length) return new HintDecision(hinter.xExpansion, [], false);
 
-
 	const spInit = hinter.balance(hinter.decideInitHint(y0));
 	const spNT = hinter.balance(hinter.decideInitHintNT(y0));
 	// Y pass

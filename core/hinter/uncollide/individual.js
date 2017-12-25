@@ -116,7 +116,8 @@ class Individual {
 			this._getTripletBreakP(env, true) +
 			this._getDiagonalBreakP(env) +
 			this._getSwapAndSymBreakP(env) +
-			this._getSoftBreakP(env)
+			this._getSoftBreakP(env) +
+			this._getShiftP(env, 1 / 3)
 		);
 	}
 	_getSevereOversepP(env, severe) {
@@ -138,6 +139,7 @@ class Individual {
 		const nonSevereCoeff = severe ? 0 : 1;
 		let p = 0;
 		// Overseparation of bottommost strokes
+
 		for (let j = 0; j < n; j++) {
 			if (avails[j].hasGlyphStemAbove) continue;
 			const d = y[j] - avails[j].properWidth - bpx;
@@ -273,9 +275,9 @@ class Individual {
 				if (
 					(y[j] > y[k] &&
 						avails[j].y0px - avails[k].y0px <
-						(avails[j].hasGlyphStemBelow || avails[k].hasGlyphStemBelow
-							? PRETTY_FLAT
-							: REALLY_FLAT)) ||
+							(avails[j].hasGlyphStemBelow || avails[k].hasGlyphStemBelow
+								? PRETTY_FLAT
+								: REALLY_FLAT)) ||
 					(y[j] <= y[k] && avails[j].y0px - avails[k].y0px > NOT_REALLY_FLAT) ||
 					(y[j] > y[k] + 1 && avails[j].y0px - avails[k].y0px < SLIGHTLY_SLANTED)
 				) {
@@ -302,8 +304,8 @@ class Individual {
 					if (y[j] < y[k]) {
 						p += S[j][k]; // Swap
 					} else if (
-						(!avails[j].hasGlyphStemAbove && !avails[k].hasGlyphStemAbove
-							|| !avails[j].hasGlyphStemBelow && !avails[k].hasGlyphStemBelow) &&
+						((!avails[j].hasGlyphStemAbove && !avails[k].hasGlyphStemAbove) ||
+							(!avails[j].hasGlyphStemBelow && !avails[k].hasGlyphStemBelow)) &&
 						avails[j].y0 - avails[j].w0 < avails[k].y0 &&
 						!(avails[j].rid && avails[j].rid === avails[k].rid) &&
 						(avails[j].properWidth > 1
@@ -338,17 +340,19 @@ class Individual {
 
 	getAblationPotential(env) {
 		return (
-			this._getSevereOversepP(env, false) + this._getTripletBreakP(env) + this._getShiftP(env)
+			this._getSevereOversepP(env, false) +
+			this._getTripletBreakP(env) +
+			this._getShiftP(env, 0)
 		);
 	}
 
-	_getShiftP(env) {
+	_getShiftP(env, bias) {
 		let p = 0;
 		const avails = env.avails,
 			y = this.gene,
 			n = y.length;
 		for (let j = 0; j < n; j++) {
-			p += (y[j] - avails[j].center) * (y[j] - avails[j].center);
+			p += Math.max(0, (y[j] - avails[j].center) * (y[j] - avails[j].center) - bias);
 		}
 		return p;
 	}
