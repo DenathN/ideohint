@@ -4,11 +4,15 @@ const HE = require("./hintingElement");
 const { iphintedPositions, distHintedPositions } = require("./predictor");
 const StemInstructionCombiner = require("./stem-instruction-combiner");
 
-// Temporary disable them
-const ENABLE_LINK_TO_TOP = true;
-const ENABLE_LINK_TO_BOTTOM = true;
+const INTERMEDIATE_ROUNDS = {
+	max: 3,
+	IP_ONLY: 0,
+	SHORT_LINK: 1,
+	BOTTOM_ONLY: 2,
+	TOP_ONLY: 3
+};
 
-module.exports = function(boundary, sd, elements) {
+module.exports = function(boundary, sd, elements, round) {
 	let tdis = 0;
 	const { fpgmPadding, strategy, pmin, pmaxC, upm } = this;
 	const { bottomStem, bottomAnchor, topStem, topAnchor } = boundary;
@@ -35,14 +39,22 @@ module.exports = function(boundary, sd, elements) {
 		// ASSERT: r.kind === KEY_ITEM_STEM
 		let attempts = [];
 
-		if (ENABLE_LINK_TO_BOTTOM && topStem.pOrg - r.pOrg >= 2 * (r.pOrg - bottomStem.pOrg)) {
+		if (
+			round === INTERMEDIATE_ROUNDS.BOTTOM_ONLY ||
+			(round === INTERMEDIATE_ROUNDS.SHORT_LINK &&
+				topStem.pOrg - r.pOrg > r.pOrg - bottomStem.pOrg)
+		) {
 			attempts.push({
 				to: linkBottomZs,
 				addTDI: 6,
 				pos0: distHintedPositions(bottomStem, r, upm, pmin, pmaxC)
 			});
 		}
-		if (ENABLE_LINK_TO_TOP && 2 * (topStem.pOrg - r.pOrg) <= r.pOrg - bottomStem.pOrg) {
+		if (
+			round === INTERMEDIATE_ROUNDS.TOP_ONLY ||
+			(round === INTERMEDIATE_ROUNDS.SHORT_LINK &&
+				topStem.pOrg - r.pOrg <= r.pOrg - bottomStem.pOrg)
+		) {
 			attempts.push({
 				to: linkTopZs,
 				addTDI: 6,
@@ -51,12 +63,13 @@ module.exports = function(boundary, sd, elements) {
 		}
 
 		// IP
-		attempts.push({
-			to: ipAnchorZs,
-			addTDI: 3,
-			pos0: iphintedPositions(bottomStem, r, topStem, pmin, pmaxC)
-		});
-
+		if (round !== INTERMEDIATE_ROUNDS.TOP_ONLY && round !== INTERMEDIATE_ROUNDS.BOTTOM_ONLY) {
+			attempts.push({
+				to: ipAnchorZs,
+				addTDI: 3,
+				pos0: iphintedPositions(bottomStem, r, topStem, pmin, pmaxC)
+			});
+		}
 		let bestCost = 0xffff;
 		let bestG = null;
 		let bestA = null;

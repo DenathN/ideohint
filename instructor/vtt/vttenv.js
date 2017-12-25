@@ -37,9 +37,6 @@ const fpgmShiftOf = (exports.fpgmShiftOf = {
 	quadstroke_f: 16
 });
 
-const LSH_DECLASH_FRACTION = 64;
-exports.LSH_DECLASH_FRACTION = LSH_DECLASH_FRACTION;
-
 exports.generateFPGM = (function() {
 	const interpreterF = fid => `
 /* Function ${fid}, the interpreter */
@@ -294,69 +291,29 @@ FDEF[], ${fid}
 	#PUSHOFF
 		SRP1[]
 		SRP2[]
-		/* y[c] <= y[d] ? */
 		DUP[]
 		ROLL[]
 		DUP[]
 		ROLL[]
+		DUP[]
+		ROLL[]
+		DUP[]
+		ROLL[]
+		SWAP[]
 		GC[N]
 		SWAP[]
 		GC[N]
-		#PUSH, ${LSH_DECLASH_FRACTION}
 		SUB[]
-		GT[]
-		IF[]
-		#BEGIN
-		#PUSHOFF
-			IP[]
-			IP[]
-		#PUSHON
-		#END
-		ELSE[]
-		#BEGIN
-		#PUSHOFF
-			POP[]
-			POP[]
-		#PUSHON
-		#END
-		EIF[]
-	#PUSHON
-	#END
-	ELSE[]
-	#BEGIN
-	#PUSHOFF
-		POP[]
-		POP[]
-		POP[]
-		POP[]
-	#PUSHON
-	#END
-	EIF[]
-#PUSHON
-#END
-ENDF[]
-
-FDEF[], ${fid + 1}
-#BEGIN
-#PUSHOFF
-	MPPEM[]
-	LTEQ[]
-	IF[]
-	#BEGIN
-	#PUSHOFF
-		SRP1[]
-		SRP2[]
-		/* y[c] <= y[d] ? */
-		DUP[]
 		ROLL[]
-		DUP[]
 		ROLL[]
-		GC[N]
+		GC[O]
 		SWAP[]
-		GC[N]
-		#PUSH, ${LSH_DECLASH_FRACTION * 2}
+		GC[O]
 		SUB[]
-		GT[]
+		FLOOR[]
+		#PUSH, 128
+		MIN[]
+		LT[]
 		IF[]
 		#BEGIN
 		#PUSHOFF

@@ -4,14 +4,14 @@ const roundings = require("../support/roundings");
 const product = require("../support/product");
 const { VTTTalkDeltaEncoder, AssemblyDeltaEncoder, VTTECompiler } = require("./vtt/encoder");
 
-const { getVTTAux, cvtIds, generateCVT, generateFPGM, fpgmShiftOf } = require("./vtt/vttenv");
+const { getVTTAux, cvtIds, generateCVT, generateFPGM } = require("./vtt/vttenv");
 const HE = require("./vtt/hintingElement");
 
 const StemInstructionCombiner = require("./vtt/stem-instruction-combiner");
 const formOffhints = require("./vtt/off-hints");
 const formTrailHints = require("./vtt/trail-hints");
 const formIntermediateHints = require("./vtt/intermediate-hints");
-const { table, distHintedPositions } = require("./vtt/predictor");
+const { table } = require("./vtt/predictor");
 const hintLS = require("./vtt/largerSizeHints");
 
 const ABRefMethods = [
@@ -70,7 +70,7 @@ const ABRefMethods = [
 
 // 20171025: *** QUAD being unrealiable ***
 // 20171025: USE DUAL ONLY
-const rfCombinations = [...product([ABRefMethods[0]], [0, 1, 2], [0, 1, 2])];
+const rfCombinations = [...product([ABRefMethods[0]], [0, 1, 2], [0, 1, 2], [0, 1, 2, 3])];
 
 class VTTCompiler {
 	constructor(record, strategy, padding, fpgmPadding, contours) {
@@ -250,7 +250,7 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 	/// We choose one best combination of methods from 18 combinations
 	let bestTDI = 0xffff,
 		bestTalk = "";
-	for (let [refMethod, bsMethod, tsMethod] of rfCombinations) {
+	for (let [refMethod, bsMethod, tsMethod, allowFarLinks] of rfCombinations) {
 		const $$ = new MeasuredVTTCompiler($);
 		let { bottomAnchor, bottomStem, topAnchor, topStem } = refMethod.findItems(elements);
 		if (!(topAnchor && bottomAnchor && topStem && bottomStem)) continue;
@@ -340,7 +340,8 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 			$$,
 			{ bottomStem, bottomAnchor, topStem, topAnchor },
 			$$.sd,
-			elements
+			elements,
+			allowFarLinks
 		);
 
 		$$.tdis += hintLS($$, elements);

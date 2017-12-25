@@ -1,5 +1,5 @@
 "use strict";
-const { fpgmShiftOf, LSH_DECLASH_FRACTION } = require("./vttenv");
+const { fpgmShiftOf } = require("./vttenv");
 const HE = require("./hintingElement");
 
 function findClash($$, ej, ek) {
@@ -16,14 +16,17 @@ function findClash($$, ej, ek) {
 	const wj = Math.abs(sj.posKey.y - sj.advKey.y);
 	const wk = Math.abs(sk.posKey.y - sk.advKey.y);
 	for (let ppem = rangeMin; ppem < rangeMax; ppem++) {
-		const dist = $$.upm / ppem * LSH_DECLASH_FRACTION / 64;
-		if (sk.posKeyAtTop && !sj.posKeyAtTop) {
-			if (ek.hintedPositions[ppem] - wk - (ej.hintedPositions[ppem] + wj) < dist * 2)
-				return true;
-		} else if (sk.posKeyAtTop && sj.posKeyAtTop) {
-			if (ek.hintedPositions[ppem] - wk - ej.hintedPositions[ppem] < dist) return true;
-		} else if (!sk.posKeyAtTop && !sj.posKeyAtTop) {
-			if (ek.hintedPositions[ppem] - (ej.hintedPositions[ppem] + wj) < dist) return true;
+		const uppx = $$.upm / ppem;
+		const lowEdgeUpHinted = ek.hintedPositions[ppem] - (sk.posKeyAtTop ? wk : 0);
+		const lowEdgeUpUninted = sk.posKey.y - (sk.posKeyAtTop ? wk : 0);
+		const highEdgeDownHinted = ej.hintedPositions[ppem] + (!sj.posKeyAtTop ? wj : 0);
+		const highEdgeDownUninted = sj.posKey.y + (!sj.posKeyAtTop ? wj : 0);
+
+		if (
+			lowEdgeUpHinted - highEdgeDownHinted <
+			uppx * Math.min(2, Math.floor((lowEdgeUpUninted - highEdgeDownUninted) / uppx))
+		) {
+			return true;
 		}
 	}
 	return false;
@@ -52,7 +55,7 @@ module.exports = function($$, elements) {
 				$$.talk(
 					`Call(${sk.advKey.id},${sj.advKey.id},${sk.posKey.id},${sj.posKey.id},${
 						$$.pmax
-					},${fid + 1})`
+					},${fid})`
 				);
 				tdi += 7;
 			} else if (sk.posKeyAtTop && sj.posKeyAtTop) {
