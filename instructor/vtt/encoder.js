@@ -349,25 +349,70 @@ class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
 	}
 }
 
-// Stem encoder
-function standardAdvance(zpos, zadv) {
-	return `YNoRound(${zadv}) YDist(${zpos},${zadv})`;
-}
+class AdvanceEncoder {
+	constructor(upm, s, sid) {
+		this.upm = upm;
+		const wsrc = s.posKeyAtTop
+			? s.posKey.y - s.advKey.y + (s.advKey.x - s.posKey.x) * s.slope
+			: s.advKey.y - s.posKey.y + (s.posKey.x - s.advKey.x) * s.slope;
+		this.s = s;
+		this.sid = sid;
+		this.wsrc = wsrc;
+		this.wsrc0 = wsrc;
+		this.deltas = [];
+		this.totalDeltaImpact = 0;
+	}
 
-function SWAdvance(cvt) {
-	return function(zpos, zadv) {
-		return `YNoRound(${zadv}) YLink(${zpos},${zadv},${cvt})`;
-	};
-}
+	siHint(zpos, zadv) {
+		return `YNoRound(${zadv}) YDist(${zpos},${zadv})`;
+	}
 
-function clampAdvDelta(sign, isStrict, isLess, delta) {
-	// if (!delta) return 0;
-	// const willExpand = sign > 0 === delta < 0;
-	// if (Math.abs(delta) < 1.5 && (!isStrict || willExpand === isLess)) {
-	// 	return 0;
-	// } else {
-	return delta / ROUNDING_SEGMENTS;
-	// }
+	_calculateDeltaPpem(encoder, sd, ppem) {
+		if (!sd[ppem] || !sd[ppem].y || !sd[ppem].y[this.sid]) return;
+		const [, wtouch, isHard, isStacked] = sd[ppem].y[this.sid];
+		const wdst = wtouch * (this.upm / ppem);
+		const swcfg = getSWCFG(encoder, 1, ppem);
+		if (this.s.posKeyAtTop) {
+			const rawDelta = decideDeltaShift(
+				ROUNDING_SEGMENTS,
+				-1,
+				isHard,
+				isStacked,
+				0,
+				this.wsrc,
+				0,
+				wdst,
+				this.upm,
+				ppem,
+
+				swcfg
+			);
+			const advDelta = rawDelta / ROUNDING_SEGMENTS;
+			this.deltas.push({ ppem, delta: advDelta, rawDelta });
+		} else {
+			const rawDelta = decideDeltaShift(
+				ROUNDING_SEGMENTS,
+				1,
+				isHard,
+				isStacked,
+				0,
+				this.wsrc,
+				0,
+				wdst,
+				this.upm,
+				ppem,
+				swcfg
+			);
+			const advDelta = rawDelta / ROUNDING_SEGMENTS;
+			this.deltas.push({ ppem, delta: advDelta, rawDelta });
+		}
+	}
+
+	calculateDelta(encoder, sd) {
+		for (let ppem = 0; ppem < sd.length; ppem++) {
+			this._calculateDeltaPpem(encoder, sd, ppem);
+		}
+	}
 }
 
 class VTTECompiler {
@@ -394,80 +439,12 @@ class VTTECompiler {
 	}
 
 	_encodeStemAdvance(upm, s, sid, sd) {
-		const wsrc = s.posKeyAtTop
-			? s.posKey.y - s.advKey.y + (s.advKey.x - s.posKey.x) * s.slope
-			: s.advKey.y - s.posKey.y + (s.posKey.x - s.advKey.x) * s.slope;
-		const advDeltaGroups = [
-			{ wsrc, totalDeltaImpact: 0, deltas: [], fn: standardAdvance }
-			// DISABLED DUE TO SD-FLIPPING
-			//
-			// ...this.cvtLinkEntries
-			// 	.map(i => ({
-			// 		wsrc: s.posKeyAtTop
-			// 			? i.width + (s.advKey.x - s.posKey.x) * s.slope
-			// 			: i.width + (s.posKey.x - s.advKey.x) * s.slope,
-			// 		totalDeltaImpact: 0,
-			// 		deltas: [],
-			// 		fn: SWAdvance(i.cvtid)
-			// 	}))
-			// 	.filter(g => Math.abs(g.wsrc - wsrc) < upm / 80)
-		].sort((a, b) => Math.abs(a.wsrc - wsrc) - Math.abs(b.wsrc - wsrc));
+		const advDeltaGroups = [new AdvanceEncoder(upm, s, sid)];
 
-		for (let ppem = 0; ppem < sd.length; ppem++) {
-			if (!sd[ppem] || !sd[ppem].y || !sd[ppem].y[sid]) continue;
-			const [, wtouch, isHard, isStacked] = sd[ppem].y[sid];
-			const wdst = wtouch * (upm / ppem);
-			const swcfg = getSWCFG(this, 1, ppem);
-
-			if (s.posKeyAtTop) {
-				for (let adg of advDeltaGroups) {
-					const rawDelta = decideDeltaShift(
-						ROUNDING_SEGMENTS,
-						-1,
-						isHard,
-						isStacked,
-						0,
-						adg.wsrc,
-						0,
-						wdst,
-						upm,
-						ppem,
-
-						swcfg
-					);
-					const advDelta = clampAdvDelta(
-						-1,
-						isHard || isStacked,
-						adg.wsrc <= wsrc,
-						rawDelta
-					);
-					adg.deltas.push({ ppem, delta: advDelta, rawDelta });
-				}
-			} else {
-				for (let adg of advDeltaGroups) {
-					const rawDelta = decideDeltaShift(
-						ROUNDING_SEGMENTS,
-						1,
-						isHard,
-						isStacked,
-						0,
-						adg.wsrc,
-						0,
-						wdst,
-						upm,
-						ppem,
-						swcfg
-					);
-					const advDelta = clampAdvDelta(
-						1,
-						isHard || isStacked,
-						adg.wsrc <= wsrc,
-						rawDelta
-					);
-					adg.deltas.push({ ppem, delta: advDelta, rawDelta });
-				}
-			}
+		for (let adg of advDeltaGroups) {
+			adg.calculateDelta(this, sd);
 		}
+
 		// decide optimal advance delta group
 		for (let g of advDeltaGroups) {
 			let encoded = this.deltaEncoder.encode(s.advKey.id, g.deltas);
@@ -517,7 +494,7 @@ class VTTECompiler {
 		const posDeltaImpact = bufPosDelta.impact
 			? bufPosDelta.impact
 			: this.deltaEncoder.estimateImpact(deltaPos);
-		const bufAdvLink = adg.fn(s.posKey.id, s.advKey.id, strategy);
+		const bufAdvLink = adg.siHint(s.posKey.id, s.advKey.id, strategy);
 		const bufAdvDelta = adg.encodedDeltas;
 
 		const parts = [bufPosDelta, bufAdvLink, bufAdvDelta];
