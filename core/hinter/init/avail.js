@@ -233,6 +233,7 @@ function adjustAvails(avails, stems) {
 				)
 			);
 			if (
+				this.onePixelMatter &&
 				avail.atGlyphBottom &&
 				!avail.atGlyphTop &&
 				!avail.isHangingHook &&

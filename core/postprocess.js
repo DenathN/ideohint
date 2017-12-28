@@ -70,7 +70,8 @@ const POST_ROUNDS = 3;
 //      that are harden in the previous round.
 function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 	function lockUp(sj) {
-		return (!sj.hasGlyphStemAbove && !sj.diagLow) || (!sj.hasGlyphStemBelow && !sj.diagHigh);
+		return false;
+		//return (!sj.hasGlyphStemAbove && !sj.diagLow) || (!sj.hasGlyphStemBelow && !sj.diagHigh);
 	}
 	function ppRoundInternal(up, y, w) {
 		let stackrel = [];
@@ -81,13 +82,7 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 			actions[j][ADDPXS] = 0;
 			stackrel[j] = [];
 		}
-		for (let j = 0; j < stems.length; j++) {
-			const sj = stems[j];
-			w[j] = Math.min(w[j], y[j] - bottom);
-			if (up[j] && widthOf(sj) / uppx > w[j] && y[j] - w[j] <= bottom) {
-				actions[j][HARD] = true;
-			}
-		}
+
 		// downward strictness/stackness detection
 		for (let j = 0; j < stems.length; j++) {
 			const sj = stems[j],
@@ -184,7 +179,7 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 			actions[j][FLIP] = 0;
 
 			const stemWidth = Math.abs(stems[j].posKey.y - stems[j].advKey.y);
-			const [, , hard, stacked] = actions[j];
+			let [, , hard, stacked] = actions[j];
 
 			const delta = decideDeltaShift(
 				GEAR,
@@ -202,7 +197,16 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 			const hintedStemWidthPixels = (hsw[j] =
 				Math.round(8 * (stemWidth / uppx + delta / 8)) / 8);
 			const belowOnePixel = w[j] === 1 && hintedStemWidthPixels <= 1;
-			const wdiff = hintedStemWidthPixels - actions[j][W];
+
+			if (up[j] && actions[j][Y] - hintedStemWidthPixels < bottom) {
+				hard = true;
+			}
+			if (!up[j] && actions[j][Y] - actions[j][W] + hintedStemWidthPixels > top) {
+				hard = true;
+			}
+			actions[j][HARD] = hard;
+
+			const wdiff = hard ? 0 : hintedStemWidthPixels - actions[j][W];
 			if (!hard && !belowOnePixel && up[j] && !stems[j].posKeyAtTop) {
 				actions[j][Y] -= wdiff;
 				actions[j][FLIP] -= wdiff;
