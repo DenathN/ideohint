@@ -12,18 +12,9 @@ const STACKED = 3;
 const ADDPXS = 4;
 const FLIP = 5;
 
-const BELOW = 1;
-const ABOVE = 2;
-function widthOf(s) {
-	return s.posKeyAtTop
-		? s.posKey.y - s.advKey.y + (s.advKey.x - s.posKey.x) * s.slope
-		: s.advKey.y - s.posKey.y + (s.posKey.x - s.advKey.x) * s.slope;
-}
-function twoPixelPack(uppx, uj, uk, yj, wj, yk, wk, sj, sk) {
+function twoPixelPack(uppx, uj, uk, yj, wj, yk, wk, hwj, hwk) {
 	return (
-		uj &&
-		!uk &&
-		(yj - wj - yk <= 2.05 && wk * uppx + wj * uppx < widthOf(sk) + widthOf(sj) - 0.25 * uppx)
+		uj && !uk && (yj - wj - yk <= 2.05 && hwj > wj && hwk > wk && hwj + hwk - wj - wk > 3 / 8)
 	);
 }
 
@@ -57,30 +48,42 @@ function tbtfm(y, [bottom, top, bottom0, top0]) {
 	return (y - bottom0) / (top0 - bottom0) * (top - bottom) + bottom;
 }
 
-const PRE_ROUNDS = 3;
-const POST_ROUNDS = 3;
-
 // The size-dependent flipping is decided in this strategy:
 //   1. Make the hinted stroke closest to the unhinted, while preseving
 //      the integral position and width constraints;
 //   2. Avoid HARD strokes as more as possible.
-// Therefore we use a two-step strategy to decide the UP[] array:
+// Therefore we use a three-step strategy to decide the UP[] array:
 //   1. Run three PP rounds with up[] decided by promixity;
-//   2. Run three more PP rounds, and in each step, flip the entries
-//      that are harden in the previous round.
+//   2. Flip the up[] items for harden strokes; Run three PP rounds;
+//   3. Revert strokes being worsen by the flipping, and run the last three PP rounds.
 function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
-	function lockUp(sj) {
-		return false;
-		//return (!sj.hasGlyphStemAbove && !sj.diagLow) || (!sj.hasGlyphStemBelow && !sj.diagHigh);
-	}
-	function ppRoundInternal(up, y, w) {
-		let stackrel = [];
+	const uppx = upm / ppem;
+	const [bottom, top] = tb;
 
+	// this array records the stroke width of each stem,
+	// with the "true" width decided by the delta hinter.
+	// Initially it is set to the integral width and updated
+	// in each ppRound. That's why we need three rounds for each sub pass.
+	let hsw = [];
+	let hswNoHard = [];
+	let lock = [];
+	for (let j = 0; j < stems.length; j++) {
+		hswNoHard[j] = actions[j][W];
+		hsw[j] = actions[j][W];
+		lock[j] = false;
+	}
+
+	function lockUp(sj) {
+		return (
+			((!sj.hasGlyphStemAbove && !sj.diagLow) || (!sj.hasGlyphStemBelow && !sj.diagHigh)) &&
+			Math.abs(sj.posKey.y - sj.advKey.y) <= 1.75 * uppx
+		);
+	}
+	function decideHardAndStack(up, y, w) {
 		for (let j = 0; j < stems.length; j++) {
 			actions[j][HARD] = false;
 			actions[j][STACKED] = false;
 			actions[j][ADDPXS] = 0;
-			stackrel[j] = [];
 		}
 
 		// downward strictness/stackness detection
@@ -98,21 +101,19 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 				const [sjmin, sjmax] = getMinmax(stems, j, y, w, 1);
 				if (
 					yj - wj === yk &&
-					wk * uppx * 2 >= widthOf(sk) &&
+					wk * 2 >= hswNoHard[k] &&
 					sjmax >= skmax - wk / 2 * uppx &&
 					sjmin <= skmin + wk / 2 * uppx &&
 					!(sjmax < skmax && sjmin > skmin) &&
 					!(sj.rid === sk.rid && sj.rid) &&
 					(sk.hasGlyphStemBelow && sk.hasGlyphStemAbove)
 				) {
-					stackrel[j][k] = ABOVE;
-					stackrel[k][j] = BELOW;
 					actions[k][STACKED] = true;
 				}
-				if (wj * uppx > widthOf(sj)) continue;
+				if (wj >= hswNoHard[j]) continue;
 				if (
 					(yj - wj - yk === 1 && up[j] && (!coK || (coK && y[coKID] === yk))) ||
-					(twoPixelPack(uppx, up[j], up[k], yj, wj, yk, wk, sj, sk) &&
+					(twoPixelPack(uppx, up[j], up[k], yj, wj, yk, wk, hswNoHard[j], hswNoHard[k]) &&
 						sjmax - sjmin < skmax - skmin)
 				) {
 					actions[j][HARD] = true;
@@ -134,53 +135,34 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 				const [sjmin, sjmax] = getMinmax(stems, j, y, w, 0);
 				if (
 					yk - wk === yj &&
-					wk * uppx * 2 >= widthOf(sk) &&
+					wk * 2 >= hswNoHard[k] &&
 					sjmax >= skmax - wk / 2 * uppx &&
 					sjmin <= skmin + wk / 2 * uppx &&
 					!(skmax > sjmax && skmin < sjmin) &&
 					!(sj.rid === sk.rid && sj.rid) &&
 					(sk.hasGlyphStemBelow && sk.hasGlyphStemAbove)
 				) {
-					stackrel[j][k] = BELOW;
-					stackrel[k][j] = ABOVE;
 					actions[k][STACKED] = true;
 				}
-				if (wj * uppx > widthOf(sj)) continue;
+				if (wj >= hswNoHard[j]) continue;
 				if (
 					(yk - wk - yj === 1 && !up[j] && (!coK || (coK && y[coKID] === yk))) ||
-					(twoPixelPack(uppx, up[k], up[j], yk, wk, yj, wj, sk, sj) &&
+					(twoPixelPack(uppx, up[k], up[j], yk, wk, yj, wj, hswNoHard[k], hswNoHard[j]) &&
 						sjmax - sjmin <= skmax - skmin)
 				) {
 					actions[j][HARD] = true;
 				}
 			}
 		}
-		// fold strokes
+	}
+	function updateActions(up, y, w) {
 		for (let j = 0; j < stems.length; j++) {
-			const sj = stems[j];
-			if (
-				!sj.hasGlyphStemBelow &&
-				(sj.hasGlyphFoldBelow || sj.hasGlyphSideFoldBelow) &&
-				up[j] &&
-				y[j] <= bottom + Math.max(4, w[j] * 3)
-			) {
-				if (w[j] * uppx < Math.abs(sj.posKey.y - sj.advKey.y)) {
-					actions[j][HARD] = true;
-				} else if (w[j] > 1) {
-					actions[j][STACKED] = true;
-				}
-			}
-		}
-
-		let hsw = [];
-		for (let j = 0; j < stems.length; j++) {
+			let [, , hard, stacked] = actions[j];
 			actions[j][Y] = y[j];
 			actions[j][W] = w[j];
 			actions[j][FLIP] = 0;
 
 			const stemWidth = Math.abs(stems[j].posKey.y - stems[j].advKey.y);
-			let [, , hard, stacked] = actions[j];
-
 			const delta = decideDeltaShift(
 				GEAR,
 				1,
@@ -194,8 +176,24 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 				ppem,
 				swcfg
 			);
-			const hintedStemWidthPixels = (hsw[j] =
-				Math.round(8 * (stemWidth / uppx + delta / 8)) / 8);
+			const hintedStemWidthPixels = Math.round(8 * (stemWidth / uppx + delta / 8)) / 8;
+			hsw[j] = hintedStemWidthPixels;
+
+			const deltaSoft = decideDeltaShift(
+				GEAR,
+				1,
+				false,
+				false,
+				0,
+				stemWidth,
+				0,
+				actions[j][W] * uppx,
+				upm,
+				ppem,
+				swcfg
+			);
+			hswNoHard[j] = Math.round(8 * (stemWidth / uppx + deltaSoft / 8)) / 8;
+
 			const belowOnePixel = w[j] === 1 && hintedStemWidthPixels <= 1;
 
 			if (up[j] && actions[j][Y] - hintedStemWidthPixels < bottom) {
@@ -220,10 +218,9 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 				actions[j][FLIP] -= overflow;
 			}
 		}
-		return hsw;
 	}
 	function initUpArray(y, w, hsw) {
-		up = [];
+		let up = [];
 		for (let j = 0; j < stems.length; j++) {
 			const sj = stems[j];
 			const high = sj.posKeyAtTop ? sj.posKey : sj.advKey;
@@ -259,36 +256,41 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 		}
 		if (!up) {
 			up = initUpArray(y, w, hsw);
-		} else {
-			// Compressing down one pixel would heavily impact the apperance
-			// We'd like to flip the "up" array in this pass.
-			for (let j = 0; j < stems.length; j++) {
-				if (!lockUp(stems[j]) && actions[j][HARD] && w[j] <= 1) up[j] = !up[j];
-			}
 		}
-		hsw = ppRoundInternal(up, y, w);
+		decideHardAndStack(up, y, w);
+		updateActions(up, y, w);
 		return up;
 	}
 
-	const uppx = upm / ppem;
-	const [bottom, top] = tb;
-	// this array records the stroke width of each stem,
-	// with the "true" width decided by the delta hinter.
-	// Initially it is set to the integral width and updated
-	// in each ppRound. That's why we need three rounds for each sub pass.
-	let hsw = [];
-	for (let j = 0; j < stems.length; j++) hsw[j] = actions[j][W];
-
 	// Pass 1: Decide by promixity
-	let up = null;
-	for (let j = 0; j < PRE_ROUNDS; j++) up = ppRound();
+	ppRound();
+	ppRound();
+	const up = ppRound();
 
-	// Pass 2: De-hardening
-	for (let j = 0; j < POST_ROUNDS; j++) {
-		ppRound([...up]);
-		ppRound([...up]);
-		up = ppRound([...up]);
+	// Pass 2: try to flip strokes that are harden
+	const up1 = [...up];
+	const hard1 = [];
+	for (let j = 0; j < stems.length; j++) {
+		hard1[j] = actions[j][HARD];
+		if (hard1[j] && actions[j][W] === 1 && !lockUp(stems[j])) {
+			up1[j] = !up1[j];
+		}
 	}
+
+	const up2 = ppRound([...up1]);
+
+	// Pass 3: find improvements
+	for (let j = 0; j < stems.length; j++) {
+		if (!actions[j][HARD] && hard1[j]) {
+			("Stroke [j] really de-harden due to flipping up[j].");
+			("Keep this improvement.");
+		} else {
+			("Revert to the initial up term.");
+			up2[j] = up[j];
+		}
+	}
+
+	ppRound([...up2]);
 
 	return actions;
 }

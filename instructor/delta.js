@@ -9,6 +9,15 @@ function decideDelta(gear, original, target, upm, ppem) {
 	return Math.round(gear * (target - original) / (upm / ppem));
 }
 
+const GAMMA = 2;
+function corSW(x) {
+	const integral = Math.floor(x);
+	const fraction = x - integral;
+	const corrected =
+		integral > 1 || fraction > 1 / 2 ? fraction : 1 / 2 * Math.pow(fraction * 2, 1 / GAMMA);
+	return integral + corrected;
+}
+
 /**
  * Decide the delta of a link
  * @param {number} gear
@@ -40,7 +49,7 @@ function decideDeltaShift(
 	const uppx = upm / ppem;
 	const y1 = base0 + sign * dist0;
 	const y2 = base1 + sign * dist1;
-	const yDesired = isStacked ? base1 : base1 + sign * dist0;
+	const yDesired = isStacked ? base1 : base1 + sign * uppx * corSW(dist0 / uppx);
 	const deltaStart = Math.round(gear * (y2 - y1) / uppx);
 	const deltaDesired = Math.round(gear * (yDesired - y1) / uppx);
 	let delta = deltaStart - deltaDesired;
