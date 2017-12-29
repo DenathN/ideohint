@@ -226,23 +226,12 @@ function adjustAvails(avails, stems) {
 			avail.high = Math.round(
 				Math.max(
 					avail.low,
-					avail.center,
+					Math.floor(avail.center),
 					bottomPx +
 						avail.properWidth +
 						(avail.atGlyphBottom && avail.isHangingHook ? 1 : 0)
 				)
 			);
-			if (
-				this.onePixelMatter &&
-				avail.atGlyphBottom &&
-				!avail.atGlyphTop &&
-				!avail.isHangingHook &&
-				!avail.diagHigh &&
-				!avail.diagLow &&
-				avail.center < (topPx + bottomPx) / 2
-			) {
-				avail.high = avail.low;
-			}
 		}
 		/// lock top
 		if (
