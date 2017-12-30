@@ -73,10 +73,12 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 		lock[j] = false;
 	}
 
-	function lockUp(sj) {
+	function lockUp(sj, wj) {
 		return (
+			ppem < 22 &&
 			((!sj.hasGlyphStemAbove && !sj.diagLow) || (!sj.hasGlyphStemBelow && !sj.diagHigh)) &&
-			Math.abs(sj.posKey.y - sj.advKey.y) <= 1.75 * uppx
+			((wj <= 1 && Math.abs(sj.posKey.y - sj.advKey.y) >= 1.1 * uppx) ||
+				(wj === 2 && Math.abs(sj.posKey.y - sj.advKey.y) <= 1.75 * uppx))
 		);
 	}
 	function decideHardAndStack(up, y, w) {
@@ -236,7 +238,7 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 			const estimatedLow = tbtfm(low.y, tb); // Estimated unrounded bottom-edge position
 			const midlineLower = y[j] - w[j] / 2 <= (estimatedHigh + estimatedLow) / 2;
 			const hintedThinner = hsw[j] <= w[j];
-			if (lockUp(sj)) {
+			if (lockUp(sj, w[j])) {
 				up[j] = sj.posKeyAtTop;
 			} else {
 				up[j] =
@@ -272,7 +274,7 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 	const hard1 = [];
 	for (let j = 0; j < stems.length; j++) {
 		hard1[j] = actions[j][HARD];
-		if (hard1[j] && actions[j][W] === 1 && !lockUp(stems[j])) {
+		if (hard1[j] && actions[j][W] === 1 && !lockUp(stems[j], actions[j][W])) {
 			up1[j] = !up1[j];
 		}
 	}
