@@ -47,7 +47,7 @@ module.exports = function formOffhints(contours, elements) {
 		bottomZs = bottomZs.sort((a, b) => a.y - b.y);
 		if (topZs.length) {
 			if (topZs[0].y - topC.pOrg < this.upm / 8) {
-				this.talk(`YShift(${topC.ipz},${topZs[0].id})`);
+				this.talk(`YNoRound(${topZs[0].id}) YDist(${topC.ipz},${topZs[0].id})`);
 			} else if (topZs[0].y - topC.pOrg < this.upm / 3) {
 				this.talk(`YDist(${topC.ipz},${topZs[0].id})`);
 			} else {
@@ -63,7 +63,7 @@ module.exports = function formOffhints(contours, elements) {
 		}
 		if (bottomZs.length) {
 			if (bottomC.pOrg - bottomZs[0].y < this.upm / 8) {
-				this.talk(`YShift(${bottomC.ipz},${bottomZs[0].id})`);
+				this.talk(`YNoRound(${bottomZs[0].id}) YDist(${bottomC.ipz},${bottomZs[0].id})`);
 			} else if (bottomC.pOrg - bottomZs[0].y < this.upm / 3) {
 				this.talk(`YDist(${bottomC.ipz},${bottomZs[0].id})`);
 			} else {

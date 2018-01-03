@@ -110,7 +110,7 @@ module.exports = function formTrailHints(si) {
 			// ip
 			if (c[0] !== c[1]) this.talk(`YInterpolate(${c[0]},${c.slice(2).join(",")},${c[1]})`);
 		} else {
-			this.talk(`YNoRound(${c[1]}) YDist(${c[0]},${c[1]})`);
+			this.talk(`YShift(${c[0]},${c[1]})`);
 		}
 	}
 };
