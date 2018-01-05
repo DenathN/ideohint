@@ -12,6 +12,8 @@ const STACKED = 3;
 const ADDPXS = 4;
 const FLIP = 5;
 
+const NEGLECTABLE = 1 / 5;
+
 function twoPixelPack(uppx, uj, uk, yj, wj, yk, wk, hwj, hwk) {
 	return (
 		uj && !uk && (yj - wj - yk <= 2.05 && hwj > wj && hwk > wk && hwj + hwk - wj - wk > 3 / 8)
@@ -178,7 +180,7 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 				ppem,
 				swcfg
 			);
-			const hintedStemWidthPixels = Math.round(8 * (stemWidth / uppx + delta / 8)) / 8;
+			const hintedStemWidthPixels = stemWidth / uppx + delta / 8;
 			hsw[j] = hintedStemWidthPixels;
 
 			const deltaSoft = decideDeltaShift(
@@ -194,7 +196,7 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 				ppem,
 				swcfg
 			);
-			hswNoHard[j] = Math.round(8 * (stemWidth / uppx + deltaSoft / 8)) / 8;
+			hswNoHard[j] = stemWidth / uppx + deltaSoft / 8;
 
 			const belowOnePixel = w[j] === 1 && hintedStemWidthPixels <= 1;
 
@@ -206,7 +208,11 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 			}
 			actions[j][HARD] = hard;
 
-			const wdiff = hard ? 0 : hintedStemWidthPixels - actions[j][W];
+			const wdiff =
+				hard ||
+				Math.abs(hintedStemWidthPixels - Math.round(hintedStemWidthPixels)) <= NEGLECTABLE
+					? 0
+					: Math.round(8 * (hintedStemWidthPixels - actions[j][W])) / 8;
 			if (!hard && !belowOnePixel && up[j] && !stems[j].posKeyAtTop) {
 				actions[j][Y] -= wdiff;
 				actions[j][FLIP] -= wdiff;
