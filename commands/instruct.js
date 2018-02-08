@@ -44,13 +44,23 @@ function mapInstrut(_) {
 		const l = line.trim();
 		if (!l) return;
 		const data = JSON.parse(l);
+		const options = {
+			noCVTAnchoring: argv.noCVTAnchoring
+		};
 		const hgsData = {
 			hash: data.hash,
 			name: data.name,
 			ideohint_decision: data.ideohint_decision,
-			TTF_instructions: instruct(data.ideohint_decision, strategy, cvtPadding),
+			TTF_instructions: instruct(data.ideohint_decision, strategy, cvtPadding, options),
 			VTTTalk:
-				talk(data.ideohint_decision, strategy, cvtPadding, fpgmPadding, data.contours) || ""
+				talk(
+					data.ideohint_decision,
+					strategy,
+					cvtPadding,
+					fpgmPadding,
+					data.contours,
+					options
+				) || ""
 		};
 		outStream.write(JSON.stringify(hgsData) + "\n");
 	});

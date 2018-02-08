@@ -44,11 +44,13 @@ exports.handler = function(argv) {
 	});
 
 	function pass_weaveOTD(activeInstructions) {
-		var otdPath = argv._[2] ? argv._[2] : argv._[1];
+		const otdPath = argv._[2] ? argv._[2] : argv._[1];
 		process.stderr.write("Weaving OTD " + otdPath + "\n");
-		var instream = fs.createReadStream(otdPath, "utf-8");
-		var foundCVT = false;
-
+		const instream = fs.createReadStream(otdPath, "utf-8");
+		let foundCVT = false;
+		const options = {
+			noCVTAnchoring: argv.noCVTAnchoring
+		};
 		oboe(instream)
 			.on("node", "cvt_", function(cvt) {
 				foundCVT = true;
@@ -74,13 +76,15 @@ exports.handler = function(argv) {
 						if (otd.TSI_23) {
 							// Prefer VTTTalk than TTF
 							if (!otd.TSI_23.glyphs) otd.TSI_23.glyphs = {};
-							otd.TSI_23.glyphs[g] = (airef.VTTTalk ||
+							otd.TSI_23.glyphs[g] = (
+								airef.VTTTalk ||
 								talk(
 									airef.ideohint_decision,
 									strategy,
 									cvtPadding,
 									fpgmPadding,
-									glyph.contours
+									glyph.contours,
+									options
 								) ||
 								""
 							).replace(/\n/g, "\r"); // vtt uses CR
@@ -91,7 +95,7 @@ exports.handler = function(argv) {
 						} else {
 							glyph.instructions =
 								airef.TTF_instructions ||
-								instruct(airef.ideohint_decision, strategy, cvtPadding);
+								instruct(airef.ideohint_decision, strategy, cvtPadding, options);
 						}
 					}
 				}

@@ -9,6 +9,7 @@ function table(min, max, f) {
 	}
 	return a;
 }
+
 function iphintedPositions(bottomStem, r, topStem, pmin, pmax) {
 	return table(pmin, pmax, ppem => {
 		const org_dist = r.pOrg - bottomStem.pOrg;

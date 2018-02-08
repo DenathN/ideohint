@@ -33,11 +33,19 @@ class BottomAnchorHintingElement extends HintingElement {
 		return KEY_ITEM_BOTTOM;
 	}
 	talk() {
-		return `
+		if (this.cvtID) {
+			return `
 /* !!IDH!! Bottom Anchor Kind Direct */
 YAnchor(${this.ipz},${this.cvtID})
 ${this.deltas || ""}
 `;
+		} else {
+			return `
+			/* !!IDH!! Bottom Anchor Kind Direct */
+			YAnchor(${this.ipz})
+			${this.deltas || ""}
+			`;
+		}
 	}
 	below(z) {
 		return z.y < this.pOrg;
@@ -57,19 +65,28 @@ class TopAnchorHintingElement extends HintingElement {
 		return KEY_ITEM_TOP;
 	}
 	talk($, bottomAnchor) {
-		const isValidLink =
-			bottomAnchor &&
-			Math.abs(this.pOrg - bottomAnchor.pOrg - this.topBotRefDist) < $.cvtCutin / 2;
-		if (isValidLink) {
-			return `
+		if (this.cvtID) {
+			const isValidLink =
+				bottomAnchor &&
+				Math.abs(this.pOrg - bottomAnchor.pOrg - this.topBotRefDist) < $.cvtCutin / 2;
+			if (isValidLink) {
+				return `
 /* !!IDH!! Top Anchor Kind Linked */
 YLink(${bottomAnchor.ipz},${this.ipz},${this.cvtTopBotDistId})
 `;
-		} else {
-			return `
+			} else {
+				return `
 /* !!IDH!! Top Anchor Kind Direct */
 YAnchor(${this.ipz},${this.cvtID})
 ${this.deltas || ""}
+`;
+			}
+		} else {
+			return `
+/* !!IDH!! Top Anchor Kind Linked */
+YAnchor(${this.ipz})
+${this.deltas || ""}
+
 `;
 		}
 	}

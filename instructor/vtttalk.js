@@ -170,6 +170,9 @@ class VTTCompiler {
 	compileAnchor(z, ref, chosen) {
 		return this.encoder.encodeAnchor(z, ref, chosen, this.pmin, this.pmax, this.strategy);
 	}
+	rtgTable(y) {
+		return table(this.pmin, this.pmaxC, ppem => roundings.rtg(y, this.upm, ppem));
+	}
 }
 class MeasuredVTTCompiler extends VTTCompiler {
 	constructor(parent) {
@@ -184,7 +187,7 @@ class MeasuredVTTCompiler extends VTTCompiler {
 // strategy : strategy object
 // padding : CVT padding value, padding + 2 -> bottom anchor; padding + 1 -> top anchor
 // fpgmPadding : FPGM padding
-function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
+function produceVTTTalk(record, strategy, padding, fpgmPadding, contours, options) {
 	const $ = new VTTCompiler(record, strategy, padding, fpgmPadding, contours);
 	const ec = $.encoder;
 
@@ -192,7 +195,16 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 	// An hinting element represents something needed to be carefully dealt.
 	let elements = [];
 	for (let z of $.si.blue.bottomZs) {
-		if (Math.abs(z.y - $.aux.yBotD) < Math.abs(z.y - $.strategy.BLUEZONE_BOTTOM_CENTER)) {
+		if (options.noCVTAnchoring || Math.abs(z.y - $.aux.yBotD) >= $.upm / 20) {
+			elements.push(
+				new HE.Bottom(z.id, z.y, {
+					deltas: $.compileAnchor(z.id, $.rtgTable(z.y), $.hintedPositions.bot),
+					hintedPositions: $.hintedPositions.bot
+				})
+			);
+		} else if (
+			Math.abs(z.y - $.aux.yBotD) < Math.abs(z.y - $.strategy.BLUEZONE_BOTTOM_CENTER)
+		) {
 			elements.push(
 				new HE.Bottom(z.id, z.y, {
 					cvtID: $.cvt.cvtBottomDId,
@@ -211,7 +223,14 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours) {
 		}
 	}
 	for (let z of $.si.blue.topZs) {
-		if (Math.abs(z.y - $.aux.yTopD) < Math.abs(z.y - $.strategy.BLUEZONE_TOP_CENTER)) {
+		if (options.noCVTAnchoring || Math.abs(z.y - $.aux.yTopD) >= $.upm / 20) {
+			elements.push(
+				new HE.Top(z.id, z.y, {
+					deltas: $.compileAnchor(z.id, $.rtgTable(z.y), $.hintedPositions.top),
+					hintedPositions: $.hintedPositions.top
+				})
+			);
+		} else if (Math.abs(z.y - $.aux.yTopD) < Math.abs(z.y - $.strategy.BLUEZONE_TOP_CENTER)) {
 			elements.push(
 				new HE.Top(z.id, z.y, {
 					hintedPositions: $.hintedPositions.top,
