@@ -1,7 +1,7 @@
 {
 	"name": "ideohint",
 	"description": "Optimized gridfit generator for ideographs.",
-	"version": "1.12.6",
+	"version": "1.13.0",
 	"main": "./main.js",
 	"repository": {
 		"type": "git",
@@ -11,6 +11,7 @@
 	"dependencies": {
 		"JSONStream": "^1.1.4",
 		"browserify": "^13.1.0",
+		"clone": "^2.1.1",
 		"dev-null": "^0.1.1",
 		"event-stream": "^3.3.4",
 		"krampus": "^1.1.0",

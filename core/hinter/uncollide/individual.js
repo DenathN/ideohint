@@ -1,7 +1,5 @@
 "use strict";
 
-const { xclamp } = require("../../../support/common");
-
 const DIAG_BIAS_PIXELS = 1 / 6;
 const DIAG_BIAS_PIXELS_NEG = 0.35;
 const REALLY_FLAT = 1 / 10;
@@ -10,23 +8,8 @@ const NOT_REALLY_FLAT = 4 / 5;
 const SLIGHTLY_SLANTED = 6 / 5;
 const ABLATION_MARK = 1 / 65536;
 
-function clampOverflow(delta) {
-	return xclamp(-0.5, Math.round(delta * 8) / 8, 0.5);
-}
-
 function twoPartsOfDiag(aa, ab) {
 	return aa.rid && aa.rid === ab.rid;
-}
-
-function calSpaceBetween(y, avails, j, k) {
-	const aj = avails[j],
-		ak = avails[k],
-		space0 = y[j] - aj.properWidth - y[k];
-	return (
-		space0 -
-		(aj.posKeyAtTop ? clampOverflow(Math.max(1, aj.w0px) - aj.properWidth) : 0) -
-		(ak.posKeyAtTop ? 0 : clampOverflow(Math.max(1, ak.w0px) - ak.properWidth))
-	);
 }
 
 class Individual {

@@ -2,6 +2,8 @@
 
 const roundings = require("../support/roundings");
 const { decideDeltaShift, getSWCFG } = require("../instructor/delta");
+const { interpretIDH } = require("./interpreter/interpretIDH");
+const clone = require("clone");
 
 const GEAR = 8;
 
@@ -322,12 +324,11 @@ function swcfcCtxFor(strategy) {
 	}
 }
 
-module.exports = function(data, strategy) {
+module.exports = function(data, contours, strategy) {
 	if (!data) return;
 	const { si, sd, pmin, pmax } = data;
 	for (let ppem = pmin; ppem <= pmax; ppem++) {
 		if (!sd[ppem]) continue;
-
 		padSD(
 			sd[ppem].y,
 			si.stems,
@@ -338,8 +339,83 @@ module.exports = function(data, strategy) {
 			getSWCFG(swcfcCtxFor(strategy), 1, ppem)
 		);
 	}
+	if (contours) {
+		data.si = cleanIPSA(contours, si, sd, strategy);
+	}
 };
 module.exports.for = padSD;
 module.exports.getSwcfgFor = function(strategy, ppem) {
 	return getSWCFG(swcfcCtxFor(strategy), 1, ppem);
 };
+
+///
+function canonicalContours(contours) {
+	let ans = [];
+	for (let c of contours) {
+		if (c.points) ans.push(c);
+		else ans.push({ points: c });
+	}
+	return ans;
+}
+function createIndexedPoints(contours) {
+	let ans = [],
+		n = 0;
+	for (let c of contours)
+		for (let z of c.points) {
+			ans[n] = z;
+			n++;
+		}
+	return ans;
+}
+function createHintedGlyphSet(glyph, si, sd, strategy) {
+	const cache = [];
+	for (let ppem = 0; ppem < sd.length; ppem++) {
+		if (!sd[ppem]) continue;
+		cache[ppem] = interpretIDH(clone(glyph), si, sd[ppem], strategy, ppem);
+	}
+	return cache;
+}
+function reducable(c1, c2, strategy) {
+	for (let ppem = 0; ppem < c1.length; ppem++) {
+		if (!c1[ppem] || !c2[ppem]) continue;
+		const uppx = strategy.UPM / ppem;
+		for (let j = 0; j < c1[ppem].length; j++) {
+			const cntr1 = c1[ppem][j];
+			const cntr2 = c2[ppem][j];
+			for (let k = 0; k < cntr1.points.length; k++) {
+				const z1 = cntr1.points[k];
+				const z2 = cntr2.points[k];
+				if (
+					Math.abs(z1.xtouch - z2.xtouch) > uppx * strategy.CLEAN_IPSA_TOL ||
+					Math.abs(z1.ytouch - z2.ytouch) > uppx * strategy.CLEAN_IPSA_TOL
+				) {
+					return false;
+				}
+			}
+		}
+	}
+	return true;
+}
+function cleanIPSA(contours, si, sd, strategy) {
+	const glyph = {
+		contours: canonicalContours(contours),
+		indexedPoints: createIndexedPoints(canonicalContours(contours))
+	};
+	const cache = createHintedGlyphSet(glyph, si, sd, strategy);
+	for (let round = 0; round < 0xff; round++) {
+		let foundRedex = false;
+		for (let j = si.ipsacalls.length - 1; j >= 0; j--) {
+			const si1 = clone(si);
+			si1.ipsacalls.splice(j, 1);
+			const cache1 = createHintedGlyphSet(glyph, si1, sd, strategy);
+			if (reducable(cache, cache1, strategy)) {
+				si = si1;
+				foundRedex = true;
+				break;
+			}
+		}
+		if (!foundRedex) break;
+	}
+	return si;
+}
+module.exports.cleanIPSA = cleanIPSA;

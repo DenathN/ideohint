@@ -101,6 +101,7 @@ class HintingStrategy {
 		this.BOTTOM_CUT_DIAG_DIST = 0;
 		this.X_EXPAND = 0;
 		this.DONT_COORDINATE_WIDTHS = 0;
+		this.CLEAN_IPSA_TOL = 0.25;
 	}
 }
 
