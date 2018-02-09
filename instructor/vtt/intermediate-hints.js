@@ -1,7 +1,7 @@
 "use strict";
 
 const HE = require("./hintingElement");
-const { iphintedPositions, distHintedPositions } = require("./predictor");
+const { iphintedPositions, distHintedPositions, yAnchoredPositions } = require("./predictor");
 const StemInstructionCombiner = require("./stem-instruction-combiner");
 
 const INTERMEDIATE_ROUNDS = {
@@ -18,6 +18,7 @@ module.exports = function(boundary, sd, elements, round) {
 	const { bottomStem, bottomAnchor, topStem, topAnchor } = boundary;
 
 	this.talk(`\n\n/* !!IDH!! INTERMEDIATES */`);
+	const directs = [];
 	const ipAnchorZs = [];
 	const linkTopZs = [];
 	const linkBottomZs = [];
@@ -62,14 +63,20 @@ module.exports = function(boundary, sd, elements, round) {
 			});
 		}
 
-		// IP
+		// IP and Direct
 		if (round !== INTERMEDIATE_ROUNDS.TOP_ONLY && round !== INTERMEDIATE_ROUNDS.BOTTOM_ONLY) {
 			attempts.push({
 				to: ipAnchorZs,
 				addTDI: 3,
 				pos0: iphintedPositions(bottomStem, r, topStem, pmin, pmaxC)
 			});
+			attempts.push({
+				to: directs,
+				addTDI: 2,
+				pos0: yAnchoredPositions(r, upm, pmin, pmaxC)
+			});
 		}
+
 		let bestCost = 0xffff;
 		let bestG = null;
 		let bestA = null;
@@ -93,6 +100,9 @@ module.exports = function(boundary, sd, elements, round) {
 		tdis += 7;
 	}
 	for (let z of ipAnchorZs) {
+		this.talk(`YAnchor(${z})`);
+	}
+	for (let z of directs) {
 		this.talk(`YAnchor(${z})`);
 	}
 

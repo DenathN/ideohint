@@ -98,8 +98,8 @@ function doHints(_) {
 	progress(taskName, pendings, data => {
 		if (cache.has(data.hash)) {
 			const cached = cache.get(data.hash);
-			if (cached.ideohint_version !== "*")
-				postprocess(cached.ideohint_decision, data.contours, strategy);
+			// if (cached.ideohint_version !== "*")
+			// 	postprocess(cached.ideohint_decision, data.contours, strategy);
 			data.ideohint_decision = cached.ideohint_decision;
 			data.ideohint_version = cached.ideohint_version;
 			outStream.write(JSON.stringify(data) + "\n");

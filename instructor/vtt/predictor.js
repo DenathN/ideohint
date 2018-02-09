@@ -10,6 +10,10 @@ function table(min, max, f) {
 	return a;
 }
 
+function yAnchoredPositions(r, upm, pmin, pmax) {
+	return table(pmin, pmax, ppem => roundings.rtg(r.pOrg, upm, ppem));
+}
+
 function iphintedPositions(bottomStem, r, topStem, pmin, pmax) {
 	return table(pmin, pmax, ppem => {
 		const org_dist = r.pOrg - bottomStem.pOrg;
@@ -35,3 +39,4 @@ function distHintedPositions(rp0, r, upm, pmin, pmax) {
 exports.table = table;
 exports.iphintedPositions = iphintedPositions;
 exports.distHintedPositions = distHintedPositions;
+exports.yAnchoredPositions = yAnchoredPositions;
