@@ -21,7 +21,6 @@ function mgmGroup(group, ...s) {
 }
 
 /// FPGM
-
 const fpgmShiftOf = (exports.fpgmShiftOf = {
 	interpreter: 0,
 	DLTP1: 1,
@@ -34,7 +33,11 @@ const fpgmShiftOf = (exports.fpgmShiftOf = {
 	comp_integral_neg: 10,
 	comp_octet: 12,
 	comp_octet_neg: 14,
-	quadstroke_f: 16
+	comp_quart: 16,
+	comp_quart_neg: 18,
+	comp_quart_h: 20,
+	comp_quart_neg_h: 22,
+	quadstroke_f: 24
 });
 
 exports.generateFPGM = (function() {
@@ -122,8 +125,11 @@ ENDF[]
 `;
 	};
 
-	const intCompressedDeltaFunction = (fid, l, d, n) =>
-		`
+	const intCompressedDeltaFunction = (fid, _d, _l, n) => {
+		const d = 1 / _d;
+		const l = 16 / _l;
+		return (
+			`
 /* Function ${fid} : Compressed form of Deltas (${d} - ${n}) */
 FDEF[], ${fid}
 #BEGIN
@@ -141,9 +147,9 @@ FDEF[], ${fid}
 	#PUSHOFF
 		#PUSH, 4
 		MINDEX[]\n` +
-		`#PUSH, ${fid + 1}
+			`#PUSH, ${fid + 1}
 		CALL[]\n`.repeat(l) +
-		`/* The top byte is now zero */
+			`/* The top byte is now zero */
 		/* Pop it */
 		POP[]
 		#PUSH, 1
@@ -166,8 +172,9 @@ FDEF[], ${fid + 1}
 	#PUSHON
 #END
 ENDF[]
-`;
-
+`
+		);
+	};
 	const compressedDeltaFunction = (fid, instr) => `
 /* Function ${fid} : Compressed form of ${instr}
    Arguments:
@@ -357,11 +364,15 @@ ENDF[]
 				compressedDeltaFunction(padding + fpgmShiftOf.DLTP2, "DELTAP2"),
 				compressedDeltaFunction(padding + fpgmShiftOf.DLTP3, "DELTAP3"),
 				combinedCompDeltaFunction(padding + fpgmShiftOf._combined),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral, 4, 1, 0),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_octet, 4, 8, 2),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_octet_neg, 4, 8, -1),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral_pos, 8, 1, 0),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral_neg, 8, 1, 1),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral, 1, 4, 0),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral_pos, 1, 2, 0),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral_neg, 1, 2, 1),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_octet, 1 / 8, 2, 0),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_octet_neg, 1 / 8, 2, 1),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart, 1 / 4, 2, 0),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart_neg, 1 / 4, 2, 1),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart_h, 1 / 8, 4, 2),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart_neg_h, 1 / 8, 4, -1),
 				quadStrokePreventer(padding + fpgmShiftOf.quadstroke_f)
 			)
 		);

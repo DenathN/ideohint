@@ -1,6 +1,6 @@
 "use strict";
 const { decideDelta, decideDeltaShift, getSWCFG } = require("../delta.js");
-const { xclamp, toVQ } = require("../../support/common");
+const { xclamp } = require("../../support/common");
 const roundings = require("../../support/roundings");
 const { fpgmShiftOf } = require("./vttenv");
 
@@ -229,14 +229,26 @@ class AssemblyDeltaEncoder extends VTTTalkDeltaEncoder {
 	}
 }
 
-const TRY_INTEGERS = [
-	[fpgmShiftOf.comp_integral, 1, 4, 0],
-	[fpgmShiftOf.comp_integral_pos, 1, 2, 0],
-	[fpgmShiftOf.comp_integral_neg, 1, 2, 1]
-];
-const TRY_FRACTIONALS = [
-	[fpgmShiftOf.comp_octet, 1 / 8, 4, 2],
-	[fpgmShiftOf.comp_octet_neg, 1 / 8, 4, -1]
+const OPTIMIZE_ATTEMPTS = [
+	[
+		[fpgmShiftOf.comp_integral, 1, 4, 0],
+		[fpgmShiftOf.comp_integral_pos, 1, 2, 0],
+		[fpgmShiftOf.comp_integral_neg, 1, 2, 1]
+	],
+	[
+		[fpgmShiftOf.comp_quart, 1 / 4, 2, 0],
+		[fpgmShiftOf.comp_quart_neg, 1 / 4, 2, 1],
+		[fpgmShiftOf.comp_quart_h, 1 / 8, 4, 2],
+		[fpgmShiftOf.comp_quart_neg_h, 1 / 8, 4, -1]
+	],
+	[
+		[fpgmShiftOf.comp_quart, 1 / 4, 2, 0],
+		[fpgmShiftOf.comp_quart_neg, 1 / 4, 2, 1],
+		[fpgmShiftOf.comp_quart_h, 1 / 8, 4, 2],
+		[fpgmShiftOf.comp_quart_neg_h, 1 / 8, 4, -1]
+	],
+	[[fpgmShiftOf.comp_octet, 1 / 8, 2, 0], [fpgmShiftOf.comp_octet_neg, 1 / 8, 2, 1]],
+	[[fpgmShiftOf.comp_octet, 1 / 8, 2, 0], [fpgmShiftOf.comp_octet_neg, 1 / 8, 2, 1]]
 ];
 
 class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
@@ -319,12 +331,12 @@ class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
 		return true;
 	}
 	encodeDeltaIntLevel(d, level, tag) {
-		let r = super.encodeDelta(d, tag);
-		if (level >= 2) return r;
+		if (level >= OPTIMIZE_ATTEMPTS.length) return super.encodeDelta(d, tag);
+		let r = this.encodeDeltaIntLevel(d, level + 1, tag);
 		let bytes = r(0).bytes;
 		const shiftTries = this._deltaSetIsAllInt(d)
-			? TRY_INTEGERS
-			: !level ? [...TRY_INTEGERS, ...TRY_FRACTIONALS] : TRY_FRACTIONALS;
+			? OPTIMIZE_ATTEMPTS[0]
+			: OPTIMIZE_ATTEMPTS[level];
 		for (let [fs, gear, bpa, shift] of shiftTries) {
 			let r1 = this.encodeIntDeltaInternal(
 				d,
