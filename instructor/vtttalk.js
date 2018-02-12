@@ -378,7 +378,7 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours, option
 	}
 	$.talk(bestTalk);
 
-	formTrailHints.call($, $.si);
+	formTrailHints.call($, $.si, contours);
 	formOffhints.call($, contours, elements);
 	$.talk("Smooth()");
 	return $.buf;

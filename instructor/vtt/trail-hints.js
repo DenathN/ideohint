@@ -31,17 +31,35 @@ function sortIPSAs(calls) {
 	}
 }
 
+const TOL = 8;
 const MAX_IP_LENGTH = 64;
-function reIP(calls) {
+function reIP(calls, contours) {
+	if (!contours) return calls;
 	const ipdef = [];
+	const indexedPoints = [];
+	{
+		let n = 0;
+		for (let c of contours)
+			for (let z of c) {
+				indexedPoints[n] = z;
+				n++;
+			}
+	}
 	for (let round = 0; round < 64; round++) {
 		let modified = false;
 		for (let c of calls) {
 			if (c.length > 2) {
 				for (let k of c.slice(2)) ipdef[k] = c;
-			} else if (c.length === 2 && ipdef[c[0]] && ipdef[c[0]].length < MAX_IP_LENGTH) {
+			} else if (
+				c.length === 2 &&
+				indexedPoints[c[0]] &&
+				indexedPoints[c[1]] &&
+				Math.abs(indexedPoints[c[0]].y - indexedPoints[c[1]].y) < TOL &&
+				ipdef[c[0]] &&
+				ipdef[c[0]].length < MAX_IP_LENGTH
+			) {
 				ipdef[c[0]].push(c[1]);
-				c.length = 1;
+				c.length = 0;
 				modified = true;
 			}
 		}
@@ -50,8 +68,8 @@ function reIP(calls) {
 	return calls;
 }
 
-function collectIPSAs(calls) {
-	calls = reIP(sortIPSAs(calls));
+function collectIPSAs(calls, contours) {
+	calls = sortIPSAs(reIP(calls, contours));
 	// collect groups
 	let groups = [];
 	for (let c of calls) {
@@ -97,7 +115,7 @@ function collectIPSAs(calls) {
 	return answer;
 }
 
-module.exports = function formTrailHints(si) {
+module.exports = function formTrailHints(si, contours) {
 	/// ISALs
 
 	let isalCalls = [];
@@ -122,7 +140,7 @@ module.exports = function formTrailHints(si) {
 	}
 
 	/// Interpolations and Shifts
-	const calls = collectIPSAs([...isalCalls, ...diagAlignCalls, ...si.ipsacalls]);
+	const calls = collectIPSAs([...isalCalls, ...diagAlignCalls, ...si.ipsacalls], contours);
 	for (let c of calls) {
 		if (!c || c.length < 2) continue;
 		if (c.length >= 3) {
