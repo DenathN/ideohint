@@ -29,18 +29,32 @@ const fpgmShiftOf = (exports.fpgmShiftOf = {
 	_combined: 4,
 	_combined_ss: 5,
 	comp_integral: 6,
-	comp_integral_pos: 8,
-	comp_integral_neg: 10,
-	comp_octet: 12,
-	comp_octet_neg: 14,
-	comp_quart: 16,
-	comp_quart_neg: 18,
-	comp_quart_h: 20,
-	comp_quart_neg_h: 22,
-	quadstroke_f: 24
+	comp_integral_pos: 7,
+	comp_integral_neg: 8,
+	comp_octet: 9,
+	comp_octet_neg: 10,
+	comp_quart: 11,
+	comp_quart_neg: 12,
+	comp_quart_h: 13,
+	comp_quart_neg_h: 14,
+	comp_half_h: 15,
+	comp_half_neg_h: 16,
+	quadstroke_f: 18
 });
 
 exports.generateFPGM = (function() {
+	const While = (index, cond, body) => `
+#Begin${index}:
+${cond}
+#PUSH, Wend${index}
+SWAP[]
+JROF[], (Wend${index}=#End${index})
+${body}
+#PUSH, Wbegin${index}
+JMPR[], (Wbegin${index}=#Begin${index})
+#End${index}:
+`;
+
 	const interpreterF = fid => `
 /* Function ${fid}, the interpreter */
 FDEF[], ${fid}
@@ -90,7 +104,7 @@ ENDF[]
 		DUP[]
 		#PUSH, ${64 / multiplier}
 		MUL[]
-		#PUSH, ${256 * multiplier / 4}
+		#PUSH, ${64 * multiplier}
 		MUL[]
 		SUB[]
 		ROLL[]
@@ -137,36 +151,22 @@ FDEF[], ${fid}
 	${splitStackTopByte(8, 0, 9)}
 	/* On Y axis */
 	SVTCA[Y]
-	/* Loop begin */
-	DUP[]
-	#PUSH, 16
-	SWAP[]
-	#PUSHON
-	JROF[],*,*
-	#PUSHOFF
+	${While(
+		"f" + fid,
+		"DUP[]",
+		`
 		#PUSH, 4
 		MINDEX[]
-		#PUSH, ${l}, ${fid + 1}
-		LOOPCALL[]
+		${intCompressedSegment(l, n, d).repeat(l)}
 		/* Pop it */
 		POP[]
 		#PUSH, 1
 		SUB[]
-	#PUSH, -19
-	#PUSHON
-	JMPR[],*
-	#PUSHOFF
+		`
+	)}
 	POP[]
 	POP[]
 	POP[]
-	#PUSHON
-#END
-ENDF[]
-
-FDEF[], ${fid + 1}
-#BEGIN
-	#PUSHOFF
-	${intCompressedSegment(l, n, d)}
 	#PUSHON
 #END
 ENDF[]
@@ -220,53 +220,45 @@ ENDF[]
 */
 FDEF[], ${fid}
 #BEGIN
-	#PUSHOFF
-	DUP[]
-	#PUSH, 20
-	SWAP[]
-	#PUSHON
-	JROF[],*,*
-	#PUSHOFF
-	ROLL[]
-	DUP[]
-	#PUSH, 5
-	MINDEX[]
-	SWAP[]
-	#PUSH, 1
-	DELTAP2[]
-	SWAP[]
-	ROLL[]
-	SWAP[]
-	#PUSH, 1
-	SUB[]
-	#PUSH, -23
-	#PUSHON
-	JMPR[],*
-	#PUSHOFF
+#PUSHOFF
+	${While(
+		`af${fid}`,
+		"DUP[]",
+		`
+		ROLL[]
+		DUP[]
+		#PUSH, 5
+		MINDEX[]
+		SWAP[]
+		#PUSH, 1
+		DELTAP2[]
+		SWAP[]
+		ROLL[]
+		SWAP[]
+		#PUSH, 1
+		SUB[]
+		`
+	)}	
 	POP[]
-	DUP[]
-	#PUSH, 18
-	SWAP[]
-	#PUSHON
-	JROF[],*,*
-	#PUSHOFF
-	SWAP[]
-	DUP[]
-	#PUSH, 4
-	MINDEX[]
-	SWAP[]
-	#PUSH, 1
-	DELTAP1[]
-	SWAP[]
-	#PUSH, 1
-	SUB[]
-	#PUSH, -21
-	#PUSHON
-	JMPR[],*
-	#PUSHOFF
+	${While(
+		`bf${fid}`,
+		"DUP[]",
+		`
+		SWAP[]
+		DUP[]
+		#PUSH, 4
+		MINDEX[]
+		SWAP[]
+		#PUSH, 1
+		DELTAP1[]
+		SWAP[]
+		#PUSH, 1
+		SUB[]
+		`
+	)}
 	POP[]
 	POP[]
-	#PUSHON
+#PUSHON
 #END
 ENDF[]
 
@@ -370,6 +362,8 @@ ENDF[]
 				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart_neg, 1 / 4, 2, 1),
 				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart_h, 1 / 8, 4, 2),
 				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart_neg_h, 1 / 8, 4, -1),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_half_h, 1 / 4, 4, 2),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_half_neg_h, 1 / 4, 4, -1),
 				quadStrokePreventer(padding + fpgmShiftOf.quadstroke_f)
 			)
 		);

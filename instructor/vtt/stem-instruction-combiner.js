@@ -1,15 +1,9 @@
 "use strict";
 
-const {
-	ROUNDING_SEGMENTS,
-	VTTTalkDeltaEncoder,
-	AssemblyDeltaEncoder,
-	VTTECompiler,
-	VTTCall
-} = require("./encoder");
+const { VTTCall } = require("./encoder");
 
 function ibpType(x) {
-	if (typeof x === "stirng") return "str";
+	if (typeof x === "string") return "str";
 	if (x instanceof VTTCall) return "vttcall";
 	return "unknown";
 }
@@ -30,8 +24,10 @@ const ibpCombiner = {
 	unknown: xs => xs.join("\n"),
 	str: xs => xs.join("\n"),
 	vttcall: (xs, fpgmPadding) => {
-		const primaryInvokes = [...xs.map(x => x.forms)].filter(a => a.length);
-		if (primaryInvokes.length <= 1) return xs.join("\n");
+		const primaryInvokes = [...xs.map(x => x.forms)]
+			.filter(a => a.length)
+			.reduce((a, b) => [...a, ...b], []);
+		if (primaryInvokes.length <= 2) return xs.join("\n");
 		let arglist = flatten(primaryInvokes);
 		if (!arglist.length) return "";
 		if (arglist.length > 256) return xs.join("\n");

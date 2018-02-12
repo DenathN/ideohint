@@ -235,6 +235,7 @@ const OPTIMIZE_ATTEMPTS = [
 		[fpgmShiftOf.comp_integral_pos, 1, 2, 0],
 		[fpgmShiftOf.comp_integral_neg, 1, 2, 1]
 	],
+	[[fpgmShiftOf.comp_half_h, 1 / 4, 4, 2], [fpgmShiftOf.comp_half_neg_h, 1 / 4, 4, -1]],
 	[
 		[fpgmShiftOf.comp_quart, 1 / 4, 2, 0],
 		[fpgmShiftOf.comp_quart_neg, 1 / 4, 2, 1],
