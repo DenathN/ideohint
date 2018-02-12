@@ -128,8 +128,7 @@ ENDF[]
 	const intCompressedDeltaFunction = (fid, _d, _l, n) => {
 		const d = 1 / _d;
 		const l = 16 / _l;
-		return (
-			`
+		return `
 /* Function ${fid} : Compressed form of Deltas (${d} - ${n}) */
 FDEF[], ${fid}
 #BEGIN
@@ -140,21 +139,20 @@ FDEF[], ${fid}
 	SVTCA[Y]
 	/* Loop begin */
 	DUP[]
-	#PUSH, ${12 + 3 * l}
+	#PUSH, 16
 	SWAP[]
 	#PUSHON
 	JROF[],*,*
 	#PUSHOFF
 		#PUSH, 4
-		MINDEX[]\n` +
-			`#PUSH, ${fid + 1}
-		CALL[]\n`.repeat(l) +
-			`/* The top byte is now zero */
+		MINDEX[]
+		#PUSH, ${l}, ${fid + 1}
+		LOOPCALL[]
 		/* Pop it */
 		POP[]
 		#PUSH, 1
 		SUB[]
-	#PUSH, ${-15 - 3 * l}
+	#PUSH, -19
 	#PUSHON
 	JMPR[],*
 	#PUSHOFF
@@ -172,8 +170,7 @@ FDEF[], ${fid + 1}
 	#PUSHON
 #END
 ENDF[]
-`
-		);
+`;
 	};
 	const compressedDeltaFunction = (fid, instr) => `
 /* Function ${fid} : Compressed form of ${instr}
