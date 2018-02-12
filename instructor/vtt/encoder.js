@@ -309,7 +309,7 @@ class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
 			return () => new VTTCall();
 		}
 	}
-	encodeIntDeltaInternal(d, fnid, gear, shift, bpa, lv, tag) {
+	encodeIntDeltaInternal(d, fnid, gear, shift, bpa, lv, bytesSofar, bestBytes, tag) {
 		let iDelta = [],
 			restDelta = [];
 		for (let { ppem, delta } of d) {
@@ -321,7 +321,10 @@ class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
 		let r1 = this.encodeIntDelta(iDelta, fnid, shift, bpa, tag);
 		if (!r1) return null;
 
-		let r2 = this.encodeDeltaIntLevel(restDelta, lv + 1, tag);
+		let r1length = r1(0).bytes;
+		if (bytesSofar + r1length > bestBytes) return null;
+
+		let r2 = this.encodeDeltaIntLevel(restDelta, lv + 1, bytesSofar + r1length, tag);
 		if (!r2) return null;
 
 		return z => r1(z).then(r2(z));
@@ -330,10 +333,10 @@ class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
 		for (let { delta } of d) if (Math.round(delta) !== delta) return false;
 		return true;
 	}
-	encodeDeltaIntLevel(d, level, tag) {
+	encodeDeltaIntLevel(d, level, bytesSofar, tag) {
 		if (level >= OPTIMIZE_ATTEMPTS.length) return super.encodeDelta(d, tag);
-		let r = this.encodeDeltaIntLevel(d, level + 1, tag);
-		let bytes = r(0).bytes;
+		let r = this.encodeDeltaIntLevel(d, level + 1, bytesSofar, tag);
+		let bestBytes = r(0).bytes;
 		const shiftTries = this._deltaSetIsAllInt(d)
 			? OPTIMIZE_ATTEMPTS[0]
 			: OPTIMIZE_ATTEMPTS[level];
@@ -345,19 +348,21 @@ class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
 				shift,
 				bpa,
 				level,
+				bytesSofar,
+				bestBytes,
 				tag
 			);
 			if (!r1) continue;
 			let bytes1 = r1(0).bytes;
-			if (bytes1 < bytes) {
-				bytes = bytes1;
+			if (bytes1 < bestBytes) {
+				bestBytes = bytes1;
 				r = r1;
 			}
 		}
 		return r;
 	}
 	encodeDelta(d, tag) {
-		return this.encodeDeltaIntLevel(d, 0, tag);
+		return this.encodeDeltaIntLevel(d, 0, 0, tag);
 	}
 }
 
