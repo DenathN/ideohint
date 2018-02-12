@@ -36,11 +36,13 @@ module.exports = function formOffhints(contours, elements) {
 		const topC = elements[elements.length - 1];
 		const bottomC = elements[0];
 		for (let z of extrema) {
-			if (topC.above(z)) {
-				topZs.push(z);
-			} else if (bottomC.below(z)) {
-				bottomZs.push(z);
-			}
+			let isTop = true;
+			for (let e of elements) if (!e.above(z)) isTop = false;
+			if (isTop) topZs.push(z);
+
+			let isBot = true;
+			for (let e of elements) if (!e.below(z)) isBot = false;
+			if (isBot) bottomZs.push(z);
 		}
 
 		topZs = topZs.sort((a, b) => b.y - a.y);

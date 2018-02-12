@@ -31,8 +31,27 @@ function sortIPSAs(calls) {
 	}
 }
 
+const MAX_IP_LENGTH = 64;
+function reIP(calls) {
+	const ipdef = [];
+	for (let round = 0; round < 64; round++) {
+		let modified = false;
+		for (let c of calls) {
+			if (c.length > 2) {
+				for (let k of c.slice(2)) ipdef[k] = c;
+			} else if (c.length === 2 && ipdef[c[0]] && ipdef[c[0]].length < MAX_IP_LENGTH) {
+				ipdef[c[0]].push(c[1]);
+				c.length = 1;
+				modified = true;
+			}
+		}
+		if (!modified) break;
+	}
+	return calls;
+}
+
 function collectIPSAs(calls) {
-	calls = sortIPSAs(calls);
+	calls = reIP(sortIPSAs(calls));
 	// collect groups
 	let groups = [];
 	for (let c of calls) {

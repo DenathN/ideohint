@@ -195,11 +195,14 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours, option
 	// An hinting element represents something needed to be carefully dealt.
 	let elements = [];
 	for (let z of $.si.blue.bottomZs) {
-		if (options.noCVTAnchoring || Math.abs(z.y - $.aux.yBotD) >= $.upm / 20) {
+		if (options.noCVTAnchoring) {
+			let targetPos = table($.pmin, $.pmaxC, ppem =>
+				Math.min($.hintedPositions.bot, roundings.rtg(z.y, $.upm, ppem))
+			);
 			elements.push(
 				new HE.Bottom(z.id, z.y, {
-					deltas: $.compileAnchor(z.id, $.rtgTable(z.y), $.hintedPositions.bot),
-					hintedPositions: $.hintedPositions.bot
+					deltas: $.compileAnchor(z.id, $.rtgTable(z.y), targetPos),
+					hintedPositions: targetPos
 				})
 			);
 		} else if (
@@ -223,11 +226,14 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours, option
 		}
 	}
 	for (let z of $.si.blue.topZs) {
-		if (options.noCVTAnchoring || Math.abs(z.y - $.aux.yTopD) >= $.upm / 20) {
+		if (options.noCVTAnchoring) {
+			let targetPos = table($.pmin, $.pmaxC, ppem =>
+				Math.max($.hintedPositions.bot, roundings.rtg(z.y, $.upm, ppem))
+			);
 			elements.push(
 				new HE.Top(z.id, z.y, {
-					deltas: $.compileAnchor(z.id, $.rtgTable(z.y), $.hintedPositions.top),
-					hintedPositions: $.hintedPositions.top
+					deltas: $.compileAnchor(z.id, $.rtgTable(z.y), targetPos),
+					hintedPositions: targetPos
 				})
 			);
 		} else if (Math.abs(z.y - $.aux.yTopD) < Math.abs(z.y - $.strategy.BLUEZONE_TOP_CENTER)) {
