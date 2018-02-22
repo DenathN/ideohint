@@ -32,13 +32,13 @@ const fpgmShiftOf = (exports.fpgmShiftOf = {
 	comp_integral_pos: 7,
 	comp_integral_neg: 8,
 	comp_octet: 9,
-	comp_octet_neg: 10,
-	comp_quart: 11,
-	comp_quart_neg: 12,
-	comp_quart_h: 13,
-	comp_quart_neg_h: 14,
-	comp_half_h: 15,
-	comp_half_neg_h: 16,
+	comp_octet_pos: 10,
+	comp_octet_neg: 11,
+	comp_quart: 12,
+	comp_quart_pos: 13,
+	comp_quart_neg: 14,
+	comp_quart_h: 15,
+	comp_quart_neg_h: 16,
 	quadstroke_f: 18
 });
 
@@ -102,8 +102,8 @@ ENDF[]
 		DUP[]
 		SWAP[]
 		DUP[]
-		#PUSH, ${64 / multiplier}
-		MUL[]
+		#PUSH, ${64 * multiplier}
+		DIV[]
 		#PUSH, ${64 * multiplier}
 		MUL[]
 		SUB[]
@@ -353,17 +353,17 @@ ENDF[]
 				compressedDeltaFunction(padding + fpgmShiftOf.DLTP2, "DELTAP2"),
 				compressedDeltaFunction(padding + fpgmShiftOf.DLTP3, "DELTAP3"),
 				combinedCompDeltaFunction(padding + fpgmShiftOf._combined),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral, 1, 4, 0),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral, 1, 4, -1),
 				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral_pos, 1, 2, 0),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral_neg, 1, 2, 1),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_octet, 1 / 8, 2, 0),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_octet_neg, 1 / 8, 2, 1),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart, 1 / 4, 2, 0),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart_neg, 1 / 4, 2, 1),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart_h, 1 / 8, 4, 2),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart_neg_h, 1 / 8, 4, -1),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_half_h, 1 / 4, 4, 2),
-				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_half_neg_h, 1 / 4, 4, -1),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_integral_neg, 1, 2, -1),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_octet, 1 / 8, 4, -1),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_octet_pos, 1 / 8, 2, 0),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_octet_neg, 1 / 8, 2, -1),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart, 1 / 4, 4, -1),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart_pos, 1 / 4, 2, 0),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart_neg, 1 / 4, 2, -1),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart_h, 1 / 8, 4, 0),
+				intCompressedDeltaFunction(padding + fpgmShiftOf.comp_quart_neg_h, 1 / 8, 4, -3),
 				quadStrokePreventer(padding + fpgmShiftOf.quadstroke_f)
 			)
 		);

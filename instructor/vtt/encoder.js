@@ -229,41 +229,35 @@ class AssemblyDeltaEncoder extends VTTTalkDeltaEncoder {
 	}
 }
 
-const OPTIMIZE_ATTEMPTS = [
-	[
-		[fpgmShiftOf.comp_integral, 1, 4, 0],
-		[fpgmShiftOf.comp_integral_pos, 1, 2, 0],
-		[fpgmShiftOf.comp_integral_neg, 1, 2, 1]
-	],
-	[[fpgmShiftOf.comp_half_h, 1 / 4, 4, 2], [fpgmShiftOf.comp_half_neg_h, 1 / 4, 4, -1]],
-	[
-		[fpgmShiftOf.comp_quart, 1 / 4, 2, 0],
-		[fpgmShiftOf.comp_quart_neg, 1 / 4, 2, 1],
-		[fpgmShiftOf.comp_quart_h, 1 / 8, 4, 2],
-		[fpgmShiftOf.comp_quart_neg_h, 1 / 8, 4, -1]
-	],
-	[
-		[fpgmShiftOf.comp_quart, 1 / 4, 2, 0],
-		[fpgmShiftOf.comp_quart_neg, 1 / 4, 2, 1],
-		[fpgmShiftOf.comp_quart_h, 1 / 8, 4, 2],
-		[fpgmShiftOf.comp_quart_neg_h, 1 / 8, 4, -1]
-	],
-	[[fpgmShiftOf.comp_octet, 1 / 8, 2, 0], [fpgmShiftOf.comp_octet_neg, 1 / 8, 2, 1]],
-	[[fpgmShiftOf.comp_octet, 1 / 8, 2, 0], [fpgmShiftOf.comp_octet_neg, 1 / 8, 2, 1]]
+const TRY_INTEGER = [
+	[fpgmShiftOf.comp_integral, 1, 4, -1],
+	[fpgmShiftOf.comp_integral_pos, 1, 2, 0],
+	[fpgmShiftOf.comp_integral_neg, 1, 2, -1]
 ];
+const TRY_FRACTION = [
+	[fpgmShiftOf.comp_octet, 1 / 8, 4, -1],
+	[fpgmShiftOf.comp_octet_pos, 1 / 8, 2, 0],
+	[fpgmShiftOf.comp_octet_neg, 1 / 8, 2, -1],
+	[fpgmShiftOf.comp_quart, 1 / 4, 4, -1],
+	[fpgmShiftOf.comp_quart_pos, 1 / 4, 2, 0],
+	[fpgmShiftOf.comp_quart_neg, 1 / 4, 2, -1],
+	[fpgmShiftOf.comp_quart_h, 1 / 8, 4, 0],
+	[fpgmShiftOf.comp_quart_neg_h, 1 / 8, 4, -3]
+];
+const OPTIMIZE_ATTEMPTS = [TRY_INTEGER, TRY_INTEGER, TRY_FRACTION, TRY_FRACTION];
 
 class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
 	constructor(fpgmPad) {
 		super(fpgmPad);
 	}
 	getIAmount(delta, divisor, shift, bpa) {
-		let neg = -divisor * (bpa / 2) + shift * divisor;
-		let pos = divisor * (bpa / 2 - 1) + shift * divisor;
+		let neg = shift * divisor;
+		let pos = divisor * (bpa - 1) + shift * divisor;
 		let s = 0;
 		if (delta <= neg) s = neg;
 		else if (delta >= pos) s = pos;
-		else if (delta < 0) s = -divisor * Math.round(-delta / divisor);
-		else if (delta > 0) s = divisor * Math.round(delta / divisor);
+		else if (delta < 0) s = -divisor * Math.floor(-delta / divisor);
+		else if (delta > 0) s = divisor * Math.floor(delta / divisor);
 		return s / divisor;
 	}
 	encodeIntDelta(d, fnid, shift, bpa) {
@@ -289,7 +283,7 @@ class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
 			ppem++
 		) {
 			let delta = (deltas[ppem] || 0) - shift;
-			let dibit = (delta === 1 ? 1 : delta === -1 ? 3 : delta === -2 ? 2 : 0) % bpa;
+			let dibit = delta % bpa;
 			curByte = curByte | (dibit << (((ppem - pmin) % ppemsPerByte) * bitsPerSeg));
 			bits += 1;
 			if ((ppem - pmin) % ppemsPerByte === ppemsPerByte - 1) {
@@ -330,17 +324,11 @@ class AssemblyDeltaEncoder2 extends AssemblyDeltaEncoder {
 
 		return z => r1(z).then(r2(z));
 	}
-	_deltaSetIsAllInt(d) {
-		for (let { delta } of d) if (Math.round(delta) !== delta) return false;
-		return true;
-	}
 	encodeDeltaIntLevel(d, level, bytesSofar, tag) {
 		if (level >= OPTIMIZE_ATTEMPTS.length) return super.encodeDelta(d, tag);
 		let r = this.encodeDeltaIntLevel(d, level + 1, bytesSofar, tag);
 		let bestBytes = r(0).bytes;
-		const shiftTries = this._deltaSetIsAllInt(d)
-			? OPTIMIZE_ATTEMPTS[0]
-			: OPTIMIZE_ATTEMPTS[level];
+		const shiftTries = OPTIMIZE_ATTEMPTS[level];
 		for (let [fs, gear, bpa, shift] of shiftTries) {
 			let r1 = this.encodeIntDeltaInternal(
 				d,
