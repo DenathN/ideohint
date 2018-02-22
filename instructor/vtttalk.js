@@ -197,7 +197,7 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours, option
 	for (let z of $.si.blue.bottomZs) {
 		if (options.noCVTAnchoring) {
 			let targetPos = table($.pmin, $.pmaxC, ppem =>
-				Math.min($.hintedPositions.bot, roundings.rtg(z.y, $.upm, ppem))
+				Math.min($.hintedPositions.bot[ppem], roundings.rtg(z.y, $.upm, ppem))
 			);
 			elements.push(
 				new HE.Bottom(z.id, z.y, {
@@ -228,7 +228,7 @@ function produceVTTTalk(record, strategy, padding, fpgmPadding, contours, option
 	for (let z of $.si.blue.topZs) {
 		if (options.noCVTAnchoring) {
 			let targetPos = table($.pmin, $.pmaxC, ppem =>
-				Math.max($.hintedPositions.bot, roundings.rtg(z.y, $.upm, ppem))
+				Math.max($.hintedPositions.top[ppem], roundings.rtg(z.y, $.upm, ppem))
 			);
 			elements.push(
 				new HE.Top(z.id, z.y, {
