@@ -1,7 +1,7 @@
 {
 	"name": "ideohint",
 	"description": "Optimized gridfit generator for ideographs.",
-	"version": "1.14.0",
+	"version": "1.14.1",
 	"main": "./main.js",
 	"repository": {
 		"type": "git",
@@ -10,7 +10,6 @@
 	"license": "MIT",
 	"dependencies": {
 		"JSONStream": "^1.1.4",
-		"browserify": "^13.1.0",
 		"clone": "^2.1.1",
 		"dev-null": "^0.1.1",
 		"event-stream": "^3.3.4",
@@ -24,12 +23,15 @@
 		"toposort": "^1.0.0",
 		"yargs": "^9.0.0"
 	},
+	"devDependencies": {
+		"browserify": "^13.1.0"
+	},
 	"bin": {
 		"ideohint": "./bin/ideohint.js"
 	},
 	"scripts": {
+		"prepack": "npm run build-visual-worker && npm run build-visual-index",
 		"build-visual-index": "./node_modules/.bin/browserify visual/index.js -o visual/index.packed.js",
-		"build-visual-worker": "./node_modules/.bin/browserify visual/worker-hint.js -o visual/worker-hint.packed.js",
-		"install": "npm run build-visual-worker && npm run build-visual-index"
+		"build-visual-worker": "./node_modules/.bin/browserify visual/worker-hint.js -o visual/worker-hint.packed.js"
 	}
 }
