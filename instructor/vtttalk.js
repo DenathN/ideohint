@@ -139,19 +139,20 @@ class VTTCompiler {
 			hp.top0 = table(pmin, pmaxC, ppem =>
 				roundings.rtg(strategy.BLUEZONE_TOP_CENTER, upm, ppem)
 			);
-			hp.top = table(
-				pmin,
-				pmaxC,
-				ppem =>
-					sd[ppem] && sd[ppem].y_tb
-						? sd[ppem].y_tb.top * upm / ppem
-						: roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem) +
-							roundings.rtg(
-								strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER,
-								upm,
-								ppem
-							)
-			);
+			hp.top = table(pmin, pmaxC, ppem => {
+				if (sd[ppem] && sd[ppem].y_tb) {
+					return sd[ppem].y_tb.top * upm / ppem;
+				} else {
+					return (
+						roundings.rtg(strategy.BLUEZONE_BOTTOM_CENTER, upm, ppem) +
+						roundings.rtg(
+							strategy.BLUEZONE_TOP_CENTER - strategy.BLUEZONE_BOTTOM_CENTER,
+							upm,
+							ppem
+						)
+					);
+				}
+			});
 			hp.botB = table(pmin, pmaxC, ppem => roundings.rtg(this.aux.yBotBar, upm, ppem));
 			hp.topB = table(pmin, pmaxC, ppem => roundings.rtg(this.aux.yTopBar, upm, ppem));
 			hp.botD = table(pmin, pmaxC, ppem => roundings.rtg(this.aux.yBotD, upm, ppem));
@@ -187,7 +188,9 @@ class MeasuredVTTCompiler extends VTTCompiler {
 // strategy : strategy object
 // padding : CVT padding value, padding + 2 -> bottom anchor; padding + 1 -> top anchor
 // fpgmPadding : FPGM padding
-function produceVTTTalk(record, strategy, padding, fpgmPadding, contours, options) {
+function produceVTTTalk(record, strategy, contours, options) {
+	const padding = options.cvtPadding;
+	const fpgmPadding = options.fpgmPadding;
 	const $ = new VTTCompiler(record, strategy, padding, fpgmPadding, contours);
 	const ec = $.encoder;
 

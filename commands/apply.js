@@ -28,9 +28,11 @@ exports.handler = function(argv) {
 	const parameterFile = require("../support/paramfile").from(argv);
 	const strategy = require("../support/strategy").from(argv, parameterFile);
 
-	const cvtPadding = cvtlib.getPadding(argv, parameterFile);
-	const fpgmPadding = cvtlib.getFpgmPadding(argv, parameterFile);
-
+	const instructingOptions = {
+		cvtPadding: cvtlib.getPadding(argv, parameterFile),
+		fpgmPadding: cvtlib.getFpgmPadding(argv, parameterFile),
+		noCVTAnchoring: argv.noCVTAnchoring
+	};
 	const activeInstructions = {};
 
 	rl.on("line", function(line) {
@@ -48,13 +50,11 @@ exports.handler = function(argv) {
 		process.stderr.write("Weaving OTD " + otdPath + "\n");
 		const instream = fs.createReadStream(otdPath, "utf-8");
 		let foundCVT = false;
-		const options = {
-			noCVTAnchoring: argv.noCVTAnchoring
-		};
+
 		oboe(instream)
 			.on("node", "cvt_", function(cvt) {
 				foundCVT = true;
-				return cvtlib.createCvt(cvt, strategy, cvtPadding);
+				return cvtlib.createCvt(cvt, strategy, instructingOptions.cvtPadding);
 			})
 			.on("node", "maxp", function(maxp) {
 				if (maxp.maxStackElements < strategy.STACK_DEPTH + 20) {
@@ -64,7 +64,7 @@ exports.handler = function(argv) {
 			})
 			.on("done", function(otd) {
 				if (!foundCVT) {
-					otd.cvt_ = cvtlib.createCvt([], strategy, cvtPadding);
+					otd.cvt_ = cvtlib.createCvt([], strategy, instructingOptions.cvtPadding);
 				}
 				if (otd.glyf) {
 					for (let g in otd.glyf) {
@@ -81,10 +81,9 @@ exports.handler = function(argv) {
 								talk(
 									airef.ideohint_decision,
 									strategy,
-									cvtPadding,
-									fpgmPadding,
+
 									glyph.contours,
-									options
+									instructingOptions
 								) ||
 								""
 							).replace(/\n/g, "\r"); // vtt uses CR
@@ -95,20 +94,20 @@ exports.handler = function(argv) {
 						} else {
 							glyph.instructions =
 								airef.TTF_instructions ||
-								instruct(airef.ideohint_decision, strategy, cvtPadding, options);
+								instruct(airef.ideohint_decision, strategy, instructingOptions);
 						}
 					}
 				}
 				if (otd.TSI_01 && otd.TSI_01.extra && otd.TSI_01.extra.cvt) {
 					otd.TSI_01.extra.cvt = generateCVT(
 						otd.TSI_01.extra.cvt,
-						cvtPadding,
+						instructingOptions.cvtPadding,
 						strategy,
 						argv.VTT_CVT_GROUP
 					);
 					otd.TSI_01.extra.fpgm = generateFPGM(
 						otd.TSI_01.extra.fpgm,
-						fpgmPadding,
+						instructingOptions.fpgmPadding,
 						argv.VTT_FPGM_GROUP
 					);
 				}

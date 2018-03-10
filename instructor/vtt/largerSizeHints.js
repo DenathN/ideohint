@@ -3,7 +3,7 @@ const { fpgmShiftOf } = require("./vttenv");
 const HE = require("./hintingElement");
 
 function findClash($$, ej, ek) {
-	const rangeMin = $$.pmax + 1;
+	const rangeMin = $$.sd.length;
 	const rangeMax = $$.pmaxC;
 	if (ej.hintedPositions.length < rangeMax) {
 		return true;
@@ -53,23 +53,20 @@ module.exports = function($$, elements) {
 			if (!findClash($$, elements[j], elements[k])) continue;
 			if (sk.posKeyAtTop && !sj.posKeyAtTop) {
 				$$.talk(
-					`Call(${sk.advKey.id},${sj.advKey.id},${sk.posKey.id},${sj.posKey.id},${
-						$$.pmax
-					},${fid})`
+					`Call(${sk.advKey.id},${sj.advKey.id},${sk.posKey.id},${sj.posKey.id},${$$.sd
+						.length - 1},${fid})`
 				);
 				tdi += 7;
 			} else if (sk.posKeyAtTop && sj.posKeyAtTop) {
 				$$.talk(
-					`Call(${sk.advKey.id},${sj.posKey.id},${sk.posKey.id},${sj.posKey.id},${
-						$$.pmax
-					},${fid})`
+					`Call(${sk.advKey.id},${sj.posKey.id},${sk.posKey.id},${sj.posKey.id},${$$.sd
+						.length - 1},${fid})`
 				);
 				tdi += 7;
 			} else if (!sk.posKeyAtTop && !sj.posKeyAtTop) {
 				$$.talk(
-					`Call(${sk.posKey.id},${sj.advKey.id},${sk.posKey.id},${sj.posKey.id},${
-						$$.pmax
-					},${fid})`
+					`Call(${sk.posKey.id},${sj.advKey.id},${sk.posKey.id},${sj.posKey.id},${$$.sd
+						.length - 1},${fid})`
 				);
 				tdi += 7;
 			}

@@ -9,18 +9,18 @@ const { decideDelta, getSWCFG, decideDeltaShift } = require("./delta.js");
 
 function ipsaInvokes(actions) {
 	if (!actions) return [];
-	var invokes = [];
-	var cur_rp1 = -1;
-	var cur_rp2 = -1;
-	for (var k = 0; k < actions.length; k++) {
+	let invokes = [];
+	let cur_rp1 = -1;
+	let cur_rp2 = -1;
+	for (let k = 0; k < actions.length; k++) {
 		if (!actions[k]) continue;
 		if (actions[k].length > 2 && actions[k][0] === actions[k][1]) {
 			actions[k] = [actions[k][0], actions[k][2]];
 		}
 		if (actions[k].length > 2) {
 			// an IP
-			var rp1 = actions[k][0];
-			var rp2 = actions[k][1];
+			const rp1 = actions[k][0];
+			const rp2 = actions[k][1];
 			if (cur_rp1 !== rp1) {
 				cur_rp1 = rp1;
 				invokes.push([[rp1], ["SRP1"]]);
@@ -32,7 +32,7 @@ function ipsaInvokes(actions) {
 			invokes.push([[actions[k][2]], ["IP"]]);
 		} else {
 			// an short absorption
-			var rp1 = actions[k][0];
+			const rp1 = actions[k][0];
 			if (cur_rp1 !== rp1) {
 				cur_rp1 = rp1;
 				invokes.push([[rp1], ["SRP1"]]);
@@ -157,13 +157,13 @@ const GEAR = 16;
 const SDS_COARSE = 2;
 const GEAR_COARSE = 4;
 
-function instruct(record, strategy, padding) {
+function instruct(record, strategy, options) {
 	const si = record.si;
 	const sd = record.sd;
 	const pmin = record.pmin;
 	const pmax = record.pmax;
 
-	padding = padding || 0;
+	const padding = options.cvtPadding || 0;
 	var upm = strategy.UPM || 1000;
 	var cvtTopID = padding + 1;
 	var cvtBottomID = padding + 2;
@@ -320,7 +320,7 @@ function instruct(record, strategy, padding) {
 			if (!x[1].length) return;
 			isalInvocations.push([
 				x[1].map(z => z.id).concat([x[0]]),
-				["SRP0"].concat(x[1].map(x => "MDRP[0]"))
+				["SRP0"].concat(x[1].map(() => "MDRP[0]"))
 			]);
 		});
 	}
