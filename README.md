@@ -28,10 +28,10 @@ There are four major sub-commands: `otd2hgl`, `extract`, `hint`, and `apply`. To
 # Prepare OTD:
 otfccdump input.ttf -o input.otd
 # Hint your font:
-ideohint otd2hgl input.otd -o glyphlist.hgl [--onlyhan]
-ideohint extract <glyphlist.hgl> -o <features.hgf> [<strategy parameters>]
-ideohint hint <features.hgf> -o <instructions.hgi> [<strategy parameters>]
-ideohint apply <instructions.hgi> <input.otd> -o <output.otd> [<strategy parameters>]
+ideohint otd2hgl  input.otd -o glyphlist.hgl [--ideo-only | --all]
+ideohint hint     <features.hgl> -o <decisions.hgi> [<strategy parameters>]
+ideohint instruct <decisions.hgi> -o <instructs.hgs> [<strategy parameters>]
+ideohint apply    <instructs.hgi> <input.otd> -o <output.otd> [<strategy parameters>]
 # Building TTF:
 otfccbuild output.otd -o output.ttf
 ```
@@ -46,9 +46,17 @@ ideohint otd2hgl input.otd -o output.hgl [--ideo-only]
 
 When `--ideo-only` is present, only ideographs in the input font (identified via `cmap` table) will be preserved and hinted.
 
-### `hint` and `apply`
+### `hint`, `instruct` and `apply`
 
-These three sub-commands do the main hinting part. `hint` will generate TrueType instructions using the HGL files, and `apply` will apply the instructions into yoru font. All thres sub-commands accept **strategy parameters** and **CVT padding**, which are important in the hinting process.
+These three sub-commands do the main hinting part:
+
+- `hint` will generate "Hinting Decisions" using the HGL files.
+
+- `instruct` would turn hinting decisions into instructions.
+
+- `apply` will apply the instructions into yoru font.
+
+All thres sub-commands accept **strategy parameters** and **CVT padding**, which are important in the hinting process.
 
 #### Strategy Parameters
 
@@ -144,9 +152,10 @@ An example workflow of hinting a complete font may be (assuming you are using `t
 ``` bash
 ttfautohint input.ttf step1.ttf
 otfccdump step1.ttf -o step2.otd
-ideohint otd2hgl step2.otd -o step3.hgl --ideo-only
-ideohint hint    step3.hgl -o step4.hgi --parameters params.toml
-ideohint apply   step4.hgi step2.otd -o output.otd --parameters params.toml
+ideohint otd2hgl  step2.otd -o step3.hgl --ideo-only
+ideohint hint     step3.hgl -o step4.hgi --parameters params.toml
+ideohint instruct step4.hgi -o step5.hgs --parameters params.toml
+ideohint apply    step5.hgs step2.otd -o output.otd --parameters params.toml
 otfccbuild output.otd -o output.ttf
 ```
 
@@ -157,7 +166,7 @@ Since `extract` and `hint` may take a lot of time, we have a few extra parameter
 * `-d` - blocks of work to divide into.
 * `-m` - which block of work to process.
 
-You can use these parameters to slice the input into multiple parallel tasks, and produce multiple outputs. To merge the outputs, use `ideohint merge`, which works for both `hgl` and `hgi`.
+You can use these parameters to slice the input into multiple parallel tasks, and produce multiple outputs. To merge the outputs, use `ideohint merge`, which works for `hgl`, `hgi` and `hgs` files.
 
 An example:
 
