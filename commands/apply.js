@@ -68,33 +68,36 @@ exports.handler = function(argv) {
 				}
 				if (otd.glyf) {
 					for (let g in otd.glyf) {
-						const glyph = otd.glyf[g];
-						if (!glyph.contours || !glyph.contours.length) continue;
-						const hash = hashContours(glyph.contours);
-						if (argv.just_modify_cvt || !activeInstructions[hash]) continue;
-						const airef = activeInstructions[hash];
-						if (otd.TSI_23) {
-							// Prefer VTTTalk than TTF
-							if (!otd.TSI_23.glyphs) otd.TSI_23.glyphs = {};
-							otd.TSI_23.glyphs[g] = (
-								airef.VTTTalk ||
-								talk(
-									airef.ideohint_decision,
-									strategy,
-
-									glyph.contours,
-									instructingOptions
-								) ||
-								""
-							).replace(/\n/g, "\r"); // vtt uses CR
-							glyph.instructions = [];
-							if (otd.TSI_01 && otd.TSI_01.glyphs) {
-								otd.TSI_01.glyphs[g] = "";
+						try {
+							const glyph = otd.glyf[g];
+							if (!glyph.contours || !glyph.contours.length) continue;
+							const hash = hashContours(glyph.contours);
+							if (argv.just_modify_cvt || !activeInstructions[hash]) continue;
+							const airef = activeInstructions[hash];
+							if (otd.TSI_23) {
+								// Prefer VTTTalk than TTF
+								if (!otd.TSI_23.glyphs) otd.TSI_23.glyphs = {};
+								otd.TSI_23.glyphs[g] = (
+									airef.VTTTalk ||
+									talk(
+										airef.ideohint_decision,
+										strategy,
+										glyph.contours,
+										instructingOptions
+									) ||
+									""
+								).replace(/\n/g, "\r"); // vtt uses CR
+								glyph.instructions = [];
+								if (otd.TSI_01 && otd.TSI_01.glyphs) {
+									otd.TSI_01.glyphs[g] = "";
+								}
+							} else {
+								glyph.instructions =
+									airef.TTF_instructions ||
+									instruct(airef.ideohint_decision, strategy, instructingOptions);
 							}
-						} else {
-							glyph.instructions =
-								airef.TTF_instructions ||
-								instruct(airef.ideohint_decision, strategy, instructingOptions);
+						} catch (e) {
+							console.error(e);
 						}
 					}
 				}

@@ -51,34 +51,38 @@ function mapInstrut(_) {
 	const outStream = OutStream();
 
 	rl.on("line", function(line) {
-		const l = line.trim();
-		if (!l) return;
-		const data = JSON.parse(l);
-		const options = {
-			cvtPadding: cvtlib.getPadding(argv, parameterFile),
-			fpgmPadding: cvtlib.getFpgmPadding(argv, parameterFile),
-			noCVTAnchoring: argv.noCVTAnchoring
-		};
-		const decision = Object.assign({}, data.ideohint_decision);
-		if (data.unicodes) {
-			let cutoffPPEM = sdCut.get(0);
-			for (let u of data.unicodes) {
-				if (sdCut.has(u)) {
-					cutoffPPEM = Math.max(cutoffPPEM, sdCut.get(u));
+		try {
+			const l = line.trim();
+			if (!l) return;
+			const data = JSON.parse(l);
+			const options = {
+				cvtPadding: cvtlib.getPadding(argv, parameterFile),
+				fpgmPadding: cvtlib.getFpgmPadding(argv, parameterFile),
+				noCVTAnchoring: argv.noCVTAnchoring
+			};
+			const decision = Object.assign({}, data.ideohint_decision);
+			if (data.unicodes) {
+				let cutoffPPEM = sdCut.get(0);
+				for (let u of data.unicodes) {
+					if (sdCut.has(u)) {
+						cutoffPPEM = Math.max(cutoffPPEM, sdCut.get(u));
+					}
+				}
+				if (cutoffPPEM) {
+					decision.sd = decision.sd.slice(0, cutoffPPEM + 1);
 				}
 			}
-			if (cutoffPPEM) {
-				decision.sd = decision.sd.slice(0, cutoffPPEM + 1);
-			}
+			const hgsData = {
+				hash: data.hash,
+				name: data.name,
+				ideohint_decision: decision,
+				TTF_instructions: instruct(decision, strategy, options),
+				VTTTalk: talk(decision, strategy, data.contours, options) || ""
+			};
+			outStream.write(JSON.stringify(hgsData) + "\n");
+		} catch (e) {
+			console.error(e);
 		}
-		const hgsData = {
-			hash: data.hash,
-			name: data.name,
-			ideohint_decision: decision,
-			TTF_instructions: instruct(decision, strategy, options),
-			VTTTalk: talk(decision, strategy, data.contours, options) || ""
-		};
-		outStream.write(JSON.stringify(hgsData) + "\n");
 	});
 	rl.on("close", function() {
 		if (process.stdout !== outStream) outStream.end();
