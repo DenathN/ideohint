@@ -31,7 +31,7 @@ otfccdump input.ttf -o input.otd
 ideohint otd2hgl  input.otd -o glyphlist.hgl [--ideo-only | --all]
 ideohint hint     <features.hgl> -o <decisions.hgi> [<strategy parameters>]
 ideohint instruct <decisions.hgi> -o <instructs.hgs> [<strategy parameters>]
-ideohint apply    <instructs.hgi> <input.otd> -o <output.otd> [<strategy parameters>]
+ideohint apply    <instructs.hgs> <input.otd> -o <output.otd> [<strategy parameters>]
 # Building TTF:
 otfccbuild output.otd -o output.ttf
 ```
