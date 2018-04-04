@@ -61,6 +61,7 @@ function tbtfm(y, [bottom, top, bottom0, top0]) {
 //   2. Flip the up[] items for harden strokes; Run three PP rounds;
 //   3. Revert strokes being worsen by the flipping, and run the last three PP rounds.
 function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
+	// if (ppem === 22) debugger;
 	const uppx = upm / ppem;
 	const [bottom, top] = tb;
 
@@ -202,10 +203,10 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 
 			const belowOnePixel = w[j] === 1 && hintedStemWidthPixels <= 1;
 
-			if (up[j] && actions[j][Y] - hintedStemWidthPixels < bottom) {
+			if (up[j] && actions[j][Y] - hintedStemWidthPixels < bottom + 3 / 4) {
 				hard = true;
 			}
-			if (!up[j] && actions[j][Y] - actions[j][W] + hintedStemWidthPixels > top) {
+			if (!up[j] && actions[j][Y] - actions[j][W] + hintedStemWidthPixels > top - 3 / 4) {
 				hard = true;
 			}
 			actions[j][HARD] = hard;

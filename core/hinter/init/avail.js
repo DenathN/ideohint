@@ -33,15 +33,10 @@ class Avail {
 		this.atGlyphBottom = env.atGlyphBottom(stem);
 
 		// The bottom limit of a stem
-		let lowlimit =
+		const lowlimitHard =
 			env.glyphBottom +
 			w +
 			Math.max(
-				0,
-				stem.turnsBelow > 2 &&
-				((!stem.hasGlyphStemBelow && !stem.diagLow) || stem.turnsBelow > 5)
-					? Math.min(3, stem.turnsBelow / 2) * uppx
-					: 0,
 				stem.diagLow
 					? env.BOTTOM_CUT_DIAGL
 					: stem.diagHigh
@@ -49,6 +44,18 @@ class Avail {
 						: env.BOTTOM_CUT,
 				this.atGlyphBottom ? 0 : uppx
 			);
+		let lowlimit = Math.max(
+			lowlimitHard,
+			env.glyphBottom +
+				w +
+				Math.max(
+					0,
+					stem.turnsBelow > 2 &&
+					((!stem.hasGlyphStemBelow && !stem.diagLow) || stem.turnsBelow > 5)
+						? Math.min(3, stem.turnsBelow / 2) * uppx
+						: 0
+				)
+		);
 		if (!stem.hasGlyphStemBelow && ir && ir[0] < ir[1]) {
 			lowlimit = Math.max(env.glyphBottom + w + ir[0] * uppx, lowlimit);
 		}
@@ -66,16 +73,12 @@ class Avail {
 			lowlimit = Math.max(lowlimit, env.glyphBottom + Math.max(tw + 2, tw * 2) * uppx);
 			fold = true;
 		}
-		lowlimit = Math.min(lowlimit, uppx * Math.ceil(y0 / uppx));
+		lowlimit = Math.max(lowlimitHard, Math.min(lowlimit, uppx * Math.ceil(y0 / uppx)));
 
 		// The top limit of a stem ('s upper edge)
-		let highlimit =
+		const highLimitHard =
 			env.glyphTop -
 			Math.max(
-				0,
-				stem.turnsAbove > 2 && !stem.hasGlyphStemAbove
-					? xclamp(0, stem.turnsAbove - 2, 3) * uppx
-					: 0,
 				// cut part
 				stem.diagHigh
 					? env.TOP_CUT_DIAGH
@@ -83,6 +86,16 @@ class Avail {
 				// spatial part
 				this.atGlyphTop ? 0 : uppx
 			);
+		let highlimit = Math.min(
+			highLimitHard,
+			env.glyphTop -
+				Math.max(
+					0,
+					stem.turnsAbove > 2 && !stem.hasGlyphStemAbove
+						? xclamp(0, stem.turnsAbove - 2, 3) * uppx
+						: 0
+				)
+		);
 		if (!stem.hasGlyphStemAbove && ir && ir[1] < ir[0]) {
 			highlimit = Math.min(env.glyphTop - ir[1] * uppx, highlimit);
 		}
@@ -90,7 +103,10 @@ class Avail {
 		if (stem.hasEntireContourAbove) {
 			highlimit = Math.min(env.glyphTop - 2 * uppx, highlimit);
 		}
-		highlimit = Math.max(highlimit, uppx * Math.floor((y0 - w0) / uppx));
+		highlimit = Math.min(
+			highLimitHard,
+			Math.max(highlimit, uppx * Math.floor((y0 - w0) / uppx))
+		);
 
 		const lowlimitW = Math.max(env.glyphBottom + w, tw > 1 ? lowlimit - uppx : lowlimit);
 		const lowlimitP = lowlimit;
