@@ -184,6 +184,7 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 				swcfg
 			);
 			const hintedStemWidthPixels = stemWidth / uppx + delta / 8;
+			const integeralWidthIsExpanding = actions[j][W] >= hintedStemWidthPixels;
 			hsw[j] = hintedStemWidthPixels;
 
 			const deltaSoft = decideDeltaShift(
@@ -202,11 +203,12 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 			hswNoHard[j] = stemWidth / uppx + deltaSoft / 8;
 
 			const belowOnePixel = w[j] === 1 && hintedStemWidthPixels <= 1;
+			const cutoff = integeralWidthIsExpanding ? 0 : 3 / 4;
 
-			if (up[j] && actions[j][Y] - hintedStemWidthPixels < bottom + 3 / 4) {
+			if (up[j] && actions[j][Y] - hintedStemWidthPixels < bottom + cutoff) {
 				hard = true;
 			}
-			if (!up[j] && actions[j][Y] - actions[j][W] + hintedStemWidthPixels > top - 3 / 4) {
+			if (!up[j] && actions[j][Y] - actions[j][W] + hintedStemWidthPixels > top - cutoff) {
 				hard = true;
 			}
 			actions[j][HARD] = hard;
