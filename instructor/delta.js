@@ -49,7 +49,12 @@ function decideDeltaShift(
 	const uppx = upm / ppem;
 	const y1 = base0 + sign * dist0;
 	const y2 = base1 + sign * dist1;
-	const yDesired = isStacked ? base1 : base1 + sign * uppx * corSW(dist0 / uppx);
+	const origPixels = corSW(dist0 / uppx);
+	const desiredWidthPixels = Math.min(
+		origPixels,
+		Math.max(isStacked ? 3 / 8 : 0, origPixels * (isStacked ? 5 / 8 : 1))
+	);
+	const yDesired = base1 + desiredWidthPixels * sign * uppx;
 	const deltaStart = Math.round(gear * (y2 - y1) / uppx);
 	const deltaDesired = Math.round(gear * (yDesired - y1) / uppx);
 	let delta = deltaStart - deltaDesired;
@@ -59,25 +64,26 @@ function decideDeltaShift(
 		const y2a = y1 + (deltaDesired + delta1) * uppx / gear;
 		const d = Math.abs(base1 - y2a);
 		if (!isStacked && d < (minSW || 0) * uppx) break;
-		if (roundings.rtgDiff(y2, base1, upm, ppem) !== roundings.rtgDiff(y2a, base1, upm, ppem))
-			break; // wrong pixel!
-		// if (Math.abs(y2a - roundings.rtg(y2, upm, ppem)) > ROUNDING_CUTOFF * uppx) break;
-		if (
-			isHard &&
-			!isStacked &&
-			(sign > 0 || Math.abs(y2a - roundings.rtg(y2, upm, ppem)) > STRICT_CUTOFF * uppx)
-		)
-			break;
-		if (
-			!isStacked &&
-			Math.abs(y2a - base1) - Math.abs(y2 - base1) > (maxOverflow || 1 / 2) * uppx
-		)
-			break;
-		if (
-			!isStacked &&
-			Math.abs(y2 - base1) - Math.abs(y2a - base1) > (maxShrink || 1 / 2) * uppx
-		)
-			break;
+		if (isStacked && dist1 < uppx * 1.01) {
+			// pass
+		} else {
+			if (
+				roundings.rtgDiff(y2, base1, upm, ppem) !== roundings.rtgDiff(y2a, base1, upm, ppem)
+			)
+				break; // wrong pixel!
+			if (!isStacked) {
+				if (
+					isHard &&
+					(sign > 0 ||
+						Math.abs(y2a - roundings.rtg(y2, upm, ppem)) > STRICT_CUTOFF * uppx)
+				)
+					break;
+				if (Math.abs(y2a - base1) - Math.abs(y2 - base1) > (maxOverflow || 1 / 2) * uppx)
+					break;
+				if (Math.abs(y2 - base1) - Math.abs(y2a - base1) > (maxShrink || 1 / 2) * uppx)
+					break;
+			}
+		}
 		delta = delta > 0 ? delta - 1 : delta + 1;
 	}
 	return delta + deltaDesired;
