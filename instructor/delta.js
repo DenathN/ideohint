@@ -51,6 +51,7 @@ function decideDeltaShift(
 	const y2 = base1 + sign * dist1;
 	const origPixels = corSW(dist0 / uppx);
 	const desiredWidthPixels = Math.min(
+		origPixels,
 		isStacked ? Math.max(0, Math.floor((origPixels - uppx / 2) / uppx)) + 3 / 4 : origPixels,
 		Math.max(isStacked ? 3 / 8 : 0, origPixels * (isStacked ? 5 / 8 : 1))
 	);
