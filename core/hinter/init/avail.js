@@ -236,7 +236,7 @@ function adjustAvails(avails, stems) {
 			!stem.hasGlyphStemBelow &&
 			!stem.diagHigh &&
 			(avail.atGlyphBottom ||
-				this.onePixelMatter ||
+				(this.onePixelMatter && avail.center <= (topPx + bottomPx) / 2) ||
 				avail.high - avail.properWidth - bottomPx < 3) &&
 			(stems.length > 1 || avail.atGlyphBottom)
 		) {
