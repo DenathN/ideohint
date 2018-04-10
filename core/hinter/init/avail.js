@@ -237,7 +237,8 @@ function adjustAvails(avails, stems) {
 			!stem.diagHigh &&
 			(avail.atGlyphBottom ||
 				this.onePixelMatter ||
-				avail.high - avail.properWidth - bottomPx < 3)
+				avail.high - avail.properWidth - bottomPx < 3) &&
+			(stems.length > 1 || avail.atGlyphBottom)
 		) {
 			avail.high = Math.round(
 				Math.max(
