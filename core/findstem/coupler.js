@@ -9,7 +9,7 @@ const Stem = require("./couplestem");
 
 // substeps
 const findHorizontalSegments = require("./segments");
-const pairSymmetricStems = require("./pair-symmetric-stems");
+//const pairSymmetricStems = require("./pair-symmetric-stems");
 const { splitDiagonalStems } = require("./split-diagonal-stems");
 
 function by_yori(a, b) {
@@ -262,7 +262,7 @@ function byY(a, b) {
 module.exports = function(radicals, strategy) {
 	findHorizontalSegments(radicals, strategy);
 	let ss = pairSegments(radicals, strategy).sort(byY);
-	ss = pairSymmetricStems(ss, strategy);
+	//	ss = pairSymmetricStems(ss, strategy);
 	ss = splitDiagonalStems(ss, strategy);
 	for (let s of ss) {
 		s

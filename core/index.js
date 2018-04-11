@@ -7,7 +7,7 @@ const { parseOTD } = require("./otdParser");
 const { xclamp, toVQ } = require("../support/common");
 const roundings = require("../support/roundings");
 
-exports.version = 11503;
+exports.version = 11504;
 
 exports.hintSingleGlyph = function(contours, strategy) {
 	return exports.decideHints(
