@@ -234,6 +234,7 @@ function adjustAvails(avails, stems) {
 		/// Locking bottom
 		if (
 			!stem.hasGlyphStemBelow &&
+			!stem.hasGlyphFoldBelow &&
 			!stem.diagHigh &&
 			(avail.atGlyphBottom ||
 				(this.onePixelMatter && avail.center <= (topPx + bottomPx) / 2) ||
