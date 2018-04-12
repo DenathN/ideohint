@@ -49,7 +49,7 @@ class YCache {
 }
 
 class Hinter {
-	constructor(strategy, fdefs, ppem, margins) {
+	constructor(strategy, fdefs, ppem, options) {
 		//// STRATEGY SPECIFIC
 		this.strategy = strategy;
 		this.upm = strategy.UPM || 1000;
@@ -59,8 +59,23 @@ class Hinter {
 		this.onePixelMatter = ppem <= 16;
 
 		//// GLYPH SPECIFIC
-		this.A = fdefs.collisionMatrices.annexation;
-		this.C = fdefs.collisionMatrices.collision;
+		this.A = [];
+		for (let j = 0; j < fdefs.stems.length; j++) {
+			this.A[j] = [];
+			for (let k = 0; k < fdefs.stems.length; k++) {
+				this.A[j][k] =
+					fdefs.collisionMatrices.annexation[j][k] * options.annexMultipliers[j][k];
+			}
+		}
+		this.C = [];
+		for (let j = 0; j < fdefs.stems.length; j++) {
+			this.C[j] = [];
+			for (let k = 0; k < fdefs.stems.length; k++) {
+				this.C[j][k] =
+					fdefs.collisionMatrices.collision[j][k] * options.colMultipliers[j][k];
+			}
+		}
+
 		this.S = fdefs.collisionMatrices.swap;
 		this.D = fdefs.collisionMatrices.darkness;
 		this.P = fdefs.collisionMatrices.promixity;
@@ -80,12 +95,12 @@ class Hinter {
 		this.tightness = this.getTightness(fdefs);
 		this.nStems = fdefs.stems.length;
 		this.stems = fdefs.stems;
-		this.updateAvails(this.decideWidths(fdefs.stems), margins);
+		this.updateAvails(this.decideWidths(fdefs.stems, options), options);
 		this.symmetry = decideSymmetry.call(this);
 		this.xExpansion = 1 + Math.round(toVQ(strategy.X_EXPAND, ppem)) / 100;
 	}
-	updateAvails(tws, margins) {
-		this.avails = decideAvails.call(this, this.stems, tws, margins);
+	updateAvails(tws, options) {
+		this.avails = decideAvails.call(this, this.stems, tws, options);
 
 		this.availsByLength = function() {
 			let m = [];
@@ -187,8 +202,8 @@ class Hinter {
 	}
 
 	// Decide proper widths of stems globally
-	decideWidths(stems) {
-		return decideWidths.call(this, stems);
+	decideWidths(stems, options) {
+		return decideWidths.call(this, stems, options);
 	}
 
 	cheby(_x, extreme) {
@@ -225,17 +240,19 @@ class Hinter {
 		const { avails, uppx } = this;
 		const hinter = this;
 		const pass1 = avails.map(function(a, j) {
-			let initY = y0
-				? y0[j]
-				: 1 /
-					uppx *
-					lerp(
-						a.y0,
-						hinter.glyphBottom0,
-						hinter.glyphTop0,
-						hinter.glyphBottom,
-						hinter.glyphTop
-					);
+			let initY =
+				1 /
+				uppx *
+				lerp(
+					a.y0,
+					hinter.glyphBottom0,
+					hinter.glyphTop0,
+					hinter.glyphBottom,
+					hinter.glyphTop
+				);
+			if (y0) {
+				initY = y0[j];
+			}
 			return xclamp(a.low, Math.round(initY), a.high);
 		});
 		if (pass1.length > 1 && pass1[0] < pass1[pass1.length - 1]) {

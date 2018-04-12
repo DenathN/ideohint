@@ -7,7 +7,7 @@ const { parseOTD } = require("./otdParser");
 const { xclamp, toVQ } = require("../support/common");
 const roundings = require("../support/roundings");
 
-exports.version = 11505;
+exports.version = 1016000;
 
 exports.hintSingleGlyph = function(contours, strategy) {
 	return exports.decideHints(
@@ -107,29 +107,66 @@ exports.decideHints = function(featData, strategy) {
 	const upm = strategy.UPM;
 	let sd = [];
 
+	// Cross-PPEM consistency parameters
+	// Initial stroke positions for this PPEM
 	let initialY = null;
-	let initialRanges = null;
-	for (let ppem = strategy.PPEM_MIN; ppem <= strategy.PPEM_MAX; ppem++) {
-		const actions = hintForSize(featData, ppem, strategy, initialY, initialRanges);
+	// Required marins
+	let margins = null;
+	// Collide multiplers (to keep annexeation from (ppem+1) to (ppem))
+	let colMultipliers = [];
+	// Annex multiplers (to keep annexeation from (ppem+1) to (ppem))
+	let annexMultipliers = [];
+	// Maximum stroke width at this ppem
+	let maxStrokeWidths = [];
+
+	for (let j = 0; j < featData.stems.length; j++) {
+		annexMultipliers[j] = [];
+		colMultipliers[j] = [];
+		maxStrokeWidths[j] = strategy.PPEM_MAX * 8;
+		for (let k = 0; k < featData.stems.length; k++) {
+			annexMultipliers[j][k] = 1;
+			colMultipliers[j][k] = 1;
+		}
+	}
+
+	for (let ppem = strategy.PPEM_MAX; ppem >= strategy.PPEM_MIN; ppem--) {
+		const actions = hintForSize(featData, ppem, strategy, {
+			y0: initialY,
+			margins: margins,
+			colMultipliers,
+			annexMultipliers,
+			maxStrokeWidths
+		});
 		sd[ppem] = actions;
 
-		// update initialY
-		const thatPPEM = ppem + 1;
+		const thatPPEM = ppem - 1;
 		const [bottomThis, topThis] = topbotOf(strategy, upm, ppem);
 		const [bottomThat, topThat] = topbotOf(strategy, upm, thatPPEM);
-		initialRanges = actions.y.map(([y, w], j) => [
-			y - w - bottomThis,
-			Math.max(
-				topThis - y > 0 ? 1 : 0,
-				Math.min(
-					topThis - y,
-					Math.round(
-						(strategy.BLUEZONE_TOP_CENTER - featData.stems[j].y) / (upm / thatPPEM)
-					)
-				)
-			)
-		]);
 
+		// Update maxStrokeWidths
+		for (let j = 0; j < featData.stems.length; j++) {
+			maxStrokeWidths[j] = actions.y[j][1];
+		}
+
+		// Update colMultipliers
+		for (let j = 0; j < featData.stems.length; j++) {
+			for (let k = 0; k < featData.stems.length; k++) {
+				if (!featData.directOverlaps[j][k] && !featData.directOverlaps[k][j]) continue;
+				if (actions.y[j][0] === actions.y[k][0]) {
+					annexMultipliers[j][k] = annexMultipliers[k][j] = 1 / 1000;
+					colMultipliers[j][k] = colMultipliers[k][j] = 1000;
+				}
+			}
+		}
+
+		// Update margins
+
+		margins = actions.y.map(([y, w]) => ({
+			bottom: y - w - bottomThis - 1,
+			top: topThis - y - 1
+		}));
+
+		// Update initialY
 		initialY = actions.y.map(function(a) {
 			const y = a[0];
 			const w = a[1];

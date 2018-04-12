@@ -21,7 +21,7 @@ function decideMaxShift(y0, w0, ppem, tightness, strategy) {
 }
 
 class Avail {
-	constructor(env, stem, tw, ir) {
+	constructor(env, stem, tw, stemMargins) {
 		const { upm, ppem, uppx, strategy, tightness } = env;
 		const halfway0 = (env.BLUEZONE_TOP_CENTER + env.BLUEZONE_BOTTOM_CENTER) / 2;
 		const halfway = (env.glyphTopPixels + env.glyphBottomPixels) / 2;
@@ -56,8 +56,8 @@ class Avail {
 						: 0
 				)
 		);
-		if (!stem.hasGlyphStemBelow && ir && ir[0] < ir[1]) {
-			lowlimit = Math.max(env.glyphBottom + w + ir[0] * uppx, lowlimit);
+		if (!stem.hasGlyphStemBelow && stemMargins && stemMargins.bottom < stemMargins.top) {
+			lowlimit = Math.max(env.glyphBottom + w + stemMargins.bottom * uppx, lowlimit);
 		}
 		let fold = false;
 		// Add additional space below strokes with a fold under it.
@@ -96,8 +96,8 @@ class Avail {
 						: 0
 				)
 		);
-		if (!stem.hasGlyphStemAbove && ir && ir[1] < ir[0]) {
-			highlimit = Math.min(env.glyphTop - ir[1] * uppx, highlimit);
+		if (!stem.hasGlyphStemAbove && stemMargins && stemMargins.top < stemMargins.bottom) {
+			highlimit = Math.min(env.glyphTop - stemMargins.top * uppx, highlimit);
 		}
 
 		if (stem.hasEntireContourAbove) {
@@ -305,7 +305,8 @@ function adjustAvails(avails, stems) {
 	}
 }
 
-function decideAvails(stems, tws, margins) {
+function decideAvails(stems, tws, options) {
+	const { margins } = options;
 	let avails = [];
 	// decide avails
 	for (let j = 0; j < stems.length; j++) {

@@ -24,11 +24,11 @@ function choose(hinter, first, ...sps) {
 	return idvOptimal;
 }
 
-function hint(gd, ppem, strg, y0, margins) {
-	const hinter = new Hinter(strg, gd, ppem, margins);
+function hint(gd, ppem, strg, options) {
+	const hinter = new Hinter(strg, gd, ppem, options);
 	if (!hinter.avails.length) return new HintDecision(hinter.xExpansion, [], false);
-	const spInit = hinter.balance(hinter.decideInitHint(y0));
-	const spNT = hinter.balance(hinter.decideInitHintNT(y0));
+	const spInit = hinter.balance(hinter.decideInitHint(options.y0));
+	const spNT = hinter.balance(hinter.decideInitHintNT(options.y0));
 	// Y pass
 	let initWidths = hinter.avails.map(a => a.properWidth);
 	const spUncol = hinter.uncollide(spInit);
@@ -39,7 +39,9 @@ function hint(gd, ppem, strg, y0, margins) {
 	// filter out outliers
 	const otl = outlier(w);
 	const avgw = Math.round(w.reduce((a, b) => a + b, 0) / w.length);
-	let w1 = w.map(x => (otl.testOutlier(x) ? Math.max(x, avgw) : x));
+	let w1 = w.map((x, j) =>
+		Math.min(options.maxStrokeWidths[j], otl.testOutlier(x) ? Math.max(x, avgw) : x)
+	);
 
 	// The width allocator may alter the initial width
 	// do the second pass if necessary
@@ -49,7 +51,7 @@ function hint(gd, ppem, strg, y0, margins) {
 		if (w1[j] !== initWidths[j]) doSecondPass = true;
 	}
 	if (doSecondPass) {
-		hinter.updateAvails([...w1], margins);
+		hinter.updateAvails([...w1], options);
 		const spUncol1 = hinter.uncollide(hinter.balance(hinter.decideInitHint()));
 		const pass2Idv = choose(
 			hinter,

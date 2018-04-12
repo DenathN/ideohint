@@ -18,10 +18,13 @@ function calculateWidthOfStem(s, w) {
 }
 
 // Decide proper widths of stems globally
-function decideWidths(stems) {
+function decideWidths(stems, options) {
 	let tws = [];
 	for (let j = 0; j < stems.length; j++) {
-		tws[j] = calculateWidthOfStem.call(this, stems[j], stems[j].width);
+		tws[j] = Math.min(
+			options.maxStrokeWidths[j],
+			calculateWidthOfStem.call(this, stems[j], stems[j].width)
+		);
 	}
 	return tws;
 }
