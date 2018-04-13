@@ -22,6 +22,51 @@ class HintingElement {
 		return false;
 	}
 }
+
+function ppemMaxIf(limit, consequent, alternate) {
+	if (limit) {
+		return `
+ASM("
+#BEGIN
+#PUSHOFF
+MPPEM[]
+#PUSH, ${limit}
+LT[]
+IF[]
+#BEGIN
+#PUSHON
+")
+${consequent}
+ASM("
+#END
+ELSE[]
+#BEGIN
+#PUSHON")
+${alternate}
+ASM("
+#END
+EIF[]
+#END")
+`;
+	} else {
+		return consequent;
+	}
+}
+function anchor(place, knot, cvt, limit) {
+	if (cvt) {
+		return (
+			`/* !!IDH!! ${place} Anchor Kind Direct w/CVT */` +
+			"\n" +
+			ppemMaxIf(limit, `YAnchor(${knot},${cvt})`, `YAnchor(${knot})		`)
+		);
+	} else {
+		return `
+/* !!IDH!! ${place} Anchor Kind Direct */
+YAnchor(${knot})
+		`;
+	}
+}
+
 class BottomAnchorHintingElement extends HintingElement {
 	constructor(id, y, _) {
 		super();
@@ -33,19 +78,10 @@ class BottomAnchorHintingElement extends HintingElement {
 		return KEY_ITEM_BOTTOM;
 	}
 	talk() {
-		if (this.cvtID) {
-			return `
-/* !!IDH!! Bottom Anchor Kind Direct */
-YAnchor(${this.ipz},${this.cvtID})
+		return `
+${anchor("Bottom", this.ipz, this.cvtID, this.ppemMax)}
 ${this.deltas || ""}
-`;
-		} else {
-			return `
-			/* !!IDH!! Bottom Anchor Kind Direct */
-			YAnchor(${this.ipz})
-			${this.deltas || ""}
-			`;
-		}
+		`;
 	}
 	below(z) {
 		return z.y < this.pOrg;
@@ -70,23 +106,25 @@ class TopAnchorHintingElement extends HintingElement {
 				bottomAnchor &&
 				Math.abs(this.pOrg - bottomAnchor.pOrg - this.topBotRefDist) < $.cvtCutin / 2;
 			if (isValidLink) {
-				return `
-/* !!IDH!! Top Anchor Kind Linked */
-YLink(${bottomAnchor.ipz},${this.ipz},${this.cvtTopBotDistId})
-`;
+				return (
+					`/* !!IDH!! Top Anchor Kind Linked */` +
+					"\n" +
+					ppemMaxIf(
+						this.ppemMax,
+						`YLink(${bottomAnchor.ipz},${this.ipz},${this.cvtTopBotDistId})`,
+						`YLink(${bottomAnchor.ipz},${this.ipz})`
+					)
+				);
 			} else {
 				return `
-/* !!IDH!! Top Anchor Kind Direct */
-YAnchor(${this.ipz},${this.cvtID})
-${this.deltas || ""}
+				${anchor("Top", this.ipz, this.cvtID, this.ppemMax)}
+				${this.deltas || ""}
 `;
 			}
 		} else {
 			return `
-/* !!IDH!! Top Anchor Kind Linked */
-YAnchor(${this.ipz})
-${this.deltas || ""}
-
+			${anchor("Top", this.ipz, this.cvtID, this.ppemMax)}
+			${this.deltas || ""}
 `;
 		}
 	}

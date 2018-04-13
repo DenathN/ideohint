@@ -199,12 +199,17 @@ function produceVTTTalk(record, strategy, contours, options) {
 	let elements = [];
 	for (let z of $.si.blue.bottomZs) {
 		if (options.noCVTAnchoring) {
-			let targetPos = table($.pmin, $.pmaxC, ppem =>
-				Math.min($.hintedPositions.bot[ppem], roundings.rtg(z.y, $.upm, ppem))
+			let targetPos = table(
+				$.pmin,
+				$.pmaxC,
+				ppem =>
+					ppem <= $.pmax ? $.hintedPositions.bot[ppem] : roundings.rtg(z.y, $.upm, ppem)
 			);
 			elements.push(
 				new HE.Bottom(z.id, z.y, {
-					deltas: $.compileAnchor(z.id, $.rtgTable(z.y), targetPos),
+					cvtID: $.cvt.cvtBottomId,
+					ppemMax: $.pmax,
+					deltas: "",
 					hintedPositions: targetPos
 				})
 			);
@@ -230,13 +235,21 @@ function produceVTTTalk(record, strategy, contours, options) {
 	}
 	for (let z of $.si.blue.topZs) {
 		if (options.noCVTAnchoring) {
-			let targetPos = table($.pmin, $.pmaxC, ppem =>
-				Math.max($.hintedPositions.top[ppem], roundings.rtg(z.y, $.upm, ppem))
+			let targetPos = table(
+				$.pmin,
+				$.pmaxC,
+				ppem =>
+					ppem <= $.pmax ? $.hintedPositions.top[ppem] : roundings.rtg(z.y, $.upm, ppem)
 			);
 			elements.push(
 				new HE.Top(z.id, z.y, {
-					deltas: $.compileAnchor(z.id, $.rtgTable(z.y), targetPos),
-					hintedPositions: targetPos
+					hintedPositions: targetPos,
+					cvtID: $.cvt.cvtTopId,
+					ppemMax: $.pmax,
+					cvtTopBotDistId: $.cvt.cvtTopBotDistId,
+					topBotRefDist:
+						$.strategy.BLUEZONE_TOP_CENTER - $.strategy.BLUEZONE_BOTTOM_CENTER,
+					deltas: $.compileAnchor(z.id, $.hintedPositions.top0, $.hintedPositions.top)
 				})
 			);
 		} else if (Math.abs(z.y - $.aux.yTopD) < Math.abs(z.y - $.strategy.BLUEZONE_TOP_CENTER)) {

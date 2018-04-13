@@ -80,14 +80,20 @@ module.exports = function formOffhints(contours, elements) {
 				);
 		}
 	} else if (extrema.length >= 2) {
-		this.talk(`YAnchor(${extrema[0].id})`);
-		this.talk(`YDist(${extrema[0].id},${extrema[extrema.length - 1].id})`);
+		const bottom = extrema[0];
+		const top = extrema[extrema.length - 1];
+		this.talk(`YAnchor(${bottom.id})`);
+		if (top.y - bottom.y > this.upm / 2) {
+			this.talk(`YAnchor(${top.id})`);
+		} else {
+			this.talk(`YDist(${bottom.id},${top.id})`);
+		}
 		if (extrema.length > 2) {
 			this.talk(
-				`YInterpolate(${extrema[0].id},${extrema
+				`YInterpolate(${bottom.id},${extrema
 					.slice(1, -1)
 					.map(z => z.id)
-					.join(",")},${extrema[extrema.length - 1].id})`
+					.join(",")},${top.id})`
 			);
 		}
 	}
