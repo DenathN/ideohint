@@ -21,6 +21,8 @@ exports.builder = function(yargs) {
 		.describe("parameters", "Specify parameter file (in TOML).")
 		.describe("CVT_PADDING", "Specify CVT Padding.")
 		.describe("FPGM_PADDING", "Specify FPGM Padding.")
+		.boolean(["noCVTAnchoring"])
+		.describe("noCVTAnchoring", "Disable CVT anchoring for large size.")
 		.describe("sdcutoff", "Specify SD-Cutoff settings.");
 };
 

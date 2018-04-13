@@ -20,6 +20,8 @@ exports.builder = function(yargs) {
 		.describe("help", "Displays this help.")
 		.describe("o", "Output otd path. When absent, the result OTD will be written to STDOUT.")
 		.describe("parameters", "Specify parameter file (in TOML).")
+		.boolean(["noCVTAnchoring"])
+		.describe("noCVTAnchoring", "Disable CVT anchoring for large size.")
 		.describe("CVT_PADDING", "Specify CVT Padding.");
 };
 exports.handler = function(argv) {
