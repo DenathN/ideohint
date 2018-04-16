@@ -82,7 +82,9 @@ class Avail {
 				// cut part
 				stem.diagHigh
 					? env.TOP_CUT_DIAGH
-					: stem.diagLow ? env.TOP_CUT_DIAGH + env.TOP_CUT_DIAG_DIST : env.TOP_CUT,
+					: stem.diagLow
+						? env.TOP_CUT_DIAGH + env.TOP_CUT_DIAG_DIST
+						: env.TOP_CUT,
 				// spatial part
 				this.atGlyphTop ? 0 : uppx
 			);
@@ -267,7 +269,9 @@ function adjustAvails(avails, stems) {
 			const force =
 				stem.diagHigh || stem.diagLow
 					? this.BOTTOM_UNIFY_FORCE_DIAG
-					: stem.hasLRSpur && !this.onePixelMatter ? 0 : this.BOTTOM_UNIFY_FORCE;
+					: stem.hasLRSpur && !this.onePixelMatter
+						? 0
+						: this.BOTTOM_UNIFY_FORCE;
 			const bot1 =
 				topPx - (topPx - bot) * (topPx - bottomPx - force) / (topPx - bottomPx - force * 2);
 			avail.high = Math.round(bot1 + avail.properWidth);

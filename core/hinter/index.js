@@ -5,9 +5,10 @@ const Hinter = require("./hinter");
 const stemPositionToActions = require("./actions");
 
 class HintDecision {
-	constructor(x, y) {
+	constructor(x, y, symmetry) {
 		this.y = y;
 		this.x = { expansion: x };
+		this.symmetry = symmetry;
 	}
 }
 
@@ -64,6 +65,10 @@ function hint(gd, ppem, strg, options) {
 		w = a.w;
 	}
 	// results
-	return new HintDecision(hinter.xExpansion, stemPositionToActions.call(hinter, y, w, gd.stems));
+	return new HintDecision(
+		hinter.xExpansion,
+		stemPositionToActions.call(hinter, y, w, gd.stems),
+		hinter.symmetry
+	);
 }
 module.exports = hint;

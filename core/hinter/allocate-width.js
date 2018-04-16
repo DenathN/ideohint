@@ -392,6 +392,20 @@ function allocateWidth(y0, env) {
 			}
 			edgeTouchBalance();
 		}
+
+		// Symmetry Preserve
+		for (let j = y.length - 2; j >= 0; j--) {
+			for (let k = j + 1; k < y.length; k++) {
+				if (!env.symmetry[j][k] && !env.symmetry[k][j]) continue;
+				if (pass % 2) {
+					y[j] = y[k];
+					w[j] = w[k];
+				} else {
+					y[k] = y[j];
+					w[k] = w[j];
+				}
+			}
+		}
 	}
 
 	// Prevent swap

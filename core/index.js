@@ -52,6 +52,28 @@ function slicelast(x) {
 	return x.slice(0, -1);
 }
 
+class SizeIndependentStem {
+	constructor(s) {
+		this.posKeyAtTop = s.posKeyAtTop;
+		this.posKey = s.posKey;
+		this.advKey = s.advKey;
+		this.posAlign = s.posAlign;
+		this.advAlign = s.advAlign;
+		this.diagHigh = s.diagHigh;
+		this.diagLow = s.diagLow;
+		this.slope = s.slope;
+		this.rid = s.rid;
+		this.atLeft = s.atLeft;
+		this.atRight = s.atRight;
+		this.xmin = s.xmin;
+		this.xmax = s.xmax;
+		this.hasGlyphStemBelow = s.hasGlyphStemBelow;
+		this.hasGlyphFoldBelow = s.hasGlyphFoldBelow;
+		this.hasGlyphSideFoldBelow = s.hasGlyphSideFoldBelow;
+		this.hasGlyphStemAbove = s.hasGlyphStemAbove;
+		this.hasGlyphFoldAbove = s.hasGlyphFoldAbove;
+	}
+}
 class SizeIndependentHints {
 	constructor(featData, strategy) {
 		this.upm = strategy.UPM;
@@ -63,28 +85,13 @@ class SizeIndependentHints {
 		this.xIP = featData.xIP;
 		this.overlaps = featData.overlaps;
 		this.directOverlaps = featData.directOverlaps;
-		this.stems = featData.stems.map(function(s) {
-			return {
-				posKeyAtTop: s.posKeyAtTop,
-				posKey: s.posKey,
-				advKey: s.advKey,
-				posAlign: s.posAlign,
-				advAlign: s.advAlign,
-				diagHigh: s.diagHigh,
-				diagLow: s.diagLow,
-				slope: s.slope,
-				rid: s.rid,
-				atLeft: s.atLeft,
-				atRight: s.atRight,
-				xmin: s.xmin,
-				xmax: s.xmax,
-				hasGlyphStemBelow: s.hasGlyphStemBelow,
-				hasGlyphFoldBelow: s.hasGlyphFoldBelow,
-				hasGlyphSideFoldBelow: s.hasGlyphSideFoldBelow,
-				hasGlyphStemAbove: s.hasGlyphStemAbove,
-				hasGlyphFoldAbove: s.hasGlyphFoldAbove
-			};
-		});
+		this.stems = featData.stems.map(s => new SizeIndependentStem(s));
+	}
+}
+class SizeDependentHints {
+	constructor(h) {
+		this.x = h.x;
+		this.y = h.y;
 	}
 }
 
@@ -103,8 +110,16 @@ function topbotOf(strategy, upm, ppem) {
 	return [b, t];
 }
 
+function swapProp(o, a, b) {
+	const t = o[a];
+	o[a] = o[b];
+	o[b] = t;
+}
+
 exports.decideHints = function(featData, strategy) {
 	const upm = strategy.UPM;
+
+	let actions = [];
 	let sd = [];
 
 	// Cross-PPEM consistency parameters
@@ -137,7 +152,8 @@ exports.decideHints = function(featData, strategy) {
 			annexMultipliers,
 			maxStrokeWidths
 		});
-		sd[ppem] = actions;
+		actions[ppem] = actions;
+		sd[ppem] = new SizeDependentHints(actions);
 
 		const thatPPEM = ppem - 1;
 		const [bottomThis, topThis] = topbotOf(strategy, upm, ppem);
@@ -217,6 +233,21 @@ exports.decideHints = function(featData, strategy) {
 				}
 			}
 		});
+	}
+
+	if (actions[strategy.PPEM_MAX] && actions[strategy.PPEM_MAX].symmetry) {
+		for (let j = 0; j < featData.stems.length; j++) {
+			for (let k = 0; k < j; k++) {
+				if (!actions[strategy.PPEM_MAX].symmetry[j][k]) continue;
+				const pat = featData.stems[j].posKeyAtTop || featData.stems[k].posKeyAtTop;
+				for (let stem of [featData.stems[j], featData.stems[k]]) {
+					if (stem.posKeyAtTop === pat) continue;
+					stem.posKeyAtTop = pat;
+					swapProp(stem, "posKey", "advKey");
+					swapProp(stem, "posAlign", "advAlign");
+				}
+			}
+		}
 	}
 
 	return {

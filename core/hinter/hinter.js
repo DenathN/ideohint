@@ -359,12 +359,12 @@ function decideSymmetry() {
 				Math.abs(avails[j].y0 - avails[j].w0 - avails[k].y0 + avails[k].w0) <
 					this.uppx / 3 &&
 				Math.abs(avails[j].length - avails[k].length) < this.uppx / 3 &&
-				avails[j].hasGlyphStemAbove === avails[k].hasGlyphStemAbove &&
-				avails[j].hasGlyphStemBelow === avails[k].hasGlyphStemBelow &&
 				avails[j].hasSameRadicalStemAbove === avails[k].hasSameRadicalStemAbove &&
 				avails[j].hasSameRadicalStemBelow === avails[k].hasSameRadicalStemBelow &&
-				avails[j].atGlyphTop === avails[k].atGlyphTop &&
-				avails[j].atGlyphBottom === avails[k].atGlyphBottom;
+				(avails[j].hasGlyphStemAbove === avails[k].hasGlyphStemAbove ||
+					avails[j].hasGlyphStemBelow === avails[k].hasGlyphStemBelow) &&
+				(avails[j].atGlyphTop === avails[k].atGlyphTop ||
+					avails[j].atGlyphBottom === avails[k].atGlyphBottom);
 		}
 	}
 	return sym;
