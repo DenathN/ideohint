@@ -37,32 +37,67 @@ function hint(gd, ppem, strg, options) {
 	const pass1Idv = choose(hinter, spNT, spUncol);
 	let { y, w } = hinter.allocateWidth([...pass1Idv.gene]);
 
-	// filter out outliers
-	const otl = outlier(w);
-	const avgw = Math.round(w.reduce((a, b) => a + b, 0) / w.length);
-	let w1 = w.map((x, j) =>
-		Math.min(options.maxStrokeWidths[j], otl.testOutlier(x) ? Math.max(x, avgw) : x)
-	);
+	for (let contHintRound = 0; contHintRound < 2; contHintRound++) {
+		// Do we still have collisions?
+		let hasCollide = false;
+		let detectedCollisons = [];
+		let w1 = [];
+		for (let j = 0; j < y.length; j++) {
+			detectedCollisons[j] = false;
+			const sa = hinter.spaceAbove(y, w, j, hinter.glyphTopPixels + 1);
+			const sb = hinter.spaceBelow(y, w, j, hinter.glyphBottomPixels - 1);
+			if (sa < 1 || sb < 1) {
+				hasCollide = true;
+				detectedCollisons[j] = true;
+			}
+		}
 
-	// The width allocator may alter the initial width
-	// do the second pass if necessary
-	let doSecondPass = false;
-	for (let j = 0; j < w1.length; j++) {
-		if (y[j] !== pass1Idv.gene[j]) doSecondPass = true;
-		if (w1[j] !== initWidths[j]) doSecondPass = true;
-	}
-	if (doSecondPass) {
-		hinter.updateAvails([...w1], options);
-		const spUncol1 = hinter.uncollide(hinter.balance(hinter.decideInitHint()));
-		const pass2Idv = choose(
-			hinter,
-			hinter.balance([...y]),
-			hinter.balance([...spNT]),
-			spUncol1
-		);
-		const a = hinter.allocateWidth(pass2Idv.gene);
-		y = a.y;
-		w = a.w;
+		// filter out outliers
+		let doThisRound = false;
+		const otl = outlier(w);
+		const avgw = Math.round(w.reduce((a, b) => a + b, 0) / w.length);
+		for (let j = 0; j < y.length; j++) {
+			const isOutlier = otl.testOutlier(w[j]);
+			let maxw = w[j];
+			// the stroke is wider then one pixel but there's some collision around it
+			// we'd like to shrink this stroke by one pixel to leave out spaces
+			if (
+				w[j] === 2 &&
+				hinter.avails[j].w0px < w[j] &&
+				((hasCollide && isOutlier) || detectedCollisons[j])
+			) {
+				maxw -= 1;
+				doThisRound = true;
+			}
+			w1[j] = Math.min(
+				maxw,
+				options.maxStrokeWidths[j],
+				outlier && !contHintRound ? Math.max(w[j], avgw) : w[j]
+				// only allow unifying stroke widths in first continued hinting round
+			);
+		}
+
+		// The width allocator may alter the initial width
+		// do the second pass if necessary
+		for (let j = 0; j < w1.length; j++) {
+			if (y[j] !== pass1Idv.gene[j]) doThisRound = true;
+			if (w1[j] !== initWidths[j]) doThisRound = true;
+		}
+		if (doThisRound) {
+			hinter.updateAvails([...w1], options);
+			const spUncol1 = hinter.uncollide(hinter.balance(hinter.decideInitHint()));
+			const pass2Idv = choose(
+				hinter,
+				hinter.balance([...y]),
+				hinter.balance([...spNT]),
+				spUncol1
+			);
+			const a = hinter.allocateWidth(pass2Idv.gene);
+			y = a.y;
+			w = a.w;
+		} else {
+			break;
+		}
 	}
 	// results
 	return new HintDecision(

@@ -231,6 +231,43 @@ class Hinter {
 		);
 	}
 
+	// Space query
+	requiredSpaceBetween(j, k) {
+		return this.F[j][k] > 4 ? this.WIDTH_GEAR_PROPER : this.F[j][k] > 3 ? 1 : 0;
+	}
+	spaceBelow(y, w, k, bottom) {
+		let space = y[k] - w[k] - bottom;
+		for (let j = k - 1; j >= 0; j--) {
+			if (this.directOverlaps[k][j] && y[k] - y[j] - w[k] < space)
+				space = y[k] - y[j] - w[k] - this.requiredSpaceBetween(j, k);
+		}
+		return space;
+	}
+	spaceBelow1(y, k, bottom) {
+		let space = y[k] - 1 - bottom;
+		for (let j = k - 1; j >= 0; j--) {
+			if (this.directOverlaps[k][j] && y[k] - y[j] - 1 < space)
+				space = y[k] - y[j] - 1 - this.requiredSpaceBetween(j, k);
+		}
+		return space;
+	}
+	spaceAbove(y, w, k, top) {
+		let space = top - y[k];
+		for (let j = k + 1; j < y.length; j++) {
+			if (this.directOverlaps[j][k] && y[j] - y[k] - w[j] < space)
+				space = y[j] - y[k] - w[j] - this.requiredSpaceBetween(j, k);
+		}
+		return space;
+	}
+	spaceAbove1(y, k, top) {
+		let space = top - y[k];
+		for (let j = k + 1; j < y.length; j++) {
+			if (this.directOverlaps[j][k] && y[j] - y[k] - 1 < space)
+				space = y[j] - y[k] - 1 - this.requiredSpaceBetween(j, k);
+		}
+		return space;
+	}
+
 	decideInitHint() {
 		const { avails } = this;
 		return avails.map(s => s.center);

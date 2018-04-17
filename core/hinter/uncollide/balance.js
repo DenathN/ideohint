@@ -39,7 +39,7 @@ function balanceMove(y, env) {
 	return stable;
 }
 
-function tryImprove(env, y, j1, mark1, j2, mark2) {
+function tryImprove2(env, y, j1, mark1, j2, mark2) {
 	const avails = env.avails;
 	if (mark1 > 0 && y[j1] >= avails[j1].high) return false;
 	if (mark1 < 0 && y[j1] <= avails[j1].low) return false;
@@ -101,7 +101,7 @@ function balanceTriplets1(y, env, pass) {
 			if (P[j][k] < 4) checkImprove = true;
 		}
 		if (checkImprove) {
-			if (tryImprove(env, y, k, mark, 0, 0)) {
+			if (tryImprove2(env, y, k, mark, 0, 0)) {
 				stable = false;
 			}
 		} else if (mark) {
@@ -156,9 +156,53 @@ function balanceQuartlets(y, env) {
 			y[m] - y[w] === COLLIDING
 		) {
 			// Situation |0||0| --> ||1|| or |1||| or |||1|
-			if (tryImprove(env, y, k, 1, m, -1)) stable = false;
-			if (tryImprove(env, y, k, 1, m, 1)) stable = false;
-			if (tryImprove(env, y, k, -1, m, -1)) stable = false;
+			if (tryImprove2(env, y, k, 1, m, -1)) stable = false;
+			if (tryImprove2(env, y, k, 1, m, 1)) stable = false;
+			if (tryImprove2(env, y, k, -1, m, -1)) stable = false;
+		} else if (
+			y[j] - y[k] === COLLIDING &&
+			y[k] - y[m] === SPACED &&
+			y[m] - y[w] === ANNEXED &&
+			env.spaceBelow1(y, w, env.glyphBottomPixels - 1) < 1
+		) {
+			// Situation |0|1||0[ -> |1|||1[
+			y[k] -= 1;
+			y[m] += 1;
+			y[w] += 1;
+			stable = false;
+		} else if (
+			y[j] - y[k] === COLLIDING &&
+			y[k] - y[m] === ANNEXED &&
+			y[m] - y[w] === SPACED &&
+			env.spaceBelow1(y, w, env.glyphBottomPixels - 1) < 1
+		) {
+			// Situation |0||1|0[ -> |1|||1[
+			y[k] -= 1;
+			y[m] -= 1;
+			y[w] += 1;
+			stable = false;
+		} else if (
+			y[j] - y[k] === ANNEXED &&
+			y[k] - y[m] === SPACED &&
+			y[m] - y[w] === COLLIDING &&
+			env.spaceAbove1(y, j, env.glyphTopPixels + 1) < 1
+		) {
+			// Situation ]0||1|0| -> ]1|||1|
+			y[j] -= 1;
+			y[k] -= 1;
+			y[m] += 1;
+			stable = false;
+		} else if (
+			y[j] - y[k] === SPACED &&
+			y[k] - y[m] === ANNEXED &&
+			y[m] - y[w] === COLLIDING &&
+			env.spaceAbove1(y, j, env.glyphTopPixels + 1) < 1
+		) {
+			// Situation ]0|1||0| -> ]1|||1|
+			y[j] -= 1;
+			y[k] += 1;
+			y[m] += 1;
+			stable = false;
 		}
 	}
 	return stable;

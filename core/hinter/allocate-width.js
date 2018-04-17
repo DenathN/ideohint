@@ -18,28 +18,11 @@ function edgetouch(s, t) {
 function cover(s, t) {
 	return t.xmin > mix(s.xmin, s.xmax, 0.05) && t.xmax < mix(s.xmin, s.xmax, 0.95);
 }
-function requiredSpaceBetween(env, j, k) {
-	return env.F[j][k] > 4 ? env.WIDTH_GEAR_PROPER : env.F[j][k] > 3 ? 1 : 0;
-}
+
 function dominate(aj, ak) {
 	return aj.xminX < ak.xminX && aj.xmaxX > ak.xmaxX;
 }
-function spaceBelow(env, y, w, k, bottom) {
-	let space = y[k] - w[k] - bottom;
-	for (let j = k - 1; j >= 0; j--) {
-		if (env.directOverlaps[k][j] && y[k] - y[j] - w[k] < space)
-			space = y[k] - y[j] - w[k] - requiredSpaceBetween(env, j, k);
-	}
-	return space;
-}
-function spaceAbove(env, y, w, k, top) {
-	let space = top - y[k];
-	for (let j = k + 1; j < y.length; j++) {
-		if (env.directOverlaps[j][k] && y[j] - y[k] - w[j] < space)
-			space = y[j] - y[k] - w[j] - requiredSpaceBetween(env, j, k);
-	}
-	return space;
-}
+
 function atValidPosition(top, bot, y, w, avail) {
 	return (
 		y - w >= avail.lowW - avail.properWidth &&
@@ -74,7 +57,7 @@ function allocateWidth(y0, env) {
 	let pixelBottom = Math.round(env.glyphBottom / env.uppx);
 
 	function allocateDown(j) {
-		let sb = spaceBelow(env, y, w, j, pixelBottom - 1);
+		let sb = env.spaceBelow(y, w, j, pixelBottom - 1);
 		let wr = properWidths[j];
 		let wx = Math.min(wr, w[j] + sb - 1);
 		if (wx <= 1) return;
@@ -137,7 +120,7 @@ function allocateWidth(y0, env) {
 			for (let k = 0; k < j; k++) {
 				if (
 					directOverlaps[j][k] &&
-					y[j] - w[j] - y[k] <= 1 + requiredSpaceBetween(env, j, k) &&
+					y[j] - w[j] - y[k] <= 1 + env.requiredSpaceBetween(j, k) &&
 					(onePixelMatter || // shifting strokes modifies glyph too much
 					y[k] <= avails[k].lowP || // the stroke is low enough
 					(onePixelMatter && y[k] <= y0[k] - 1) || // the stroke is low enough
@@ -151,7 +134,7 @@ function allocateWidth(y0, env) {
 			for (let k = 0; k < j; k++)
 				if (
 					directOverlaps[j][k] &&
-					y[j] - w[j] - y[k] <= 1 + requiredSpaceBetween(env, j, k)
+					y[j] - w[j] - y[k] <= 1 + env.requiredSpaceBetween(j, k)
 				) {
 					y[k] -= 1;
 					w[k] -= 1;
@@ -170,7 +153,7 @@ function allocateWidth(y0, env) {
 			for (let k = j + 1; k < N; k++) {
 				if (
 					directOverlaps[k][j] &&
-					y[k] - w[k] - y[j] <= 1 + requiredSpaceBetween(env, k, j) && // there is no stem below satisifies:
+					y[k] - w[k] - y[j] <= 1 + env.requiredSpaceBetween(k, j) && // there is no stem below satisifies:
 					// with one pixel space, and prevent upward adjustment, if
 					(onePixelMatter || // shifting strokes modifies glyph too much
 					!cover(avails[j], avails[k]) || // it is not dominated with stroke J
@@ -184,7 +167,7 @@ function allocateWidth(y0, env) {
 			for (let k = j + 1; k < N; k++)
 				if (
 					directOverlaps[k][j] &&
-					y[k] - w[k] - y[j] <= 1 + requiredSpaceBetween(env, k, j)
+					y[k] - w[k] - y[j] <= 1 + env.requiredSpaceBetween(k, j)
 				) {
 					w[k] -= 1;
 				}
@@ -228,8 +211,8 @@ function allocateWidth(y0, env) {
 			(w[j] += 1), (w[k] -= 1), (y[k] -= 1);
 		}
 		if (
-			spaceBelow(env, y, w, j, pixelBottom - 2) < 1 ||
-			spaceAbove(env, y, w, k, pixelTop + 2) < 1 ||
+			env.spaceBelow(y, w, j, pixelBottom - 2) < 1 ||
+			env.spaceAbove(y, w, k, pixelTop + 2) < 1 ||
 			(j < N - 1 && y[j] > y[j + 1]) ||
 			(j > 0 && y[j] < y[j - 1]) ||
 			(k < N - 1 && y[k] > y[k + 1]) ||
@@ -334,10 +317,10 @@ function allocateWidth(y0, env) {
 
 		// rollback when no space
 		if (
-			spaceBelow(env, y, w, j, pixelBottom - 1) < 1 ||
-			spaceAbove(env, y, w, k, pixelTop + 1) < 1 ||
-			spaceAbove(env, y, w, m, pixelTop + 1) < 1 ||
-			spaceBelow(env, y, w, k, pixelBottom - 1) < 1 ||
+			env.spaceBelow(y, w, j, pixelBottom - 1) < 1 ||
+			env.spaceAbove(y, w, k, pixelTop + 1) < 1 ||
+			env.spaceAbove(y, w, m, pixelTop + 1) < 1 ||
+			env.spaceBelow(y, w, k, pixelBottom - 1) < 1 ||
 			(j < N - 1 && y[j] > y[j + 1]) ||
 			(j > 0 && y[j] < y[j - 1]) ||
 			(k < N - 1 && y[k] > y[k + 1]) ||
@@ -411,8 +394,8 @@ function allocateWidth(y0, env) {
 	// Prevent swap
 	for (let j = y.length - 2; j >= 0; j--) {
 		if (y[j] > y[j + 1]) {
-			const su = spaceAbove(env, y, w, j + 1, pixelTop + 2);
-			const sb = spaceBelow(env, y, w, j, pixelBottom - 2);
+			const su = env.spaceAbove(y, w, j + 1, pixelTop + 2);
+			const sb = env.spaceBelow(y, w, j, pixelBottom - 2);
 			if (sb > y[j] - y[j + 1]) {
 				y[j] = xclamp(avails[j].lowW, y[j + 1], avails[j].highW);
 			} else if (su > y[j] - y[j + 1]) {
