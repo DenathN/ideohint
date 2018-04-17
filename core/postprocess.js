@@ -93,11 +93,17 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 			actions[j][ADDPXS] = 0;
 		}
 
-		// downward strictness/stackness detection
+		let stemlist = [];
 		for (let j = 0; j < stems.length; j++) {
-			const sj = stems[j],
-				yj = y[j],
-				wj = w[j];
+			const [xmin, xmax] = getMinmax(stems, j, y, w, 0);
+			stemlist[j] = { index: j, stem: stems[j], y: y[j], w: w[j], xmin, xmax };
+		}
+
+		// From long to short
+		stemlist = stemlist.sort((a, b) => b.xmax - b.xmin - (a.xmax - a.xmin));
+
+		// Mark hardness and stackness
+		for (let { index: j, stem: sj, y: yj, w: wj } of stemlist) {
 			for (let k = 0; k < j; k++) {
 				const sk = stems[k],
 					yk = y[k],
@@ -107,6 +113,7 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 				const [skmin, skmax, coK, coKID] = getMinmax(stems, k, y, w, 0);
 				const [sjmin, sjmax] = getMinmax(stems, j, y, w, 1);
 				if (
+					!actions[j][STACKED] &&
 					yj - wj === yk &&
 					wk * 2 >= hswNoHard[k] &&
 					sjmax >= skmax - wk / 2 * uppx &&
@@ -126,11 +133,6 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 					actions[j][HARD] = true;
 				}
 			}
-		}
-		for (let j = 0; j < stems.length; j++) {
-			const sj = stems[j],
-				yj = y[j],
-				wj = w[j];
 			for (let k = j + 1; k < stems.length; k++) {
 				const sk = stems[k],
 					yk = y[k],
@@ -141,6 +143,7 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 				const [skmin, skmax, coK, coKID] = getMinmax(stems, k, y, w, 1);
 				const [sjmin, sjmax] = getMinmax(stems, j, y, w, 0);
 				if (
+					!actions[j][STACKED] &&
 					yk - wk === yj &&
 					wk * 2 >= hswNoHard[k] &&
 					sjmax >= skmax - wk / 2 * uppx &&

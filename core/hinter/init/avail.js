@@ -23,8 +23,7 @@ function decideMaxShift(y0, w0, ppem, tightness, strategy) {
 class Avail {
 	constructor(env, stem, tw, stemMargins) {
 		const { upm, ppem, uppx, strategy, tightness } = env;
-		const halfway0 = (env.BLUEZONE_TOP_CENTER + env.BLUEZONE_BOTTOM_CENTER) / 2;
-		const halfway = (env.glyphTopPixels + env.glyphBottomPixels) / 2;
+
 		const y0 = stem.y,
 			w0 = stem.width,
 			w = tw * uppx;
@@ -114,17 +113,21 @@ class Avail {
 		const lowlimitP = lowlimit;
 		const highlimitP = highlimit;
 
-		if (y0 - w0 < halfway0) {
-			highlimit = xclamp(lowlimit, Math.round(halfway) * uppx + w, highlimit);
-		}
-		if (y0 < halfway0) {
-			highlimit = xclamp(lowlimit, Math.round(halfway) * uppx, highlimit);
-		}
-		if (y0 - w0 > halfway0) {
-			lowlimit = xclamp(lowlimit, Math.round(halfway) * uppx + w, highlimit);
-		}
-		if (y0 > halfway0) {
-			lowlimit = xclamp(lowlimit, Math.round(halfway) * uppx, highlimit);
+		for (let prop of [1 / 2]) {
+			const lim0 = mix(env.glyphBottom0, env.glyphTop0, prop);
+			const lim = mix(env.glyphBottomPixels, env.glyphTopPixels, prop);
+			if (y0 - w0 <= lim0 + uppx / 2) {
+				highlimit = xclamp(lowlimit, Math.ceil(lim) * uppx + w, highlimit);
+			}
+			if (y0 <= lim0 + uppx / 2) {
+				highlimit = xclamp(lowlimit, Math.ceil(lim) * uppx, highlimit);
+			}
+			if (y0 - w0 >= lim0 - uppx / 2) {
+				lowlimit = xclamp(lowlimit, Math.floor(lim) * uppx + w, highlimit);
+			}
+			if (y0 >= lim0 - uppx / 2) {
+				lowlimit = xclamp(lowlimit, Math.floor(lim) * uppx, highlimit);
+			}
 		}
 
 		const center0 = env.cy(

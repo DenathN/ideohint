@@ -7,12 +7,18 @@ function roundWpx(x) {
 	return Math.round(Math.ceil(x * 5) / 5);
 }
 
+const MIN_EXPANDABLE_PIXELS_B = 1 + 1 / 4;
+const MIN_EXPANDABLE_PIXELS_T = 1 + 1 / 2;
+
 // decide the proper width of given stem locally
 function calculateWidthOfStem(s, w) {
 	if (this.WIDTH_GEAR_PROPER <= 1) return 1;
 	return Math.max(
 		1,
-		!s.hasGlyphStemAbove || !s.hasGlyphStemBelow ? Math.min(2, this.WIDTH_GEAR_PROPER) : 0,
+		(!s.hasGlyphStemAbove && w >= MIN_EXPANDABLE_PIXELS_B * this.uppx) ||
+		(!s.hasGlyphStemAbove && w >= MIN_EXPANDABLE_PIXELS_T * this.uppx)
+			? Math.min(2, this.WIDTH_GEAR_PROPER)
+			: 0,
 		roundWpx(w / this.uppx)
 	);
 }
