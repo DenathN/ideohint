@@ -81,7 +81,7 @@ function padSD(actions, stems, overlaps, upm, ppem, tb, swcfg) {
 	function lockUp(sj, wj) {
 		return (
 			ppem < 22 &&
-			((!sj.hasGlyphStemAbove && !sj.diagLow) || (!sj.hasGlyphStemBelow && !sj.diagHigh)) &&
+			(!sj.hasGlyphStemBelow && !sj.diagHigh) &&
 			((wj <= 1 && Math.abs(sj.posKey.y - sj.advKey.y) >= 1.1 * uppx) ||
 				(wj === 2 && Math.abs(sj.posKey.y - sj.advKey.y) <= 1.75 * uppx))
 		);
