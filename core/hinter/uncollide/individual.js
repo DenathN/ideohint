@@ -83,7 +83,7 @@ class Individual {
 					pA += A[j][k]; // Annexation
 				} else if (y[j] <= y[k] + aj.properWidth) {
 					const d = 1 - (y[j] - aj.properWidth - y[k]);
-					pC += C[j][k] * d * d; // Collide
+					pC += C[j][k] * d * d * (dov[j][k] ? 1 : 1 / 10); // Collide
 					if (C[j][k]) {
 						nCol += sol[j][k] * ppem * ppem * 0.04;
 					}

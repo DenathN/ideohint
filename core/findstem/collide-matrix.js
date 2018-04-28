@@ -238,8 +238,8 @@ exports.computeACS = function(strategy, stems, overlapRatios, overlapLengths, Q,
 	}
 	for (let j = 0; j < n; j++) {
 		for (let k = j + 1; k < n; k++) {
-			A[j][k] = A[k][j] = Math.min(Math.max(A[j][k], A[k][j]), 1e9);
-			C[j][k] = C[k][j] = Math.min(Math.max(C[j][k], C[k][j]), 1e9);
+			A[j][k] = A[k][j] = Math.min(Math.max(A[j][k], A[k][j]), Math.max(S[j][k], S[k][j]));
+			C[j][k] = C[k][j] = Math.min(Math.max(C[j][k], C[k][j]), Math.max(S[j][k], S[k][j]));
 		}
 	}
 	return {

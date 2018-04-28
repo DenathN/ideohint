@@ -57,6 +57,28 @@ function tryImprove2(env, y, j1, mark1, j2, mark2) {
 		return false;
 	}
 }
+function tryImprove3(env, y, j1, mark1, j2, mark2, j3, mark3) {
+	const avails = env.avails;
+	if (mark1 > 0 && y[j1] >= avails[j1].high) return false;
+	if (mark1 < 0 && y[j1] <= avails[j1].low) return false;
+	if (mark2 > 0 && y[j2] >= avails[j2].high) return false;
+	if (mark2 < 0 && y[j2] <= avails[j2].low) return false;
+	if (mark3 > 0 && y[j3] >= avails[j3].high) return false;
+	if (mark3 < 0 && y[j3] <= avails[j3].low) return false;
+	const before = env.createIndividual(y, true);
+	y[j1] += mark1;
+	y[j2] += mark2;
+	y[j3] += mark3;
+	const after = env.createIndividual(y, true);
+	if (after.better(before)) {
+		return true;
+	} else {
+		y[j1] -= mark1;
+		y[j2] -= mark2;
+		y[j3] -= mark3;
+		return false;
+	}
+}
 
 function balanceTriplets1(y, env, pass) {
 	const avails = env.avails;
@@ -166,10 +188,7 @@ function balanceQuartlets(y, env) {
 			env.spaceBelow1(y, w, env.glyphBottomPixels - 1) < 1
 		) {
 			// Situation |0|1||0[ -> |1|||1[
-			y[k] -= 1;
-			y[m] += 1;
-			y[w] += 1;
-			stable = false;
+			if (tryImprove3(env, y, k, -1, m, +1, w, +1)) stable = false;
 		} else if (
 			y[j] - y[k] === COLLIDING &&
 			y[k] - y[m] === ANNEXED &&
@@ -177,10 +196,7 @@ function balanceQuartlets(y, env) {
 			env.spaceBelow1(y, w, env.glyphBottomPixels - 1) < 1
 		) {
 			// Situation |0||1|0[ -> |1|||1[
-			y[k] -= 1;
-			y[m] -= 1;
-			y[w] += 1;
-			stable = false;
+			if (tryImprove3(env, y, k, -1, m, -1, w, +1)) stable = false;
 		} else if (
 			y[j] - y[k] === ANNEXED &&
 			y[k] - y[m] === SPACED &&
@@ -188,10 +204,7 @@ function balanceQuartlets(y, env) {
 			env.spaceAbove1(y, j, env.glyphTopPixels + 1) < 1
 		) {
 			// Situation ]0||1|0| -> ]1|||1|
-			y[j] -= 1;
-			y[k] -= 1;
-			y[m] += 1;
-			stable = false;
+			if (tryImprove3(env, y, j, -1, k, -1, m, +1)) stable = false;
 		} else if (
 			y[j] - y[k] === SPACED &&
 			y[k] - y[m] === ANNEXED &&
@@ -199,10 +212,7 @@ function balanceQuartlets(y, env) {
 			env.spaceAbove1(y, j, env.glyphTopPixels + 1) < 1
 		) {
 			// Situation ]0|1||0| -> ]1|||1|
-			y[j] -= 1;
-			y[k] += 1;
-			y[m] += 1;
-			stable = false;
+			if (tryImprove3(env, y, j, -1, k, +1, m, +1)) stable = false;
 		}
 	}
 	return stable;
