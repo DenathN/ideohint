@@ -218,7 +218,7 @@ class Hinter {
 			this.CHEBYSHEV_5 * (16 * x * x * x * x * x - 20 * x * x * x + 5 * x);
 		const dy0 = this.CHEBYSHEV_2 - this.CHEBYSHEV_3 + this.CHEBYSHEV_4 - this.CHEBYSHEV_5;
 		const dy1 = this.CHEBYSHEV_2 + this.CHEBYSHEV_3 + this.CHEBYSHEV_4 + this.CHEBYSHEV_5;
-		const fdy = _x < 0 || _x > 1 ? 0 : dy - dy0 - (dy1 - dy0) * (x + 1) / 2;
+		const fdy = _x < 0 || _x > 1 ? 0 : dy - dy0 - ((dy1 - dy0) * (x + 1)) / 2;
 		return (y + fdy + 1) / 2;
 	}
 
@@ -278,8 +278,7 @@ class Hinter {
 		const hinter = this;
 		const pass1 = avails.map(function(a, j) {
 			let initY =
-				1 /
-				uppx *
+				(1 / uppx) *
 				lerp(
 					a.y0,
 					hinter.glyphBottom0,
@@ -292,7 +291,12 @@ class Hinter {
 			}
 			return xclamp(a.low, Math.round(initY), a.high);
 		});
-		if (pass1.length > 1 && pass1[0] < pass1[pass1.length - 1]) {
+
+		if (
+			pass1.length > 1 &&
+			avails[0].y0 < avails[avails.length - 1].y0 &&
+			pass1[0] < pass1[pass1.length - 1]
+		) {
 			return avails.map(a =>
 				xclamp(
 					a.low,
